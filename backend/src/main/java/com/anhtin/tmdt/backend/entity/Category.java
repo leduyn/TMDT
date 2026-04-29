@@ -20,7 +20,7 @@ public class Category {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -76,6 +76,9 @@ public class WebSecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/brands", "/api/brands/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews", "/api/reviews/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/promotions", "/api/promotions/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/attributes", "/api/attributes/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/*/attributes").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/products/search/faceted").permitAll()
                 .anyRequest().authenticated()
         );
         

@@ -54,6 +54,7 @@ export default function DashboardPage() {
     { href: '#', label: 'Điểm tích lũy', icon: '💎', desc: 'Điểm & phần thưởng' },
     ...(isAgency || isCompany ? [{ href: '/products/create', label: 'Thêm sản phẩm', icon: '➕', desc: 'Tạo sản phẩm mới' }] : []),
     ...(isAgency || isCompany ? [{ href: '/categories', label: 'Quản lý danh mục', icon: '📂', desc: 'Quản lý loại sản phẩm' }] : []),
+    ...(isCompany ? [{ href: '/attributes', label: 'Quản lý thuộc tính', icon: '⚙️', desc: 'Thiết lập EAV' }] : []),
     ...(isAgency || isCompany ? [{ href: '#', label: 'Quản lý đơn', icon: '📊', desc: 'Xử lý đơn hàng' }] : []),
   ];
 

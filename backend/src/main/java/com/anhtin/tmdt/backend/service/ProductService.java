@@ -5,17 +5,16 @@ import com.anhtin.tmdt.backend.dto.response.ProductDTO;
 import com.anhtin.tmdt.backend.entity.Category;
 import com.anhtin.tmdt.backend.entity.Product;
 import com.anhtin.tmdt.backend.entity.ProductImage;
-import com.anhtin.tmdt.backend.repository.BrandRepository;
-import com.anhtin.tmdt.backend.repository.CategoryRepository;
-import com.anhtin.tmdt.backend.repository.ProductImageRepository;
-import com.anhtin.tmdt.backend.repository.ProductRepository;
+import com.anhtin.tmdt.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +31,12 @@ public class ProductService {
 
     @Autowired
     private BrandRepository brandRepository;
+
+    @Autowired
+    private AttributeValueRepository attributeValueRepository;
+
+    @Autowired
+    private ProductAttributeValueRepository productAttributeValueRepository;
 
     public List<ProductDTO> getAllProducts() {
         return productRepository.findAll().stream()
@@ -80,6 +85,9 @@ public class ProductService {
         // Lưu gallery
         saveGallery(savedProduct, request.getImageUrls());
 
+        // Lưu attributes
+        saveAttributes(savedProduct, request.getAttributeValueIds());
+
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(savedProduct.getId());
         return new ProductDTO(savedProduct, images);
     }
@@ -119,6 +127,10 @@ public class ProductService {
         productImageRepository.deleteByProductId(id);
         saveGallery(updatedProduct, request.getImageUrls());
 
+        // Cập nhật attributes
+        productAttributeValueRepository.deleteByProductId(id);
+        saveAttributes(updatedProduct, request.getAttributeValueIds());
+
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(updatedProduct.getId());
         return new ProductDTO(updatedProduct, images);
     }
@@ -144,9 +156,9 @@ public class ProductService {
 
     private void saveGallery(Product product, List<String> imageUrls) {
         if (imageUrls == null || imageUrls.isEmpty()) return;
-        List<ProductImage> gallery = new ArrayList<>();
+        List<com.anhtin.tmdt.backend.entity.ProductImage> gallery = new ArrayList<>();
         for (int i = 0; i < imageUrls.size(); i++) {
-            ProductImage img = new ProductImage();
+            com.anhtin.tmdt.backend.entity.ProductImage img = new com.anhtin.tmdt.backend.entity.ProductImage();
             img.setProduct(product);
             img.setImageUrl(imageUrls.get(i));
             img.setSortOrder(i);
@@ -154,6 +166,23 @@ public class ProductService {
             gallery.add(img);
         }
         productImageRepository.saveAll(gallery);
+    }
+
+    private void saveAttributes(Product product, List<Long> attributeValueIds) {
+        if (attributeValueIds == null || attributeValueIds.isEmpty()) return;
+        
+        Set<Long> uniqueIds = new HashSet<>(attributeValueIds);
+        List<com.anhtin.tmdt.backend.entity.ProductAttributeValue> pavs = new ArrayList<>();
+        for (Long avId : uniqueIds) {
+            if (avId == null) continue;
+            com.anhtin.tmdt.backend.entity.AttributeValue av = attributeValueRepository.findById(avId)
+                    .orElseThrow(() -> new RuntimeException("AttributeValue not found: " + avId));
+            com.anhtin.tmdt.backend.entity.ProductAttributeValue pav = new com.anhtin.tmdt.backend.entity.ProductAttributeValue();
+            pav.setProduct(product);
+            pav.setAttributeValue(av);
+            pavs.add(pav);
+        }
+        productAttributeValueRepository.saveAll(pavs);
     }
 
     // NOTE: Thêm location-based query (PostGIS) ở phase tối ưu

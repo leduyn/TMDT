@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import GalleryUploader from '@/components/GalleryUploader';
 import RichTextEditor from '@/components/RichTextEditor';
-import { productApi, categoryApi, CategoryDTO, brandApi, BrandDTO } from '@/lib/api';
+import { productApi, categoryApi, CategoryDTO, brandApi, BrandDTO, attributeApi, AttributeDTO, facetedSearchApi } from '@/lib/api';
 
 export default function EditProductPage() {
   const { id } = useParams();
@@ -22,6 +22,8 @@ export default function EditProductPage() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [brands, setBrands] = useState<BrandDTO[]>([]);
+  const [attributes, setAttributes] = useState<AttributeDTO[]>([]);
+  const [selectedAttributeValueIds, setSelectedAttributeValueIds] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
@@ -30,10 +32,11 @@ export default function EditProductPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [allCats, allBrands, product] = await Promise.all([
+        const [allCats, allBrands, product, currentAttrs] = await Promise.all([
           categoryApi.getAll(),
           brandApi.getAll(),
-          productApi.getById(Number(id))
+          productApi.getById(Number(id)),
+          facetedSearchApi.getProductAttributes(Number(id))
         ]);
         setCategories(allCats);
         setBrands(allBrands);
@@ -48,13 +51,21 @@ export default function EditProductPage() {
           brandId: product.brand?.id || 0,
           isDropship: product.isDropship || false,
         });
-        // Load gallery hiện có; fallback về imageUrl nếu chưa có gallery
+
+        // Pre-fill attributes
+        const initialAttrMap: Record<number, number> = {};
+        currentAttrs.forEach(av => {
+          initialAttrMap[av.attributeId] = av.id;
+        });
+        setSelectedAttributeValueIds(initialAttrMap);
+
         if (product.imageUrls && product.imageUrls.length > 0) {
           setImageUrls(product.imageUrls);
         } else if (product.imageUrl) {
           setImageUrls([product.imageUrl]);
         }
       } catch (err: any) {
+        console.error(err);
         setError('Không thể tải dữ liệu sản phẩm');
       } finally {
         setFetching(false);
@@ -63,15 +74,31 @@ export default function EditProductPage() {
     fetchData();
   }, [id]);
 
+  // Fetch attributes when category changes
+  useEffect(() => {
+    if (formData.categoryId > 0) {
+      attributeApi.getAll(formData.categoryId)
+        .then(setAttributes)
+        .catch(err => {
+          console.error('Failed to fetch attributes:', err);
+          setAttributes([]);
+        });
+    } else {
+      setAttributes([]);
+    }
+  }, [formData.categoryId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
+      const attributeValueIds = Object.values(selectedAttributeValueIds).filter(id => id > 0);
       await productApi.update(Number(id), {
         ...formData,
         imageUrls,
         imageUrl: imageUrls[0] || undefined,
+        attributeValueIds,
       });
       router.push('/products');
     } catch (err: any) {
@@ -87,6 +114,13 @@ export default function EditProductPage() {
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked :
                type === 'number' ? Number(value) : value
+    }));
+  };
+
+  const handleAttributeChange = (attributeId: number, valueId: number) => {
+    setSelectedAttributeValueIds(prev => ({
+      ...prev,
+      [attributeId]: valueId
     }));
   };
 
@@ -129,6 +163,34 @@ export default function EditProductPage() {
                 {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
               </select>
             </div>
+
+            {/* Dynamic Attributes Section */}
+            {attributes.length > 0 && (
+              <div style={{ gridColumn: 'span 2', background: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 12, border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: 16, color: 'var(--accent-light)' }}>
+                  Thuộc tính sản phẩm
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  {attributes.map(attr => (
+                    <div key={attr.id}>
+                      <label style={{ display: 'block', marginBottom: 6, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {attr.displayName}
+                      </label>
+                      <select 
+                        className="input-field" 
+                        value={selectedAttributeValueIds[attr.id] || 0}
+                        onChange={(e) => handleAttributeChange(attr.id, Number(e.target.value))}
+                      >
+                        <option value={0}>-- Chọn {attr.displayName.toLowerCase()} --</option>
+                        {attr.values.map(val => (
+                          <option key={val.id} value={val.id}>{val.value}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Số lượng kho</label>

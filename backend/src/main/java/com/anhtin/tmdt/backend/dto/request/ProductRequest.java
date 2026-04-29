@@ -34,4 +34,6 @@ public class ProductRequest {
 
     // Danh sách ảnh gallery (bao gồm ảnh chính ở vị trí đầu tiên)
     private List<String> imageUrls;
+
+    private List<Long> attributeValueIds;
 }

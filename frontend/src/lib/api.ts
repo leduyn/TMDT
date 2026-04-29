@@ -85,6 +85,7 @@ export interface ProductRequest {
   imageUrl?: string;
   imageUrls?: string[];
   brandId?: number;
+  attributeValueIds?: number[];
 }
 
 
@@ -221,3 +222,95 @@ export const brandApi = {
     }),
 };
 
+// ─── Attribute & Faceted Search ────────────────────────────────────────────
+
+export interface AttributeValueDTO {
+  id: number;
+  value: string;
+  attributeId: number;
+}
+
+export interface AttributeDTO {
+  id: number;
+  name: string;
+  displayName: string;
+  categoryId?: number;
+  categoryName?: string;
+  values: AttributeValueDTO[];
+}
+
+export interface FacetValueDTO {
+  valueId: number;
+  value: string;
+  count: number;
+}
+
+export interface FacetGroupDTO {
+  attributeId: number;
+  attributeName: string;
+  displayName: string;
+  values: FacetValueDTO[];
+}
+
+export interface FacetedSearchRequest {
+  categoryId?: number;
+  selectedValueIds?: number[];
+  page?: number;
+  size?: number;
+}
+
+export interface FacetedSearchResponse {
+  products: ProductDTO[];
+  facets: FacetGroupDTO[];
+  totalCount: number;
+  page: number;
+  size: number;
+}
+
+export const attributeApi = {
+  getAll: (categoryId?: number) => {
+    const params = categoryId ? `?categoryId=${categoryId}` : '';
+    return fetchJSON<AttributeDTO[]>(`/api/attributes${params}`);
+  },
+  getById: (id: number) => fetchJSON<AttributeDTO>(`/api/attributes/${id}`),
+  create: (data: { name: string; displayName: string; categoryId?: number }) =>
+    fetchJSON<AttributeDTO>('/api/attributes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: { name: string; displayName: string; categoryId?: number }) =>
+    fetchJSON<AttributeDTO>(`/api/attributes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: number) =>
+    fetchJSON<any>(`/api/attributes/${id}`, {
+      method: 'DELETE',
+    }),
+  getValues: (attributeId: number) =>
+    fetchJSON<AttributeValueDTO[]>(`/api/attributes/${attributeId}/values`),
+  addValue: (attributeId: number, value: string) =>
+    fetchJSON<AttributeValueDTO>(`/api/attributes/${attributeId}/values`, {
+      method: 'POST',
+      body: JSON.stringify({ value }),
+    }),
+  deleteValue: (valueId: number) =>
+    fetchJSON<any>(`/api/attributes/values/${valueId}`, {
+      method: 'DELETE',
+    }),
+};
+
+export const facetedSearchApi = {
+  search: (request: FacetedSearchRequest) =>
+    fetchJSON<FacetedSearchResponse>('/api/products/search/faceted', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+  getProductAttributes: (productId: number) =>
+    fetchJSON<AttributeValueDTO[]>(`/api/products/${productId}/attributes`),
+  assignProductAttributes: (productId: number, attributeValueIds: number[]) =>
+    fetchJSON<AttributeValueDTO[]>(`/api/products/${productId}/attributes`, {
+      method: 'POST',
+      body: JSON.stringify({ attributeValueIds }),
+    }),
+};
