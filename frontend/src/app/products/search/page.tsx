@@ -11,6 +11,7 @@ import {
   ProductDTO,
   CategoryDTO,
 } from '@/lib/api';
+import Link from 'next/link';
 
 export default function FacetedSearchPage() {
   const [response, setResponse] = useState<FacetedSearchResponse | null>(null);
@@ -200,10 +201,11 @@ export default function FacetedSearchPage() {
             {!loading && products.length > 0 && (
               <div className="product-grid">
                 {products.map((product, idx) => (
-                  <div
+                  <Link
+                    href={`/products/${product.id}`}
                     key={product.id}
                     className="product-card fade-in-up"
-                    style={{ animationDelay: `${idx * 50}ms` }}
+                    style={{ animationDelay: `${idx * 50}ms`, textDecoration: 'none', color: 'inherit' }}
                   >
                     <div className="product-card__image">
                       {product.imageUrl ? (
@@ -248,7 +250,7 @@ export default function FacetedSearchPage() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

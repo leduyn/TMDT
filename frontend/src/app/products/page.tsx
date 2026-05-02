@@ -134,26 +134,28 @@ export default function ProductsPage() {
                   style={{ animationDelay: `${i * 0.05}s`, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* Product image */}
-                  <div style={{
-                    height: 180, borderRadius: 12, marginBottom: 16,
-                    backgroundImage: product.imageUrl ? `url(${resolveImageUrl(product.imageUrl)})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 48,
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    {!product.imageUrl && '🛒'}
-                    {product.isDropship && (
-                      <span style={{
-                        position: 'absolute', top: 12, right: 12,
-                        background: 'var(--accent)', color: 'white',
-                        fontSize: '0.65rem', padding: '4px 8px', borderRadius: 20, fontWeight: 700
-                      }}>DROPSHIP</span>
-                    )}
-                  </div>
+                  <Link href={`/products/${product.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{
+                      height: 180, borderRadius: 12, marginBottom: 16,
+                      backgroundImage: product.imageUrl ? `url(${resolveImageUrl(product.imageUrl)})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 48,
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      {!product.imageUrl && '🛒'}
+                      {product.isDropship && (
+                        <span style={{
+                          position: 'absolute', top: 12, right: 12,
+                          background: 'var(--accent)', color: 'white',
+                          fontSize: '0.65rem', padding: '4px 8px', borderRadius: 20, fontWeight: 700
+                        }}>DROPSHIP</span>
+                      )}
+                    </div>
+                  </Link>
 
                   <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
                     <span className="badge badge-primary">{product.categoryName || 'Chưa phân loại'}</span>
@@ -165,7 +167,9 @@ export default function ProductsPage() {
                   </div>
 
                   <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.4 }}>
-                    {product.name || 'Sản phẩm'}
+                    <Link href={`/products/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      {product.name || 'Sản phẩm'}
+                    </Link>
                   </h3>
                   <p style={{
                     margin: '0 0 16px', color: 'var(--text-muted)',
@@ -192,9 +196,9 @@ export default function ProductsPage() {
                           </button>
                         </>
                       ) : (
-                        <button className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+                        <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none' }}>
                           Chi tiết
-                        </button>
+                        </Link>
                       )}
                     </div>
                   </div>
