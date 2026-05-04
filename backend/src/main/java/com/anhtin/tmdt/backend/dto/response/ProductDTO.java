@@ -24,6 +24,17 @@ public class ProductDTO {
     private String categoryName;
     private BrandDTO brand;
 
+    private Boolean isAppVisible;
+    private Boolean isWebVisible;
+    private String tags;
+    private Integer bravoOrder;
+    private String unit;
+    private String innerPackaging;
+    private String outerPackaging;
+    private Integer minPurchaseQuantity;
+    private Integer quantityStep;
+    private String userManual;
+
     public ProductDTO(Product product) {
         this.id = product.getId();
         this.name = product.getName();
@@ -33,6 +44,16 @@ public class ProductDTO {
         this.stockQuantity = product.getStockQuantity();
         this.isDropship = product.isDropship();
         this.imageUrl = product.getImageUrl();
+        this.isAppVisible = product.getIsAppVisible() != null ? product.getIsAppVisible() : true;
+        this.isWebVisible = product.getIsWebVisible() != null ? product.getIsWebVisible() : true;
+        this.tags = product.getTags();
+        this.bravoOrder = product.getBravoOrder();
+        this.unit = product.getUnit();
+        this.innerPackaging = product.getInnerPackaging();
+        this.outerPackaging = product.getOuterPackaging();
+        this.minPurchaseQuantity = product.getMinPurchaseQuantity();
+        this.quantityStep = product.getQuantityStep();
+        this.userManual = product.getUserManual();
         if (product.getCategory() != null) {
             this.categoryId = product.getCategory().getId();
             this.categoryName = product.getCategory().getName();

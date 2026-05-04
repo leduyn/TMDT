@@ -71,6 +71,16 @@ export interface ProductDTO {
   imageUrl?: string;
   imageUrls?: string[];
   brand?: BrandDTO;
+  isAppVisible?: boolean;
+  isWebVisible?: boolean;
+  tags?: string;
+  bravoOrder?: number;
+  unit?: string;
+  innerPackaging?: string;
+  outerPackaging?: string;
+  minPurchaseQuantity?: number;
+  quantityStep?: number;
+  userManual?: string;
 }
 
 
@@ -86,6 +96,16 @@ export interface ProductRequest {
   imageUrls?: string[];
   brandId?: number;
   attributeValueIds?: number[];
+  isAppVisible?: boolean;
+  isWebVisible?: boolean;
+  tags?: string;
+  bravoOrder?: number;
+  unit?: string;
+  innerPackaging?: string;
+  outerPackaging?: string;
+  minPurchaseQuantity?: number;
+  quantityStep?: number;
+  userManual?: string;
 }
 
 
@@ -236,6 +256,7 @@ export interface AttributeDTO {
   displayName: string;
   categoryId?: number;
   categoryName?: string;
+  isVariant?: boolean;
   values: AttributeValueDTO[];
 }
 
@@ -273,12 +294,12 @@ export const attributeApi = {
     return fetchJSON<AttributeDTO[]>(`/api/attributes${params}`);
   },
   getById: (id: number) => fetchJSON<AttributeDTO>(`/api/attributes/${id}`),
-  create: (data: { name: string; displayName: string; categoryId?: number }) =>
+  create: (data: { name: string; displayName: string; categoryId?: number; isVariant?: boolean }) =>
     fetchJSON<AttributeDTO>('/api/attributes', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: number, data: { name: string; displayName: string; categoryId?: number }) =>
+  update: (id: number, data: { name: string; displayName: string; categoryId?: number; isVariant?: boolean }) =>
     fetchJSON<AttributeDTO>(`/api/attributes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

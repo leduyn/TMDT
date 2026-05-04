@@ -69,6 +69,16 @@ public class ProductService {
         product.setDropshipPrice(request.getDropshipPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setDropship(request.isDropship());
+        product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
+        product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
+        product.setTags(request.getTags());
+        product.setBravoOrder(request.getBravoOrder());
+        product.setUnit(request.getUnit());
+        product.setInnerPackaging(request.getInnerPackaging());
+        product.setOuterPackaging(request.getOuterPackaging());
+        product.setMinPurchaseQuantity(request.getMinPurchaseQuantity() != null ? request.getMinPurchaseQuantity() : 1);
+        product.setQuantityStep(request.getQuantityStep() != null ? request.getQuantityStep() : 1);
+        product.setUserManual(request.getUserManual());
 
         Long brandId = request.getBrandId();
         if (brandId != null) {
@@ -109,6 +119,16 @@ public class ProductService {
         product.setDropshipPrice(request.getDropshipPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setDropship(request.isDropship());
+        product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
+        product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
+        product.setTags(request.getTags());
+        product.setBravoOrder(request.getBravoOrder());
+        product.setUnit(request.getUnit());
+        product.setInnerPackaging(request.getInnerPackaging());
+        product.setOuterPackaging(request.getOuterPackaging());
+        product.setMinPurchaseQuantity(request.getMinPurchaseQuantity() != null ? request.getMinPurchaseQuantity() : 1);
+        product.setQuantityStep(request.getQuantityStep() != null ? request.getQuantityStep() : 1);
+        product.setUserManual(request.getUserManual());
 
         Long brandIdUpdate = request.getBrandId();
         if (brandIdUpdate != null) {
