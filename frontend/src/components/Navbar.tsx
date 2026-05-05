@@ -92,6 +92,14 @@ export default function Navbar() {
                       onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
                       onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
                     >Khách hàng</Link>
+                    <Link href="/price-vouchers" style={{
+                      color: 'var(--text-secondary)', textDecoration: 'none',
+                      padding: '8px 16px', borderRadius: 8,
+                      fontSize: '0.9rem', fontWeight: 500,
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                    >Hẹn giờ giá</Link>
                   </>
                 )}
 

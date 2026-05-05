@@ -10,12 +10,10 @@ import java.time.LocalDateTime;
 /**
  * Admin chỉ định bảng giá trực tiếp cho một đại lý cụ thể.
  * Đây là ưu tiên CAO NHẤT trong chuỗi resolve bảng giá cho đại lý.
- * Mỗi đại lý chỉ có tối đa 1 bản ghi (UNIQUE agency_id).
+ * Hỗ trợ nhiều bản ghi theo thời gian hiệu lực (effective_from).
  */
 @Entity
-@Table(name = "agency_price_lists", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"agency_id"})
-})
+@Table(name = "agency_price_lists")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -36,4 +34,10 @@ public class AgencyPriceList {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /**
+     * Thời điểm bắt đầu có hiệu lực.
+     */
+    @Column(name = "effective_from")
+    private LocalDateTime effectiveFrom = LocalDateTime.now();
 }

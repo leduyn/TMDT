@@ -52,8 +52,22 @@ public class PriceListCondition {
     private CustomerGroup customerGroup;
 
     /**
+     * FK → User.
+     * Chỉ dùng khi conditionType = DIRECT_CUSTOMER.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    /**
      * Độ ưu tiên: số lớn hơn = ưu tiên cao hơn.
      */
     @Column(nullable = false)
     private Integer priority = 0;
+
+    /**
+     * Thời điểm bắt đầu có hiệu lực.
+     */
+    @Column(name = "effective_from")
+    private java.time.LocalDateTime effectiveFrom = java.time.LocalDateTime.now();
 }

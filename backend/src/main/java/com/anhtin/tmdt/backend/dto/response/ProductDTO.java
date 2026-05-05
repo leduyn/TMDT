@@ -8,6 +8,9 @@ import com.anhtin.tmdt.backend.entity.ProductImage;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Response DTO for product information.
+ */
 @Getter
 @Setter
 public class ProductDTO {

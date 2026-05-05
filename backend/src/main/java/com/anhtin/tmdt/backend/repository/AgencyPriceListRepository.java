@@ -9,7 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface AgencyPriceListRepository extends JpaRepository<AgencyPriceList, Long> {
-    Optional<AgencyPriceList> findByAgencyId(Long agencyId);
+    List<AgencyPriceList> findByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(Long agencyId, java.time.LocalDateTime now);
+    Optional<AgencyPriceList> findFirstByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(Long agencyId, java.time.LocalDateTime now);
     List<AgencyPriceList> findByPriceListId(Long priceListId);
     void deleteByAgencyId(Long agencyId);
 }

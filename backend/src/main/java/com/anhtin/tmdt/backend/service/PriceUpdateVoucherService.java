@@ -145,7 +145,6 @@ public class PriceUpdateVoucherService {
         }
     }
 
-    @SuppressWarnings("null")
     private PriceUpdateVoucherDTO convertToDTO(PriceUpdateVoucher voucher) {
         List<Long> plIds = voucherPriceListRepository.findByVoucherId(voucher.getId()).stream()
                 .map(vpl -> vpl.getPriceList().getId())

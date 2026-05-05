@@ -25,13 +25,13 @@ export default function MyStorePriceListPage() {
 
   const fetchData = async () => {
     try {
-      // For demo, we assume agencyId = user.id. In real app, we'd fetch agency entity first.
-      const agencyId = user?.id; 
+      // Use agencyId from user context
+      const agencyId = user?.agencyId || user?.id; 
       const [effectiveRes, allRes] = await Promise.all([
-        fetch(`http://localhost:8080/api/price-lists/resolve/agency/${agencyId}`, {
+        fetch(`/api/price-lists/resolve/agency/${agencyId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`http://localhost:8080/api/price-lists`, {
+        fetch(`/api/price-lists`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -46,7 +46,8 @@ export default function MyStorePriceListPage() {
 
   const handleSetStorePriceList = async (plId: number) => {
     try {
-      await fetch(`http://localhost:8080/api/price-lists/my-store/${plId}?agencyId=${user?.id}`, {
+      const agencyId = user?.agencyId || user?.id;
+      await fetch(`/api/price-lists/my-store/${plId}?agencyId=${agencyId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

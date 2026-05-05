@@ -7,6 +7,9 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * Request DTO for creating or updating a product.
+ */
 @Getter
 @Setter
 public class ProductRequest {

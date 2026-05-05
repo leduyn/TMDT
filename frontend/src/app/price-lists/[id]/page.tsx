@@ -29,14 +29,9 @@ export default function PriceListDetailPage() {
   // State
   const [priceList, setPriceList] = useState<PriceList | null>(null);
   const [items, setItems] = useState<PriceListItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'prices' | 'conditions' | 'agencies'>('prices');
+  const [activeTab, setActiveTab] = useState<'prices'>('prices');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const [conditions, setConditions] = useState<any[]>([]);
-  const [agencies, setAgencies] = useState<any[]>([]);
-  const [assignedAgencyIds, setAssignedAgencyIds] = useState<number[]>([]);
-  const [customerGroups, setCustomerGroups] = useState<any[]>([]);
 
   // Effects
   useEffect(() => {
@@ -44,18 +39,7 @@ export default function PriceListDetailPage() {
     fetchData();
   }, [id]);
 
-  useEffect(() => {
-    if (activeTab === 'conditions') {
-      fetch(`http://localhost:8080/api/customer-groups`, { headers: { 'Authorization': `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setCustomerGroups(Array.isArray(d) ? d : []));
-    }
-    if (activeTab === 'agencies') {
-      fetch(`http://localhost:8080/api/agencies`, { headers: { 'Authorization': `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setAgencies(Array.isArray(d) ? d : []));
-      fetch(`http://localhost:8080/api/price-lists/${id}/assigned-agencies`, { headers: { 'Authorization': `Bearer ${token}` } })
-        .then(r => r.json()).then(d => setAssignedAgencyIds(Array.isArray(d) ? d : []));
-    }
-  }, [activeTab, token]);
+
 
   // Handlers
   const fetchData = async () => {
@@ -96,45 +80,7 @@ export default function PriceListDetailPage() {
     }
   };
 
-  const handleAddCondition = async (conditionType: string, value: string | number) => {
-    try {
-      await fetch(`http://localhost:8080/api/price-lists/conditions`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          priceListId: id, 
-          conditionType, 
-          rankLevel: conditionType === 'AGENCY_RANK' ? value : null,
-          customerGroupId: conditionType === 'CUSTOMER_GROUP' ? value : null
-        })
-      });
-      alert('Đã thêm điều kiện thành công');
-    } catch (err) {
-      alert('Lỗi khi thêm điều kiện');
-    }
-  };
 
-  const toggleAssignAgency = async (agencyId: number) => {
-    const isAssigned = assignedAgencyIds.includes(agencyId);
-    try {
-      if (isAssigned) {
-        await fetch(`http://localhost:8080/api/price-lists/unassign-agency/${agencyId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        setAssignedAgencyIds(prev => prev.filter(aid => aid !== agencyId));
-      } else {
-        await fetch(`http://localhost:8080/api/price-lists/assign-agency`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agencyId, priceListId: id })
-        });
-        setAssignedAgencyIds(prev => [...prev, agencyId]);
-      }
-    } catch (err) {
-      alert('Lỗi khi cập nhật chỉ định');
-    }
-  };
 
   const filteredItems = items.filter(item => 
     item.productName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -156,7 +102,7 @@ export default function PriceListDetailPage() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-          {(['prices', 'conditions', 'agencies'] as const).map(tab => (
+          {(['prices'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -171,7 +117,7 @@ export default function PriceListDetailPage() {
                 transition: 'all 0.2s'
               }}
             >
-              {tab === 'prices' ? 'Danh sách giá' : tab === 'conditions' ? 'Điều kiện áp dụng' : 'Đại lý được chỉ định'}
+              Danh sách giá
             </button>
           ))}
         </div>
@@ -251,71 +197,7 @@ export default function PriceListDetailPage() {
           </div>
         )}
 
-        {activeTab === 'conditions' && (
-          <div className="fade-in glass-card" style={{ padding: 32 }}>
-            <h3 style={{ marginBottom: 20 }}>Thiết lập điều kiện áp dụng tự động</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
-              <div>
-                <h4 style={{ color: 'var(--accent-light)', marginBottom: 12 }}>Cho Đại lý</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].map(rank => (
-                    <button key={rank} className="btn-outline" style={{ justifyContent: 'space-between' }} onClick={() => handleAddCondition('AGENCY_RANK', rank)}>
-                      Áp dụng cho hạng: {rank} <span>+</span>
-                    </button>
-                  ))}
-                  <button className="btn-outline" onClick={() => handleAddCondition('ALL_AGENCY', 'ALL')}>Áp dụng cho TẤT CẢ đại lý <span>+</span></button>
-                </div>
-              </div>
-              <div>
-                <h4 style={{ color: 'var(--accent-light)', marginBottom: 12 }}>Cho Khách lẻ</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {customerGroups.map(group => (
-                    <button key={group.id} className="btn-outline" style={{ justifyContent: 'space-between' }} onClick={() => handleAddCondition('CUSTOMER_GROUP', group.id)}>
-                      Nhóm: {group.name} <span>+</span>
-                    </button>
-                  ))}
-                  <button className="btn-outline" onClick={() => handleAddCondition('ALL_CUSTOMER', 'ALL')}>Áp dụng cho TẤT CẢ khách lẻ <span>+</span></button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'agencies' && (
-          <div className="fade-in glass-card" style={{ padding: 32 }}>
-            <h3 style={{ marginBottom: 20 }}>Chỉ định trực tiếp cho Đại lý</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>Việc chỉ định trực tiếp sẽ ghi đè mọi thiết lập điều kiện tự động khác.</p>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-              {agencies.map(agency => {
-                const isAssigned = assignedAgencyIds.includes(agency.id);
-                return (
-                  <div 
-                    key={agency.id} 
-                    className={`glass-card ${isAssigned ? 'assigned' : ''}`} 
-                    style={{ 
-                      cursor: 'pointer', 
-                      padding: '16px',
-                      border: isAssigned ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      background: isAssigned ? 'rgba(var(--accent-rgb), 0.1)' : 'transparent',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }} 
-                    onClick={() => toggleAssignAgency(agency.id)}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{agency.name || `Agency #${agency.id}`}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{agency.phone || 'Không có SĐT'}</div>
-                    </div>
-                    {isAssigned && <span style={{ color: 'var(--accent)', fontWeight: 900 }}>✓</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </main>
     </>
   );

@@ -49,6 +49,25 @@ export interface BrandDTO {
   logoUrl?: string;
 }
 
+// ─── Agency ────────────────────────────────────────────────────────────────
+export interface AgencyDTO {
+  id: number;
+  name: string;
+  phone?: string;
+  address?: string;
+  userId?: number;
+}
+
+// ─── PriceList ─────────────────────────────────────────────────────────────
+export interface PriceListDTO {
+  id: number;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  active: boolean;
+  itemCount: number;
+}
+
 export interface BrandRequest {
   code: string;
   name: string;
@@ -256,6 +275,23 @@ export const brandApi = {
     }),
 };
 
+// ─── Agency API ─────────────────────────────────────────────────────────────
+export const agencyApi = {
+  getAll: () => fetchJSON<AgencyDTO[]>('/api/agencies'),
+  getById: (id: number) => fetchJSON<AgencyDTO>(`/api/agencies/${id}`),
+};
+
+// ─── Customer API ───────────────────────────────────────────────────────────
+export const customerApi = {
+  getAll: () => fetchJSON<any[]>('/api/users/customers'),
+};
+
+// ─── PriceList API ──────────────────────────────────────────────────────────
+export const priceListApi = {
+  getAll: () => fetchJSON<PriceListDTO[]>('/api/price-lists'),
+  getById: (id: number) => fetchJSON<PriceListDTO>(`/api/price-lists/${id}`),
+};
+
 // ─── Attribute & Faceted Search ────────────────────────────────────────────
 
 export interface AttributeValueDTO {
@@ -350,4 +386,39 @@ export const facetedSearchApi = {
       method: 'POST',
       body: JSON.stringify({ attributeValueIds }),
     }),
+};
+
+export interface PriceAssignmentVoucher {
+  id?: number;
+  name: string;
+  priceListId: number;
+  priceListName?: string;
+  assignmentType: string;
+  rankLevel?: string;
+  agencyId?: number;
+  agencyName?: string;
+  customerGroupId?: number;
+  customerGroupName?: string;
+  scheduledAt: string;
+  status?: string;
+  createdAt?: string;
+  appliedAt?: string;
+}
+
+export const priceAssignmentVoucherApi = {
+  getAll: () => fetchJSON<PriceAssignmentVoucher[]>('/api/price-assignment-vouchers'),
+  create: (data: PriceAssignmentVoucher) => fetchJSON<PriceAssignmentVoucher>('/api/price-assignment-vouchers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  cancel: (id: number) => fetchJSON<void>(`/api/price-assignment-vouchers/${id}/cancel`, {
+    method: 'POST'
+  }),
+  stop: (id: number) => fetchJSON<void>(`/api/price-assignment-vouchers/${id}/stop`, {
+    method: 'POST'
+  }),
+  reactivate: (id: number, scheduledAt?: string) => fetchJSON<void>(`/api/price-assignment-vouchers/${id}/reactivate`, {
+    method: 'POST',
+    body: scheduledAt ? JSON.stringify({ scheduledAt }) : undefined
+  })
 };

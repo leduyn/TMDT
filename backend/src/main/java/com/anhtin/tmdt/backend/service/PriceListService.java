@@ -13,9 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -70,7 +73,6 @@ public class PriceListService {
         return new PriceListDTO(pl, priceListItemRepository.countByPriceListId(id));
     }
 
-    @SuppressWarnings("null")
     @Transactional
     public PriceListDTO createPriceList(PriceListRequest request) {
         if (request.getIsDefault() != null && request.getIsDefault() && priceListRepository.existsByIsDefaultTrue()) {
@@ -94,7 +96,7 @@ public class PriceListService {
             item.setIsVisible(true);
             return item;
         }).collect(Collectors.toList());
-        priceListItemRepository.saveAll(items);
+        priceListItemRepository.saveAll(Objects.requireNonNull(items));
 
         return new PriceListDTO(saved, (long) items.size());
     }
@@ -133,7 +135,6 @@ public class PriceListService {
                 .collect(Collectors.toList());
     }
 
-    @SuppressWarnings("null")
     @Transactional
     public void updatePriceListItem(Long priceListId, PriceListItemUpdateRequest request) {
         if (priceListId == null || request.getProductId() == null) {
@@ -143,10 +144,9 @@ public class PriceListService {
                 .orElseThrow(() -> new RuntimeException("Item not found in price list"));
         if (request.getPrice() != null) item.setPrice(request.getPrice());
         if (request.getIsVisible() != null) item.setIsVisible(request.getIsVisible());
-        priceListItemRepository.save(item);
+        priceListItemRepository.save(Objects.requireNonNull(item));
     }
 
-    @SuppressWarnings("null")
     @Transactional
     public void onProductCreated(Product product) {
         List<PriceList> allLists = priceListRepository.findAll();
@@ -158,7 +158,7 @@ public class PriceListService {
             item.setIsVisible(true);
             return item;
         }).collect(Collectors.toList());
-        priceListItemRepository.saveAll(newItems);
+        priceListItemRepository.saveAll(Objects.requireNonNull(newItems));
     }
 
     // --- Resolve Logic ---
@@ -169,9 +169,19 @@ public class PriceListService {
             throw new IllegalArgumentException("Agency ID cannot be null");
         }
         
+        System.out.println("🔍 [resolveForAgency] agencyId=" + agencyId);
+        
         // Tầng 1: Chỉ định trực tiếp (AgencyPriceList)
-        Optional<AgencyPriceList> assigned = agencyPriceListRepository.findByAgencyId(agencyId);
-        if (assigned.isPresent()) return assigned.get().getPriceList();
+        LocalDateTime now = LocalDateTime.now();
+        System.out.println("🔍 [resolveForAgency] now=" + now);
+        
+        Optional<AgencyPriceList> assigned = agencyPriceListRepository.findFirstByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(agencyId, now);
+        System.out.println("🔍 [resolveForAgency] Tầng 1 - Direct assignment present=" + assigned.isPresent());
+        if (assigned.isPresent()) {
+            PriceList pl = assigned.get().getPriceList();
+            System.out.println("🔍 [resolveForAgency] → Trả về bảng giá trực tiếp: id=" + pl.getId() + ", name=" + pl.getName());
+            return pl;
+        }
 
         // Lấy rank hiện tại của đại lý (từ bảng rankings tháng gần nhất hoặc default)
         if (!agencyRepository.existsById(agencyId)) {
@@ -179,18 +189,30 @@ public class PriceListService {
         }
         // Lấy rank thực tế của đại lý
         String rank = getAgencyRank(agencyId);
+        System.out.println("🔍 [resolveForAgency] Tầng 2 - Agency rank=" + rank);
 
         // Tầng 2: Theo hạng đại lý (AGENCY_RANK)
         List<PriceListCondition> rankConditions = priceListConditionRepository
-                .findByConditionTypeAndRankLevelOrderByPriorityDesc(PriceListConditionType.AGENCY_RANK, rank);
-        if (!rankConditions.isEmpty()) return rankConditions.get(0).getPriceList();
-
+                .findActiveByRank(PriceListConditionType.AGENCY_RANK, rank, now);
+        System.out.println("🔍 [resolveForAgency] Tầng 2 - Rank conditions found=" + rankConditions.size());
+        if (!rankConditions.isEmpty()) {
+            PriceList pl = rankConditions.get(0).getPriceList();
+            System.out.println("🔍 [resolveForAgency] → Trả về bảng giá theo rank: id=" + pl.getId() + ", name=" + pl.getName());
+            return pl;
+        }
+        
         // Tầng 3: Toàn bộ đại lý (ALL_AGENCY)
         List<PriceListCondition> allAgencyConditions = priceListConditionRepository
-                .findByConditionTypeOrderByPriorityDesc(PriceListConditionType.ALL_AGENCY);
-        if (!allAgencyConditions.isEmpty()) return allAgencyConditions.get(0).getPriceList();
+                .findActiveByConditionType(PriceListConditionType.ALL_AGENCY, now);
+        System.out.println("🔍 [resolveForAgency] Tầng 3 - ALL_AGENCY conditions found=" + allAgencyConditions.size());
+        if (!allAgencyConditions.isEmpty()) {
+            PriceList pl = allAgencyConditions.get(0).getPriceList();
+            System.out.println("🔍 [resolveForAgency] → Trả về bảng giá ALL_AGENCY: id=" + pl.getId() + ", name=" + pl.getName());
+            return pl;
+        }
 
         // Tầng 4: Mặc định
+        System.out.println("🔍 [resolveForAgency] Tầng 4 - Fallback to default");
         return priceListRepository.findByIsDefaultTrue()
                 .orElseThrow(() -> new RuntimeException("Default price list not found"));
     }
@@ -210,14 +232,14 @@ public class PriceListService {
             if (user != null && user.getCustomerGroup() != null) {
                 // Tầng 2: Theo nhóm khách hàng (CUSTOMER_GROUP)
                 List<PriceListCondition> groupConditions = priceListConditionRepository
-                        .findByConditionTypeAndCustomerGroupIdOrderByPriorityDesc(PriceListConditionType.CUSTOMER_GROUP, user.getCustomerGroup().getId());
+                        .findActiveByCustomerGroup(PriceListConditionType.CUSTOMER_GROUP, user.getCustomerGroup().getId(), LocalDateTime.now());
                 if (!groupConditions.isEmpty()) return groupConditions.get(0).getPriceList();
             }
         }
 
         // Tầng 3: Toàn bộ khách hàng (ALL_CUSTOMER)
         List<PriceListCondition> allCustomerConditions = priceListConditionRepository
-                .findByConditionTypeOrderByPriorityDesc(PriceListConditionType.ALL_CUSTOMER);
+                .findActiveByConditionType(PriceListConditionType.ALL_CUSTOMER, LocalDateTime.now());
         if (!allCustomerConditions.isEmpty()) return allCustomerConditions.get(0).getPriceList();
 
         // Tầng 4: Mặc định
@@ -227,16 +249,20 @@ public class PriceListService {
 
     // --- Assignments ---
 
-    @SuppressWarnings("null")
     @Transactional
     public void assignToAgency(AgencyPriceListRequest request) {
         if (request.getAgencyId() == null || request.getPriceListId() == null) {
             throw new IllegalArgumentException("IDs cannot be null");
         }
-        agencyPriceListRepository.findByAgencyId(request.getAgencyId()).ifPresent(agencyPriceListRepository::delete);
+        // Xóa TẤT CẢ các gán trực tiếp cũ của đại lý này (dùng deleteByAgencyId để tránh bỏ sót)
+        agencyPriceListRepository.deleteByAgencyId(request.getAgencyId());
         
-        Agency agency = agencyRepository.findById(request.getAgencyId()).orElseThrow();
-        PriceList pl = priceListRepository.findById(request.getPriceListId()).orElseThrow();
+        Long agencyId = request.getAgencyId();
+        Long plId = request.getPriceListId();
+        if (agencyId == null || plId == null) throw new IllegalArgumentException("IDs cannot be null");
+        
+        Agency agency = agencyRepository.findById(agencyId).orElseThrow();
+        PriceList pl = priceListRepository.findById(plId).orElseThrow();
         
         AgencyPriceList apl = new AgencyPriceList();
         apl.setAgency(agency);
@@ -244,28 +270,33 @@ public class PriceListService {
         agencyPriceListRepository.save(apl);
     }
 
-    @SuppressWarnings("null")
     @Transactional
     public void setAgencyStorePriceList(Long agencyId, Long priceListId) {
         if (agencyId == null || priceListId == null) {
             throw new IllegalArgumentException("IDs cannot be null");
         }
-        agencyStorePriceListRepository.findByAgencyId(agencyId).ifPresent(agencyStorePriceListRepository::delete);
         
         Agency agency = agencyRepository.findById(agencyId).orElseThrow();
         PriceList pl = priceListRepository.findById(priceListId).orElseThrow();
         
-        AgencyStorePriceList aspl = new AgencyStorePriceList();
-        aspl.setAgency(agency);
-        aspl.setPriceList(pl);
-        agencyStorePriceListRepository.save(aspl);
+        Optional<AgencyStorePriceList> existingOpt = agencyStorePriceListRepository.findByAgencyId(agencyId);
+        if (existingOpt.isPresent()) {
+            AgencyStorePriceList existing = existingOpt.get();
+            existing.setPriceList(pl);
+            existing.setCreatedAt(LocalDateTime.now());
+            agencyStorePriceListRepository.save(existing);
+        } else {
+            AgencyStorePriceList aspl = new AgencyStorePriceList();
+            aspl.setAgency(agency);
+            aspl.setPriceList(pl);
+            agencyStorePriceListRepository.save(aspl);
+        }
     }
 
-    @SuppressWarnings("null")
     @Transactional
     public void unassignAgency(Long agencyId) {
         if (agencyId == null) throw new IllegalArgumentException("Agency ID cannot be null");
-        agencyPriceListRepository.findByAgencyId(agencyId).ifPresent(agencyPriceListRepository::delete);
+        agencyPriceListRepository.deleteByAgencyId(agencyId);
     }
 
     public List<Long> getAssignedAgencyIds(Long priceListId) {
@@ -282,34 +313,40 @@ public class PriceListService {
         private Long priceListId;
     }
 
-    @SuppressWarnings("null")
     public ResolvedPriceInfo getResolvedPriceInfo(Long productId, Long agencyId, Long customerId) {
         List<PriceList> candidates = new ArrayList<>();
         
+        LocalDateTime now = LocalDateTime.now();
         if (customerId != null) {
-            // Hierarchy for Customer: Store -> Group -> All Customer -> Default
+            // Hierarchy for Customer: Direct -> Store -> Group -> All Customer -> Default
+            priceListConditionRepository.findActiveByCustomer(
+                    PriceListConditionType.DIRECT_CUSTOMER, customerId, now)
+                    .forEach(c -> candidates.add(c.getPriceList()));
+
             agencyStorePriceListRepository.findByAgencyId(agencyId).ifPresent(s -> candidates.add(s.getPriceList()));
             
             User user = userRepository.findById(customerId).orElse(null);
             if (user != null && user.getCustomerGroup() != null) {
-                priceListConditionRepository.findByConditionTypeAndCustomerGroupIdOrderByPriorityDesc(
-                        PriceListConditionType.CUSTOMER_GROUP, user.getCustomerGroup().getId())
+                priceListConditionRepository.findActiveByCustomerGroup(
+                        PriceListConditionType.CUSTOMER_GROUP, user.getCustomerGroup().getId(), now)
                         .forEach(c -> candidates.add(c.getPriceList()));
             }
             
-            priceListConditionRepository.findByConditionTypeOrderByPriorityDesc(PriceListConditionType.ALL_CUSTOMER)
+            priceListConditionRepository.findActiveByConditionType(PriceListConditionType.ALL_CUSTOMER, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
-        } else {
+        } else if (agencyId != null) {
             // Hierarchy for Agency: Direct -> Rank -> All Agency -> Default
-            agencyPriceListRepository.findByAgencyId(agencyId).ifPresent(a -> candidates.add(a.getPriceList()));
+            // Lấy gán trực tiếp mới nhất đã có hiệu lực
+            agencyPriceListRepository.findFirstByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(agencyId, now)
+                    .ifPresent(a -> candidates.add(a.getPriceList()));
             
             // Lấy rank thực tế của đại lý
             String rank = getAgencyRank(agencyId);
-            priceListConditionRepository.findByConditionTypeAndRankLevelOrderByPriorityDesc(
-                    PriceListConditionType.AGENCY_RANK, rank)
+            priceListConditionRepository.findActiveByRank(
+                    PriceListConditionType.AGENCY_RANK, rank, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
             
-            priceListConditionRepository.findByConditionTypeOrderByPriorityDesc(PriceListConditionType.ALL_AGENCY)
+            priceListConditionRepository.findActiveByConditionType(PriceListConditionType.ALL_AGENCY, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
         }
         

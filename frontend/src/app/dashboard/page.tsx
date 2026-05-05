@@ -57,7 +57,8 @@ export default function DashboardPage() {
     ...(isCompany ? [{ href: '/attributes', label: 'Quản lý thuộc tính', icon: '⚙️', desc: 'Thiết lập EAV' }] : []),
     ...(isCompany ? [
       { href: '/price-lists', label: 'Bảng giá', icon: '🏷️', desc: 'Quản lý bảng giá' },
-      { href: '/price-vouchers', label: 'Phiếu cập nhật', icon: '⏰', desc: 'Hẹn giờ cập nhật giá' },
+      { href: '/price-vouchers', label: 'Hẹn giờ áp dụng', icon: '📅', desc: 'Lên lịch áp dụng bảng giá' },
+      { href: '/price-update-vouchers', label: 'Cập nhật giá', icon: '⏰', desc: 'Hẹn giờ cập nhật giá' },
       { href: '/customer-groups', label: 'Nhóm khách hàng', icon: '👥', desc: 'Quản lý nhóm KH' }
     ] : []),
     ...(isAgency ? [{ href: '/price-lists/my-store', label: 'Bảng giá shop', icon: '🏪', desc: 'Thiết lập giá shop' }] : []),
