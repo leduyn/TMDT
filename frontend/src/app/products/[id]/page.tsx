@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { productApi, facetedSearchApi, attributeApi, ProductDTO, AttributeValueDTO } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -30,77 +31,106 @@ export default function ProductDetailPage() {
   
   const [variants, setVariants] = useState<VariantInfo[]>([]);
   const [availableAttributes, setAvailableAttributes] = useState<Record<string, string[]>>({});
+  const [resolvedPrice, setResolvedPrice] = useState<number | null>(null);
+  const [agencyId, setAgencyId] = useState<number | null>(null);
+  const { user } = useAuth();
+  const isCompanyAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
   useEffect(() => {
     if (!productId) return;
     
-    Promise.all([
-      productApi.getById(productId),
-      facetedSearchApi.getProductAttributes(productId).catch(() => []),
-      attributeApi.getAll().catch(() => [])
-    ])
-    .then(([prodData, attrData, allAttrs]) => {
-      setProduct(prodData);
-      if (prodData.imageUrl) {
-        setSelectedImage(prodData.imageUrl);
-      } else if (prodData.imageUrls && prodData.imageUrls.length > 0) {
-        setSelectedImage(prodData.imageUrls[0]);
-      }
-      
-      const attrMap = new Map();
-      const attrVariantMap = new Map();
-      allAttrs.forEach((a: any) => {
-        attrMap.set(a.id, a.displayName || a.name);
-        attrVariantMap.set(a.id, a.isVariant);
-      });
-      
-      const enrichedAttrs = attrData.map(val => ({
-        ...val,
-        attributeName: attrMap.get(val.attributeId) || `Thuộc tính ${val.attributeId}`,
-        isVariant: attrVariantMap.get(val.attributeId)
-      }));
-      setAttributes(enrichedAttrs);
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+    let currentAgencyId: number | undefined = undefined;
 
-      if (prodData.categoryId) {
-        facetedSearchApi.search({ categoryId: prodData.categoryId, size: 50 })
-          .then(async (searchRes) => {
-            const categoryProducts = searchRes.products || [];
-            if (categoryProducts.length > 1) {
-              const variantPromises = categoryProducts.map(async (p) => {
-                const pAttrs = await facetedSearchApi.getProductAttributes(p.id).catch(() => []);
-                const attrDict: Record<string, string> = {};
-                pAttrs.forEach(a => {
-                  const isVar = attrVariantMap.get(a.attributeId);
-                  if (isVar) {
-                    const name = attrMap.get(a.attributeId) || `Thuộc tính ${a.attributeId}`;
-                    attrDict[name] = a.value;
-                  }
-                });
-                return { id: p.id, attributes: attrDict };
-              });
-              
-              const resolvedVariants = await Promise.all(variantPromises);
-              setVariants(resolvedVariants);
-              
-              const available: Record<string, Set<string>> = {};
-              resolvedVariants.forEach(v => {
-                Object.entries(v.attributes).forEach(([key, val]) => {
-                  if (!available[key]) available[key] = new Set();
-                  available[key].add(val);
-                });
-              });
-              
-              const availableArrays: Record<string, string[]> = {};
-              Object.entries(available).forEach(([k, v]) => availableArrays[k] = Array.from(v));
-              setAvailableAttributes(availableArrays);
-            }
-          })
-          .catch(e => console.error("Failed to load variants", e));
+    const fetchAllData = async () => {
+      try {
+        const storedAgencyId = localStorage.getItem('agencyId');
+        if (storedAgencyId) {
+          currentAgencyId = Number(storedAgencyId);
+          setAgencyId(currentAgencyId);
+        }
+
+        const [prodData, attrData, allAttrs] = await Promise.all([
+          productApi.getById(productId, currentAgencyId),
+          facetedSearchApi.getProductAttributes(productId).catch(() => []),
+          attributeApi.getAll().catch(() => [])
+        ]);
+        
+        handleProductData(prodData, attrData, allAttrs, currentAgencyId);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    })
-    .catch(err => setError(err.message))
-    .finally(() => setLoading(false));
+    };
+
+    fetchAllData();
   }, [productId]);
+
+  const handleProductData = (prodData: ProductDTO, attrData: any[], allAttrs: any[], curAgencyId?: number) => {
+    setProduct(prodData);
+    if (prodData.appliedPrice !== undefined) {
+      setResolvedPrice(prodData.appliedPrice);
+    }
+    if (prodData.imageUrl) {
+      setSelectedImage(prodData.imageUrl);
+    } else if (prodData.imageUrls && prodData.imageUrls.length > 0) {
+      setSelectedImage(prodData.imageUrls[0]);
+    }
+    
+    const attrMap = new Map();
+    const attrVariantMap = new Map();
+    allAttrs.forEach((a: any) => {
+      attrMap.set(a.id, a.displayName || a.name);
+      attrVariantMap.set(a.id, a.isVariant);
+    });
+    
+    const enrichedAttrs = attrData.map(val => ({
+      ...val,
+      attributeName: attrMap.get(val.attributeId) || `Thuộc tính ${val.attributeId}`,
+      isVariant: attrVariantMap.get(val.attributeId)
+    }));
+    setAttributes(enrichedAttrs);
+
+    if (prodData.categoryId) {
+      facetedSearchApi.search({ categoryId: prodData.categoryId, size: 50, agencyId: curAgencyId })
+        .then(async (searchRes) => {
+          const categoryProducts = searchRes.products || [];
+          if (categoryProducts.length > 1) {
+            const variantPromises = categoryProducts.map(async (p) => {
+              const pAttrs = await facetedSearchApi.getProductAttributes(p.id).catch(() => []);
+              const attrDict: Record<string, string> = {};
+              pAttrs.forEach(a => {
+                const isVar = attrVariantMap.get(a.attributeId);
+                if (isVar) {
+                  const name = attrMap.get(a.attributeId) || `Thuộc tính ${a.attributeId}`;
+                  attrDict[name] = a.value;
+                }
+              });
+              return { id: p.id, attributes: attrDict };
+            });
+            
+            const resolvedVariants = await Promise.all(variantPromises);
+            setVariants(resolvedVariants);
+            
+            const available: Record<string, Set<string>> = {};
+            resolvedVariants.forEach(v => {
+              Object.entries(v.attributes).forEach(([key, val]) => {
+                if (!available[key]) available[key] = new Set();
+                available[key].add(val);
+              });
+            });
+            
+            const availableArrays: Record<string, string[]> = {};
+            Object.entries(available).forEach(([k, v]) => availableArrays[k] = Array.from(v));
+            setAvailableAttributes(availableArrays);
+          }
+        })
+        .catch(e => console.error("Failed to load variants", e));
+    }
+  };
 
   const handleVariantSelect = (attrName: string, val: string) => {
     const currentSelection: Record<string, string> = {};
@@ -162,8 +192,10 @@ export default function ProductDetailPage() {
     );
   }
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  const formatPrice = (price: number) => {
+    if (price === -1) return 'Liên hệ';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  };
 
   return (
     <>
@@ -273,8 +305,16 @@ export default function ProductDetailPage() {
 
             <div className="glass-card" style={{ padding: '20px 24px', background: 'rgba(99,102,241,0.05)', borderColor: 'rgba(99,102,241,0.2)' }}>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent-light)', marginBottom: 8 }}>
-                {formatPrice(product.basePrice || 0)}
+                {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (resolvedPrice !== null ? resolvedPrice : (product.basePrice || 0)))}
               </div>
+              {resolvedPrice !== null && (
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ textDecoration: 'line-through' }}>{formatPrice(product.basePrice || 0)}</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
+                    Áp dụng: {product.appliedPriceListName || 'Bảng giá hệ thống'} (ID: {product.appliedPriceListId})
+                  </span>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 16, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                 {product.unit && <span>Đơn vị: <strong>{product.unit}</strong></span>}
                 {product.innerPackaging && <span>Quy cách: <strong>{product.innerPackaging}</strong></span>}
@@ -283,6 +323,14 @@ export default function ProductDetailPage() {
               {product.isDropship && product.dropshipPrice && (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: 12 }}>
                   Giá Dropship: <span style={{ color: '#10b981', fontWeight: 600 }}>{formatPrice(product.dropshipPrice)}</span>
+                </div>
+              )}
+              {isCompanyAdmin && (
+                <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10 }}>
+                  <div style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Dành cho Admin</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fca5a5' }}>
+                    Giá gốc (Base Price): {formatPrice(product.basePrice || 0)}
+                  </div>
                 </div>
               )}
             </div>
@@ -302,7 +350,11 @@ export default function ProductDetailPage() {
                 />
                 <button className="icon-btn" style={{ padding: '8px 12px' }}>+</button>
               </div>
-              <button className="btn-primary" style={{ flex: 1, padding: '14px', fontSize: '1rem' }} disabled={!(product.stockQuantity && product.stockQuantity > 0)}>
+              <button 
+                className="btn-primary" 
+                style={{ flex: 1, padding: '14px', fontSize: '1rem' }} 
+                disabled={!(product.stockQuantity && product.stockQuantity > 0) || (resolvedPrice !== null ? resolvedPrice : product.basePrice) === -1}
+              >
                 🛒 Thêm vào giỏ hàng
               </button>
             </div>

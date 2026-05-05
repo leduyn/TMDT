@@ -14,12 +14,27 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const { user } = useAuth();
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     setLoading(true);
-    productApi.getAll()
-      .then(setProducts)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+
+      let currentAgencyId: number | undefined = undefined;
+      
+      const storedAgencyId = localStorage.getItem('agencyId');
+      if (storedAgencyId) {
+        currentAgencyId = Number(storedAgencyId);
+      }
+
+      const data = await productApi.getAll(currentAgencyId);
+      setProducts(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -37,14 +52,17 @@ export default function ProductsPage() {
   };
 
   const isAuthorized = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ADMIN'].includes(r));
+  const isCompanyAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
   const filtered = products.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
     p.description?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  const formatPrice = (price: number) => {
+    if (price === -1) return 'Liên hệ';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  };
 
   return (
     <>
@@ -183,8 +201,11 @@ export default function ProductsPage() {
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
-                      {formatPrice(product.basePrice || 0)}
+                      {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
                     </span>
+                    {product.appliedPrice !== undefined && product.appliedPrice < (product.basePrice || 0) && (
+                      <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>-%</span>
+                    )}
                     <div style={{ display: 'flex', gap: 8 }}>
                       {isAuthorized ? (
                         <>

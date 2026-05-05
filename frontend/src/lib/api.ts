@@ -19,6 +19,7 @@ export interface JwtResponse {
   username: string;
   email: string;
   roles: string[];
+  agencyId?: number;
 }
 
 export interface MessageResponse {
@@ -81,6 +82,9 @@ export interface ProductDTO {
   minPurchaseQuantity?: number;
   quantityStep?: number;
   userManual?: string;
+  appliedPrice?: number;
+  appliedPriceListName?: string;
+  appliedPriceListId?: number;
 }
 
 
@@ -204,8 +208,18 @@ export const categoryApi = {
 
 // ─── Product API ───────────────────────────────────────────────────────────
 export const productApi = {
-  getAll: () => fetchJSON<ProductDTO[]>('/api/products'),
-  getById: (id: number) => fetchJSON<ProductDTO>(`/api/products/${id}`),
+  getAll: (agencyId?: number, customerId?: number) => {
+    let params = '';
+    if (agencyId) params += `?agencyId=${agencyId}`;
+    if (customerId) params += `${params ? '&' : '?'}customerId=${customerId}`;
+    return fetchJSON<ProductDTO[]>(`/api/products${params}`);
+  },
+  getById: (id: number, agencyId?: number, customerId?: number) => {
+    let params = '';
+    if (agencyId) params += `?agencyId=${agencyId}`;
+    if (customerId) params += `${params ? '&' : '?'}customerId=${customerId}`;
+    return fetchJSON<ProductDTO>(`/api/products/${id}${params}`);
+  },
   create: (data: ProductRequest) =>
     fetchJSON<ProductDTO>('/api/products', {
       method: 'POST',
@@ -278,6 +292,8 @@ export interface FacetedSearchRequest {
   selectedValueIds?: number[];
   page?: number;
   size?: number;
+  agencyId?: number;
+  customerId?: number;
 }
 
 export interface FacetedSearchResponse {

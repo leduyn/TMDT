@@ -32,6 +32,9 @@ public class AttributeService {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private PriceListService priceListService;
+
     // ─── CRUD Attributes ────────────────────────────────────────────────────────
 
     public List<AttributeDTO> getAllAttributes() {
@@ -233,8 +236,14 @@ public class AttributeService {
                     .map(p -> {
                         List<ProductImage> images = productImageRepository
                                 .findByProductIdOrderBySortOrderAsc(p.getId());
-                        return new ProductDTO(p, images);
+                        ProductDTO dto = new ProductDTO(p, images);
+                        if (request.getAgencyId() != null) {
+                            dto.setAppliedPrice(priceListService.getResolvedPrice(p.getId(), request.getAgencyId(), request.getCustomerId()));
+                        }
+                        return dto;
                     })
+                    // Nếu là Agency/Customer và không lấy được giá (bị ẩn hoặc không có trong bảng giá), loại bỏ khỏi kết quả
+                    .filter(dto -> request.getAgencyId() == null || dto.getAppliedPrice() != null)
                     .collect(Collectors.toList());
         }
 

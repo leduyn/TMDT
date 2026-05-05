@@ -38,20 +38,41 @@ public class ProductService {
     @Autowired
     private ProductAttributeValueRepository productAttributeValueRepository;
 
+    @Autowired
+    private PriceListService priceListService;
+
     public List<ProductDTO> getAllProducts() {
+        return getAllProducts(null, null);
+    }
+
+    public List<ProductDTO> getAllProducts(Long agencyId, Long customerId) {
         return productRepository.findAll().stream()
                 .map(p -> {
                     List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(p.getId());
-                    return new ProductDTO(p, images);
+                    ProductDTO dto = new ProductDTO(p, images);
+                    PriceListService.ResolvedPriceInfo priceInfo = priceListService.getResolvedPriceInfo(p.getId(), agencyId, customerId);
+                    dto.setAppliedPrice(priceInfo.getPrice());
+                    dto.setAppliedPriceListName(priceInfo.getPriceListName());
+                    dto.setAppliedPriceListId(priceInfo.getPriceListId());
+                    return dto;
                 })
                 .collect(Collectors.toList());
     }
 
     public ProductDTO getProductById(@NonNull Long id) {
+        return getProductById(id, null, null);
+    }
+
+    public ProductDTO getProductById(@NonNull Long id, Long agencyId, Long customerId) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(id);
-        return new ProductDTO(product, images);
+        ProductDTO dto = new ProductDTO(product, images);
+        PriceListService.ResolvedPriceInfo priceInfo = priceListService.getResolvedPriceInfo(id, agencyId, customerId);
+        dto.setAppliedPrice(priceInfo.getPrice());
+        dto.setAppliedPriceListName(priceInfo.getPriceListName());
+        dto.setAppliedPriceListId(priceInfo.getPriceListId());
+        return dto;
     }
 
     @Transactional
@@ -97,6 +118,9 @@ public class ProductService {
 
         // Lưu attributes
         saveAttributes(savedProduct, request.getAttributeValueIds());
+
+        // Hook: Thêm sản phẩm mới vào tất cả bảng giá hiện có
+        priceListService.onProductCreated(savedProduct);
 
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(savedProduct.getId());
         return new ProductDTO(savedProduct, images);

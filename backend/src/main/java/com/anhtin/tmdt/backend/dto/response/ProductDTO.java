@@ -23,6 +23,9 @@ public class ProductDTO {
     private Long categoryId;
     private String categoryName;
     private BrandDTO brand;
+    private Double appliedPrice;
+    private String appliedPriceListName;
+    private Long appliedPriceListId;
 
     private Boolean isAppVisible;
     private Boolean isWebVisible;
