@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { priceListApi, PriceListDTO, productApi, ProductDTO } from '@/lib/api';
+import { priceListApi, PriceListDTO, productApi, ProductDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO } from '@/lib/api';
 
 export default function PriceUpdateVouchersPage() {
-  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [vouchers, setVouchers] = useState<PriceUpdateVoucherDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   
@@ -18,7 +18,7 @@ export default function PriceUpdateVouchersPage() {
   const [description, setDescription] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [selectedPLIds, setSelectedPLIds] = useState<number[]>([]);
-  const [items, setItems] = useState<{ productId: number; newPrice: number; productName: string }[]>([]);
+  const [items, setItems] = useState<{ productId: number; newPrice: number; productName: string; isVisible: boolean }[]>([]);
 
   const { user } = useAuth();
   const isCompany = user?.roles.includes('ROLE_COMPANY');
@@ -32,14 +32,13 @@ export default function PriceUpdateVouchersPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const [vRes, plData, pData] = await Promise.all([
-        fetch('/api/price-vouchers', { headers: { Authorization: `Bearer ${token}` } }),
+      const [vData, plData, pData] = await Promise.all([
+        priceUpdateVoucherApi.getAll(),
         priceListApi.getAll(),
         productApi.getAll()
       ]);
       
-      if (vRes.ok) setVouchers(await vRes.ok ? await vRes.json() : []);
+      setVouchers(vData);
       setPriceLists(plData);
       setProducts(pData);
     } catch (err) {
@@ -52,30 +51,19 @@ export default function PriceUpdateVouchersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       const payload = {
         name,
         description,
-        scheduledAt: new Date(scheduledAt).toISOString(),
+        scheduledAt: scheduledAt.length === 16 ? scheduledAt + ':00' : scheduledAt,
         priceListIds: selectedPLIds,
-        items: items.map(it => ({ productId: it.productId, newPrice: it.newPrice }))
+        items: items.map(it => ({ productId: it.productId, newPrice: it.newPrice, isVisible: it.isVisible }))
       };
 
-      const res = await fetch('/api/price-vouchers', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        setShowModal(false);
-        loadData();
-        // Reset form
-        setName(''); setDescription(''); setScheduledAt(''); setSelectedPLIds([]); setItems([]);
-      }
+      await priceUpdateVoucherApi.create(payload);
+      setShowModal(false);
+      loadData();
+      // Reset form
+      setName(''); setDescription(''); setScheduledAt(''); setSelectedPLIds([]); setItems([]);
     } catch (err) {
       alert('Lỗi khi tạo phiếu');
     }
@@ -85,7 +73,7 @@ export default function PriceUpdateVouchersPage() {
     const prod = products.find(p => p.id === productId);
     if (!prod) return;
     if (items.some(it => it.productId === productId)) return;
-    setItems([...items, { productId, newPrice: prod.basePrice || 0, productName: prod.name }]);
+    setItems([...items, { productId, newPrice: prod.basePrice || 0, productName: prod.name, isVisible: true }]);
   };
 
   if (!isCompany) return <div className="p-8">Bạn không có quyền truy cập.</div>;
@@ -125,11 +113,15 @@ export default function PriceUpdateVouchersPage() {
               <tbody>
                 {vouchers.map(v => (
                   <tr key={v.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '16px 20px', fontWeight: 600 }}>{v.name}</td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600 }}>
+                      <a href={`/price-update-vouchers/${v.id}`} style={{ color: 'var(--accent-light)', textDecoration: 'none' }}>
+                        {v.name}
+                      </a>
+                    </td>
                     <td style={{ padding: '16px 20px' }}>{new Date(v.scheduledAt).toLocaleString('vi-VN')}</td>
                     <td style={{ padding: '16px 20px' }}>
                       <span className={`badge ${v.status === 'APPLIED' ? 'badge-success' : v.status === 'CANCELLED' ? 'badge-error' : 'badge-warning'}`}>
-                        {v.status}
+                        {v.status === 'PENDING' ? 'Đang chờ' : v.status === 'APPLIED' ? 'Đã áp dụng' : 'Đã hủy'}
                       </span>
                     </td>
                     <td style={{ padding: '16px 20px' }}>{v.items?.length || 0} sản phẩm</td>
@@ -185,20 +177,47 @@ export default function PriceUpdateVouchersPage() {
 
                   <div style={{ marginTop: 12 }}>
                     {items.map((it, idx) => (
-                      <div key={it.productId} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                        <span style={{ flex: 1, fontSize: '0.9rem' }}>{it.productName}</span>
-                        <input 
-                          type="number" 
-                          className="input-field" 
-                          style={{ width: 150 }} 
-                          value={it.newPrice} 
-                          onChange={e => {
-                            const newItems = [...items];
-                            newItems[idx].newPrice = Number(e.target.value);
-                            setItems(newItems);
-                          }}
-                        />
-                        <button type="button" style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setItems(items.filter((_, i) => i !== idx))}>
+                      <div key={it.productId} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8, padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{it.productName}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {it.productId}</div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Giá:</span>
+                          <input 
+                            type="number" 
+                            className="input-field" 
+                            style={{ width: 130, padding: '8px 12px' }} 
+                            value={it.newPrice} 
+                            onChange={e => {
+                              const newItems = [...items];
+                              newItems[idx].newPrice = Number(e.target.value);
+                              setItems(newItems);
+                            }}
+                          />
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={it.isVisible} 
+                            onChange={e => {
+                              const newItems = [...items];
+                              newItems[idx].isVisible = e.target.checked;
+                              setItems(newItems);
+                            }}
+                          />
+                          <span style={{ fontSize: '0.85rem' }}>Hiển thị</span>
+                        </label>
+
+                        <button 
+                          type="button" 
+                          style={{ color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', transition: 'all 0.2s' }} 
+                          onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                          onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)')}
+                          onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
+                        >
                           ✕
                         </button>
                       </div>
