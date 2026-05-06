@@ -33,6 +33,7 @@ export default function ProductDetailPage() {
   const [availableAttributes, setAvailableAttributes] = useState<Record<string, string[]>>({});
   const [resolvedPrice, setResolvedPrice] = useState<number | null>(null);
   const [agencyId, setAgencyId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'DESCRIPTION' | 'MANUAL' | 'SPECIFICATIONS'>('DESCRIPTION');
   const { user } = useAuth();
   const isCompanyAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
@@ -359,40 +360,92 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <div className="product-description" style={{ marginTop: 20 }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Mô tả sản phẩm</h3>
-              {product.description ? (
-                <div 
-                  className="rich-text-content"
-                  style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}
-                  dangerouslySetInnerHTML={{ __html: product.description }} 
-                />
-              ) : (
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                  Chưa có mô tả chi tiết cho sản phẩm này.
-                </p>
-              )}
-            </div>
+          </div>
+        </div>
 
+        <div className="fade-in-up" style={{ marginTop: 48, animationDelay: '0.2s' }}>
+          {/* Tab Headers */}
+          <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 24, overflowX: 'auto' }}>
+            <button 
+              onClick={() => setActiveTab('DESCRIPTION')}
+              style={{ 
+                padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
+                color: activeTab === 'DESCRIPTION' ? 'var(--accent-light)' : 'var(--text-muted)',
+                fontWeight: 700, fontSize: '1.1rem',
+                borderBottom: activeTab === 'DESCRIPTION' ? '3px solid var(--accent)' : '3px solid transparent',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Mô tả sản phẩm
+            </button>
             {product.userManual && (
-              <div className="product-manual" style={{ marginTop: 10 }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Hướng dẫn sử dụng</h3>
+              <button 
+                onClick={() => setActiveTab('MANUAL')}
+                style={{ 
+                  padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
+                  color: activeTab === 'MANUAL' ? 'var(--accent-light)' : 'var(--text-muted)',
+                  fontWeight: 700, fontSize: '1.1rem',
+                  borderBottom: activeTab === 'MANUAL' ? '3px solid var(--accent)' : '3px solid transparent',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Hướng dẫn sử dụng
+              </button>
+            )}
+            {attributes.length > 0 && (
+              <button 
+                onClick={() => setActiveTab('SPECIFICATIONS')}
+                style={{ 
+                  padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
+                  color: activeTab === 'SPECIFICATIONS' ? 'var(--accent-light)' : 'var(--text-muted)',
+                  fontWeight: 700, fontSize: '1.1rem',
+                  borderBottom: activeTab === 'SPECIFICATIONS' ? '3px solid var(--accent)' : '3px solid transparent',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Thông số kỹ thuật
+              </button>
+            )}
+          </div>
+
+          {/* Tab Content */}
+          <div className="tab-content fade-in" key={activeTab} style={{ minHeight: 200 }}>
+            {activeTab === 'DESCRIPTION' && (
+              <div className="product-description">
+                {product.description ? (
+                  <div 
+                    className="rich-text-content"
+                    style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1.05rem' }}
+                    dangerouslySetInnerHTML={{ __html: product.description }} 
+                  />
+                ) : (
+                  <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                    Chưa có mô tả chi tiết cho sản phẩm này.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'MANUAL' && product.userManual && (
+              <div className="product-manual">
                 <div 
                   className="rich-text-content"
-                  style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}
+                  style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1.05rem' }}
                   dangerouslySetInnerHTML={{ __html: product.userManual }} 
                 />
               </div>
             )}
 
-            {attributes.length > 0 && (
-              <div className="product-attributes" style={{ marginTop: 10 }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Thông số kỹ thuật</h3>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {activeTab === 'SPECIFICATIONS' && attributes.length > 0 && (
+              <div className="product-attributes" style={{ maxWidth: 800 }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {attributes.map(attr => (
-                    <li key={attr.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{attr.attributeName}</span>
-                      <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{attr.value}</span>
+                    <li key={attr.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>{attr.attributeName}</span>
+                      <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>{attr.value}</span>
                     </li>
                   ))}
                 </ul>
