@@ -32,6 +32,9 @@ public class AttributeService {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private PriceListService priceListService;
+
     // ─── CRUD Attributes ────────────────────────────────────────────────────────
 
     public List<AttributeDTO> getAllAttributes() {
@@ -58,10 +61,15 @@ public class AttributeService {
     }
 
     @Transactional
-    public AttributeDTO createAttribute(String name, String displayName, Long categoryId) {
+    public AttributeDTO createAttribute(String name, String displayName, Long categoryId, Boolean isVariant) {
+        attributeRepository.findByName(name).ifPresent(a -> {
+            throw new IllegalArgumentException("Thuộc tính với mã '" + name + "' đã tồn tại.");
+        });
+        
         Attribute attr = new Attribute();
         attr.setName(name);
         attr.setDisplayName(displayName);
+        attr.setIsVariant(isVariant != null ? isVariant : false);
         if (categoryId != null) {
             Category cat = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Category not found: " + categoryId));
@@ -72,12 +80,20 @@ public class AttributeService {
     }
 
     @Transactional
-    public AttributeDTO updateAttribute(Long id, String name, String displayName, Long categoryId) {
+    public AttributeDTO updateAttribute(Long id, String name, String displayName, Long categoryId, Boolean isVariant) {
         if (id == null) throw new RuntimeException("Attribute ID must not be null");
         Attribute attr = attributeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Attribute not found: " + id));
+                
+        attributeRepository.findByName(name).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new IllegalArgumentException("Thuộc tính với mã '" + name + "' đã tồn tại.");
+            }
+        });
+        
         attr.setName(name);
         attr.setDisplayName(displayName);
+        if (isVariant != null) attr.setIsVariant(isVariant);
         if (categoryId != null) {
             Category cat = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Category not found: " + categoryId));
@@ -220,8 +236,14 @@ public class AttributeService {
                     .map(p -> {
                         List<ProductImage> images = productImageRepository
                                 .findByProductIdOrderBySortOrderAsc(p.getId());
-                        return new ProductDTO(p, images);
+                        ProductDTO dto = new ProductDTO(p, images);
+                        if (request.getAgencyId() != null) {
+                            dto.setAppliedPrice(priceListService.getResolvedPrice(p.getId(), request.getAgencyId(), request.getCustomerId()));
+                        }
+                        return dto;
                     })
+                    // Nếu là Agency/Customer và không lấy được giá (bị ẩn hoặc không có trong bảng giá), loại bỏ khỏi kết quả
+                    .filter(dto -> request.getAgencyId() == null || dto.getAppliedPrice() != null)
                     .collect(Collectors.toList());
         }
 

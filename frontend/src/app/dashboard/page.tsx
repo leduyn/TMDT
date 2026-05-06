@@ -55,6 +55,13 @@ export default function DashboardPage() {
     ...(isAgency || isCompany ? [{ href: '/products/create', label: 'Thêm sản phẩm', icon: '➕', desc: 'Tạo sản phẩm mới' }] : []),
     ...(isAgency || isCompany ? [{ href: '/categories', label: 'Quản lý danh mục', icon: '📂', desc: 'Quản lý loại sản phẩm' }] : []),
     ...(isCompany ? [{ href: '/attributes', label: 'Quản lý thuộc tính', icon: '⚙️', desc: 'Thiết lập EAV' }] : []),
+    ...(isCompany ? [
+      { href: '/price-lists', label: 'Bảng giá', icon: '🏷️', desc: 'Quản lý bảng giá' },
+      { href: '/price-vouchers', label: 'Hẹn giờ áp dụng', icon: '📅', desc: 'Lên lịch áp dụng bảng giá' },
+      { href: '/price-update-vouchers', label: 'Cập nhật giá', icon: '⏰', desc: 'Hẹn giờ cập nhật giá' },
+      { href: '/customer-groups', label: 'Nhóm khách hàng', icon: '👥', desc: 'Quản lý nhóm KH' }
+    ] : []),
+    ...(isAgency ? [{ href: '/price-lists/my-store', label: 'Bảng giá shop', icon: '🏪', desc: 'Thiết lập giá shop' }] : []),
     ...(isAgency || isCompany ? [{ href: '#', label: 'Quản lý đơn', icon: '📊', desc: 'Xử lý đơn hàng' }] : []),
   ];
 

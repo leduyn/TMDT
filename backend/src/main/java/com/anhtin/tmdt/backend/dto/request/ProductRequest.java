@@ -7,6 +7,9 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * Request DTO for creating or updating a product.
+ */
 @Getter
 @Setter
 public class ProductRequest {
@@ -36,4 +39,15 @@ public class ProductRequest {
     private List<String> imageUrls;
 
     private List<Long> attributeValueIds;
+
+    private Boolean isAppVisible = true;
+    private Boolean isWebVisible = true;
+    private String tags;
+    private Integer bravoOrder;
+    private String unit;
+    private String innerPackaging;
+    private String outerPackaging;
+    private Integer minPurchaseQuantity = 1;
+    private Integer quantityStep = 1;
+    private String userManual;
 }

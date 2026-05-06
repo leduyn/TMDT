@@ -74,6 +74,46 @@ export default function Navbar() {
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
                 >Dashboard</Link>
 
+                {user.roles.includes('ROLE_COMPANY') && (
+                  <>
+                    <Link href="/agencies" style={{
+                      color: 'var(--text-secondary)', textDecoration: 'none',
+                      padding: '8px 16px', borderRadius: 8,
+                      fontSize: '0.9rem', fontWeight: 500,
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                    >Đại lý</Link>
+                    <Link href="/customers" style={{
+                      color: 'var(--text-secondary)', textDecoration: 'none',
+                      padding: '8px 16px', borderRadius: 8,
+                      fontSize: '0.9rem', fontWeight: 500,
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                    >Khách hàng</Link>
+                    <Link href="/price-vouchers" style={{
+                      color: 'var(--text-secondary)', textDecoration: 'none',
+                      padding: '8px 16px', borderRadius: 8,
+                      fontSize: '0.9rem', fontWeight: 500,
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                    >Hẹn giờ giá</Link>
+                  </>
+                )}
+
+                {user.roles.includes('ROLE_AGENCY') && (
+                  <Link href="/my-customers" style={{
+                    color: 'var(--text-secondary)', textDecoration: 'none',
+                    padding: '8px 16px', borderRadius: 8,
+                    fontSize: '0.9rem', fontWeight: 500,
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                  >Khách hàng của tôi</Link>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className={`badge ${getRoleBadge(user.roles).cls}`}>
                     {getRoleBadge(user.roles).label}

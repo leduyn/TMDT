@@ -19,6 +19,7 @@ export interface JwtResponse {
   username: string;
   email: string;
   roles: string[];
+  agencyId?: number;
 }
 
 export interface MessageResponse {
@@ -48,6 +49,25 @@ export interface BrandDTO {
   logoUrl?: string;
 }
 
+// ─── Agency ────────────────────────────────────────────────────────────────
+export interface AgencyDTO {
+  id: number;
+  name: string;
+  phone?: string;
+  address?: string;
+  userId?: number;
+}
+
+// ─── PriceList ─────────────────────────────────────────────────────────────
+export interface PriceListDTO {
+  id: number;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  active: boolean;
+  itemCount: number;
+}
+
 export interface BrandRequest {
   code: string;
   name: string;
@@ -71,6 +91,19 @@ export interface ProductDTO {
   imageUrl?: string;
   imageUrls?: string[];
   brand?: BrandDTO;
+  isAppVisible?: boolean;
+  isWebVisible?: boolean;
+  tags?: string;
+  bravoOrder?: number;
+  unit?: string;
+  innerPackaging?: string;
+  outerPackaging?: string;
+  minPurchaseQuantity?: number;
+  quantityStep?: number;
+  userManual?: string;
+  appliedPrice?: number;
+  appliedPriceListName?: string;
+  appliedPriceListId?: number;
 }
 
 
@@ -86,6 +119,16 @@ export interface ProductRequest {
   imageUrls?: string[];
   brandId?: number;
   attributeValueIds?: number[];
+  isAppVisible?: boolean;
+  isWebVisible?: boolean;
+  tags?: string;
+  bravoOrder?: number;
+  unit?: string;
+  innerPackaging?: string;
+  outerPackaging?: string;
+  minPurchaseQuantity?: number;
+  quantityStep?: number;
+  userManual?: string;
 }
 
 
@@ -184,8 +227,18 @@ export const categoryApi = {
 
 // ─── Product API ───────────────────────────────────────────────────────────
 export const productApi = {
-  getAll: () => fetchJSON<ProductDTO[]>('/api/products'),
-  getById: (id: number) => fetchJSON<ProductDTO>(`/api/products/${id}`),
+  getAll: (agencyId?: number, customerId?: number) => {
+    let params = '';
+    if (agencyId) params += `?agencyId=${agencyId}`;
+    if (customerId) params += `${params ? '&' : '?'}customerId=${customerId}`;
+    return fetchJSON<ProductDTO[]>(`/api/products${params}`);
+  },
+  getById: (id: number, agencyId?: number, customerId?: number) => {
+    let params = '';
+    if (agencyId) params += `?agencyId=${agencyId}`;
+    if (customerId) params += `${params ? '&' : '?'}customerId=${customerId}`;
+    return fetchJSON<ProductDTO>(`/api/products/${id}${params}`);
+  },
   create: (data: ProductRequest) =>
     fetchJSON<ProductDTO>('/api/products', {
       method: 'POST',
@@ -222,6 +275,23 @@ export const brandApi = {
     }),
 };
 
+// ─── Agency API ─────────────────────────────────────────────────────────────
+export const agencyApi = {
+  getAll: () => fetchJSON<AgencyDTO[]>('/api/agencies'),
+  getById: (id: number) => fetchJSON<AgencyDTO>(`/api/agencies/${id}`),
+};
+
+// ─── Customer API ───────────────────────────────────────────────────────────
+export const customerApi = {
+  getAll: () => fetchJSON<any[]>('/api/users/customers'),
+};
+
+// ─── PriceList API ──────────────────────────────────────────────────────────
+export const priceListApi = {
+  getAll: () => fetchJSON<PriceListDTO[]>('/api/price-lists'),
+  getById: (id: number) => fetchJSON<PriceListDTO>(`/api/price-lists/${id}`),
+};
+
 // ─── Attribute & Faceted Search ────────────────────────────────────────────
 
 export interface AttributeValueDTO {
@@ -236,6 +306,7 @@ export interface AttributeDTO {
   displayName: string;
   categoryId?: number;
   categoryName?: string;
+  isVariant?: boolean;
   values: AttributeValueDTO[];
 }
 
@@ -257,6 +328,8 @@ export interface FacetedSearchRequest {
   selectedValueIds?: number[];
   page?: number;
   size?: number;
+  agencyId?: number;
+  customerId?: number;
 }
 
 export interface FacetedSearchResponse {
@@ -273,12 +346,12 @@ export const attributeApi = {
     return fetchJSON<AttributeDTO[]>(`/api/attributes${params}`);
   },
   getById: (id: number) => fetchJSON<AttributeDTO>(`/api/attributes/${id}`),
-  create: (data: { name: string; displayName: string; categoryId?: number }) =>
+  create: (data: { name: string; displayName: string; categoryId?: number; isVariant?: boolean }) =>
     fetchJSON<AttributeDTO>('/api/attributes', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: number, data: { name: string; displayName: string; categoryId?: number }) =>
+  update: (id: number, data: { name: string; displayName: string; categoryId?: number; isVariant?: boolean }) =>
     fetchJSON<AttributeDTO>(`/api/attributes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -313,4 +386,81 @@ export const facetedSearchApi = {
       method: 'POST',
       body: JSON.stringify({ attributeValueIds }),
     }),
+};
+
+export interface PriceAssignmentVoucher {
+  id?: number;
+  name: string;
+  priceListId: number;
+  priceListName?: string;
+  assignmentType: string;
+  rankLevel?: string;
+  agencyId?: number;
+  agencyName?: string;
+  customerGroupId?: number;
+  customerGroupName?: string;
+  scheduledAt: string;
+  status?: string;
+  createdAt?: string;
+  appliedAt?: string;
+}
+
+export interface PriceUpdateVoucherDTO {
+  id: number;
+  name: string;
+  description?: string;
+  scheduledAt: string;
+  status: string;
+  createdAt: string;
+  appliedAt?: string;
+  priceListIds: number[];
+  items: PriceUpdateVoucherItemDTO[];
+}
+
+export interface PriceUpdateVoucherItemDTO {
+  productId: number;
+  productName: string;
+  newPrice: number;
+  isVisible: boolean;
+}
+
+export interface PriceUpdateVoucherRequest {
+  name: string;
+  description?: string;
+  scheduledAt: string;
+  priceListIds: number[];
+  items: { productId: number; newPrice: number; isVisible: boolean }[];
+}
+
+export const priceAssignmentVoucherApi = {
+  getAll: () => fetchJSON<PriceAssignmentVoucher[]>('/api/price-assignment-vouchers'),
+  create: (data: PriceAssignmentVoucher) => fetchJSON<PriceAssignmentVoucher>('/api/price-assignment-vouchers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  cancel: (id: number) => fetchJSON<void>(`/api/price-assignment-vouchers/${id}/cancel`, {
+    method: 'POST'
+  }),
+  stop: (id: number) => fetchJSON<void>(`/api/price-assignment-vouchers/${id}/stop`, {
+    method: 'POST'
+  }),
+  reactivate: (id: number, scheduledAt?: string) => fetchJSON<void>(`/api/price-assignment-vouchers/${id}/reactivate`, {
+    method: 'POST',
+    body: scheduledAt ? JSON.stringify({ scheduledAt }) : undefined
+  })
+};
+
+export const priceUpdateVoucherApi = {
+  getAll: () => fetchJSON<PriceUpdateVoucherDTO[]>('/api/price-vouchers'),
+  getById: (id: number) => fetchJSON<PriceUpdateVoucherDTO>(`/api/price-vouchers/${id}`),
+  create: (data: PriceUpdateVoucherRequest) => fetchJSON<PriceUpdateVoucherDTO>('/api/price-vouchers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  cancel: (id: number) => fetchJSON<any>(`/api/price-vouchers/${id}/cancel`, {
+    method: 'POST'
+  }),
+  apply: (id: number) => fetchJSON<any>(`/api/price-vouchers/${id}/apply`, {
+    method: 'POST'
+  })
 };

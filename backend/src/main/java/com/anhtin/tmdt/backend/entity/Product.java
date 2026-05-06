@@ -45,4 +45,34 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
     private Brand brand;
+
+    @Column(name = "is_app_visible")
+    private Boolean isAppVisible = true;
+
+    @Column(name = "is_web_visible")
+    private Boolean isWebVisible = true;
+
+    @Column(name = "tags")
+    private String tags;
+
+    @Column(name = "bravo_order")
+    private Integer bravoOrder;
+
+    @Column(name = "unit")
+    private String unit;
+
+    @Column(name = "inner_packaging")
+    private String innerPackaging;
+
+    @Column(name = "outer_packaging")
+    private String outerPackaging;
+
+    @Column(name = "min_purchase_quantity")
+    private Integer minPurchaseQuantity = 1;
+
+    @Column(name = "quantity_step")
+    private Integer quantityStep = 1;
+
+    @Column(name = "user_manual", columnDefinition = "TEXT")
+    private String userManual;
 }

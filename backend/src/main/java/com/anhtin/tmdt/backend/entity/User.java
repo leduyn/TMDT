@@ -33,9 +33,17 @@ public class User {
 
     private boolean active = true;
 
+    /**
+     * Nhóm khách hàng (nullable) — dùng để áp dụng bảng giá theo điều kiện nhóm KH.
+     * Chỉ có ý nghĩa với role = CUSTOMER.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_group_id")
+    private CustomerGroup customerGroup;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
-    
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 

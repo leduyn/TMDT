@@ -35,4 +35,7 @@ public class Attribute {
 
     @OneToMany(mappedBy = "attribute", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AttributeValue> values;
+
+    @Column(name = "is_variant")
+    private Boolean isVariant = false;
 }

@@ -37,6 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (data: JwtResponse) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data));
+    if (data.agencyId) {
+      localStorage.setItem('agencyId', data.agencyId.toString());
+    } else {
+      localStorage.removeItem('agencyId');
+    }
     setToken(data.token);
     setUser(data);
   };
@@ -44,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('agencyId');
     setToken(null);
     setUser(null);
   };

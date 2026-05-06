@@ -21,13 +21,18 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<List<ProductDTO>> getAllProducts(
+            @RequestParam(required = false) Long agencyId,
+            @RequestParam(required = false) Long customerId) {
+        return ResponseEntity.ok(productService.getAllProducts(agencyId, customerId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> getProductById(@PathVariable @NonNull Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
+    public ResponseEntity<ProductDTO> getProductById(
+            @PathVariable @NonNull Long id,
+            @RequestParam(required = false) Long agencyId,
+            @RequestParam(required = false) Long customerId) {
+        return ResponseEntity.ok(productService.getProductById(id, agencyId, customerId));
     }
     
     // Yêu cầu quyền admin/company/agency để thêm sản phẩm

@@ -10,4 +10,5 @@ import java.util.List;
 public interface AttributeRepository extends JpaRepository<Attribute, Long> {
     List<Attribute> findByCategoryId(Long categoryId);
     List<Attribute> findByCategoryIsNull();
+    java.util.Optional<Attribute> findByName(String name);
 }

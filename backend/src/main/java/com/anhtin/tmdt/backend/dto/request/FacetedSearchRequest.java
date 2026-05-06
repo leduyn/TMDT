@@ -18,4 +18,6 @@ public class FacetedSearchRequest {
     private List<Long> selectedValueIds;
     private int page = 0;
     private int size = 20;
+    private Long agencyId;
+    private Long customerId;
 }

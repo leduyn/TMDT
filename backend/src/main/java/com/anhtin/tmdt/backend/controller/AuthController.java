@@ -39,6 +39,9 @@ public class AuthController {
     @Autowired
     JwtUtils jwtUtils;
 
+    @Autowired
+    com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
+
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
@@ -53,11 +56,19 @@ public class AuthController {
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
+        Long agencyId = null;
+        if (roles.contains("ROLE_AGENCY")) {
+            agencyId = agencyRepository.findByUserId(userDetails.getId())
+                    .map(com.anhtin.tmdt.backend.entity.Agency::getId)
+                    .orElse(null);
+        }
+
         return ResponseEntity.ok(new JwtResponse(jwt,
                 userDetails.getId(),
                 userDetails.getUsername(),
                 userDetails.getEmail(),
-                roles));
+                roles,
+                agencyId));
     }
 
     @PostMapping("/signup")

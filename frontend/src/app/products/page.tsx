@@ -14,12 +14,27 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const { user } = useAuth();
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     setLoading(true);
-    productApi.getAll()
-      .then(setProducts)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+
+      let currentAgencyId: number | undefined = undefined;
+      
+      const storedAgencyId = localStorage.getItem('agencyId');
+      if (storedAgencyId) {
+        currentAgencyId = Number(storedAgencyId);
+      }
+
+      const data = await productApi.getAll(currentAgencyId);
+      setProducts(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -37,21 +52,29 @@ export default function ProductsPage() {
   };
 
   const isAuthorized = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ADMIN'].includes(r));
+  const isCompanyAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
   const filtered = products.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
     p.description?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  const formatPrice = (price: number) => {
+    if (price === -1) return 'Liên hệ';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  };
+
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+  };
 
   return (
     <>
       <Navbar />
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
         {/* Page header */}
-        <div className="fade-in-up" style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="fade-in-up" style={{ marginBottom: 32 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
               🛍️ <span className="gradient-text">Danh sách sản phẩm</span>
@@ -60,23 +83,23 @@ export default function ProductsPage() {
               Khám phá hàng nghìn sản phẩm từ các đại lý uy tín
             </p>
           </div>
-          {isAuthorized && (
-            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
-              + Thêm sản phẩm
-            </Link>
-          )}
         </div>
 
         {/* Search bar */}
-        <div className="fade-in-up" style={{ marginBottom: 32, animationDelay: '0.1s' }}>
+        <div className="fade-in-up" style={{ marginBottom: 32, animationDelay: '0.1s', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <input
             className="input-field"
             type="search"
             placeholder="🔍  Tìm kiếm sản phẩm..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 480, fontSize: '0.95rem' }}
+            style={{ maxWidth: 480, fontSize: '0.95rem', margin: 0 }}
           />
+          {isAuthorized && (
+            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none', width: 'auto', whiteSpace: 'nowrap' }}>
+              + Thêm sản phẩm
+            </Link>
+          )}
         </div>
 
         {/* States */}
@@ -134,26 +157,28 @@ export default function ProductsPage() {
                   style={{ animationDelay: `${i * 0.05}s`, display: 'flex', flexDirection: 'column' }}
                 >
                   {/* Product image */}
-                  <div style={{
-                    height: 180, borderRadius: 12, marginBottom: 16,
-                    backgroundImage: product.imageUrl ? `url(${resolveImageUrl(product.imageUrl)})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 48,
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    {!product.imageUrl && '🛒'}
-                    {product.isDropship && (
-                      <span style={{
-                        position: 'absolute', top: 12, right: 12,
-                        background: 'var(--accent)', color: 'white',
-                        fontSize: '0.65rem', padding: '4px 8px', borderRadius: 20, fontWeight: 700
-                      }}>DROPSHIP</span>
-                    )}
-                  </div>
+                  <Link href={`/products/${product.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{
+                      height: 180, borderRadius: 12, marginBottom: 16,
+                      backgroundImage: product.imageUrl ? `url(${resolveImageUrl(product.imageUrl)})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 48,
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      {!product.imageUrl && '🛒'}
+                      {product.isDropship && (
+                        <span style={{
+                          position: 'absolute', top: 12, right: 12,
+                          background: 'var(--accent)', color: 'white',
+                          fontSize: '0.65rem', padding: '4px 8px', borderRadius: 20, fontWeight: 700
+                        }}>DROPSHIP</span>
+                      )}
+                    </div>
+                  </Link>
 
                   <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
                     <span className="badge badge-primary">{product.categoryName || 'Chưa phân loại'}</span>
@@ -165,7 +190,9 @@ export default function ProductsPage() {
                   </div>
 
                   <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.4 }}>
-                    {product.name || 'Sản phẩm'}
+                    <Link href={`/products/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      {product.name || 'Sản phẩm'}
+                    </Link>
                   </h3>
                   <p style={{
                     margin: '0 0 16px', color: 'var(--text-muted)',
@@ -174,13 +201,16 @@ export default function ProductsPage() {
                     WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     flexGrow: 1
                   }}>
-                    {product.description || 'Chưa có mô tả'}
+                    {stripHtml(product.description || '') || 'Chưa có mô tả'}
                   </p>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
-                      {formatPrice(product.basePrice || 0)}
+                      {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
                     </span>
+                    {!isCompanyAdmin && product.appliedPrice !== undefined && product.appliedPrice < (product.basePrice || 0) && (
+                      <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>-%</span>
+                    )}
                     <div style={{ display: 'flex', gap: 8 }}>
                       {isAuthorized ? (
                         <>
@@ -192,9 +222,9 @@ export default function ProductsPage() {
                           </button>
                         </>
                       ) : (
-                        <button className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+                        <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none' }}>
                           Chi tiết
-                        </button>
+                        </Link>
                       )}
                     </div>
                   </div>

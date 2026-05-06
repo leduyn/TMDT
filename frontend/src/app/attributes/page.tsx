@@ -17,7 +17,7 @@ export default function AttributesManagementPage() {
   // Form states for Create/Edit Attribute
   const [showAttrModal, setShowAttrModal] = useState(false);
   const [editingAttr, setEditingAttr] = useState<AttributeDTO | null>(null);
-  const [attrForm, setAttrForm] = useState({ name: '', displayName: '', categoryId: 0 });
+  const [attrForm, setAttrForm] = useState({ name: '', displayName: '', categoryId: 0, isVariant: false });
 
   // Value management states
   const [selectedAttrForValues, setSelectedAttrForValues] = useState<AttributeDTO | null>(null);
@@ -55,11 +55,12 @@ export default function AttributesManagementPage() {
       setAttrForm({
         name: attr.name,
         displayName: attr.displayName,
-        categoryId: attr.categoryId || 0
+        categoryId: attr.categoryId || 0,
+        isVariant: attr.isVariant || false
       });
     } else {
       setEditingAttr(null);
-      setAttrForm({ name: '', displayName: '', categoryId: 0 });
+      setAttrForm({ name: '', displayName: '', categoryId: 0, isVariant: false });
     }
     setShowAttrModal(true);
   };
@@ -160,6 +161,7 @@ export default function AttributesManagementPage() {
                     <th>Tên hiển thị</th>
                     <th>Tên kỹ thuật</th>
                     <th>Danh mục</th>
+                    <th>Biến thể</th>
                     <th>Số giá trị</th>
                     <th>Thao tác</th>
                   </tr>
@@ -170,6 +172,13 @@ export default function AttributesManagementPage() {
                       <td><strong>{attr.displayName}</strong></td>
                       <td><code>{attr.name}</code></td>
                       <td>{attr.categoryName || <span style={{ color: '#64748b' }}>Toàn hệ thống</span>}</td>
+                      <td>
+                        {attr.isVariant ? (
+                          <span className="badge badge-primary">Có</span>
+                        ) : (
+                          <span className="badge" style={{ background: 'rgba(255,255,255,0.05)' }}>Không</span>
+                        )}
+                      </td>
                       <td>{attr.values?.length || 0}</td>
                       <td>
                         <div className="table-actions">
@@ -185,7 +194,7 @@ export default function AttributesManagementPage() {
                   ))}
                   {attributes.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
                         Chưa có thuộc tính nào được tạo
                       </td>
                     </tr>
@@ -276,6 +285,18 @@ export default function AttributesManagementPage() {
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
+                </div>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                  <input 
+                    type="checkbox" 
+                    id="isVariant"
+                    checked={attrForm.isVariant}
+                    onChange={e => setAttrForm({...attrForm, isVariant: e.target.checked})}
+                    style={{ width: 16, height: 16 }}
+                  />
+                  <label htmlFor="isVariant" style={{ margin: 0, cursor: 'pointer', color: 'var(--text)' }}>
+                    Sử dụng làm biến thể (hiển thị nút chọn)
+                  </label>
                 </div>
                 <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
                   <button type="submit" className="btn-primary" style={{ flex: 1 }}>Lưu</button>

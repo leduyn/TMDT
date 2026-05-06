@@ -43,9 +43,10 @@ public class AttributeController {
     public ResponseEntity<AttributeDTO> createAttribute(@RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String displayName = (String) body.get("displayName");
+        Boolean isVariant = body.get("isVariant") != null ? (Boolean) body.get("isVariant") : false;
         Long categoryId = body.get("categoryId") != null
                 ? Long.valueOf(body.get("categoryId").toString()) : null;
-        return ResponseEntity.ok(attributeService.createAttribute(name, displayName, categoryId));
+        return ResponseEntity.ok(attributeService.createAttribute(name, displayName, categoryId, isVariant));
     }
 
     /** Cập nhật attribute */
@@ -55,9 +56,10 @@ public class AttributeController {
             @PathVariable Long id, @RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String displayName = (String) body.get("displayName");
+        Boolean isVariant = body.get("isVariant") != null ? (Boolean) body.get("isVariant") : null;
         Long categoryId = body.get("categoryId") != null
                 ? Long.valueOf(body.get("categoryId").toString()) : null;
-        return ResponseEntity.ok(attributeService.updateAttribute(id, name, displayName, categoryId));
+        return ResponseEntity.ok(attributeService.updateAttribute(id, name, displayName, categoryId, isVariant));
     }
 
     /** Xóa attribute */

@@ -38,20 +38,41 @@ public class ProductService {
     @Autowired
     private ProductAttributeValueRepository productAttributeValueRepository;
 
+    @Autowired
+    private PriceListService priceListService;
+
     public List<ProductDTO> getAllProducts() {
+        return getAllProducts(null, null);
+    }
+
+    public List<ProductDTO> getAllProducts(Long agencyId, Long customerId) {
         return productRepository.findAll().stream()
                 .map(p -> {
                     List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(p.getId());
-                    return new ProductDTO(p, images);
+                    ProductDTO dto = new ProductDTO(p, images);
+                    PriceListService.ResolvedPriceInfo priceInfo = priceListService.getResolvedPriceInfo(p.getId(), agencyId, customerId);
+                    dto.setAppliedPrice(priceInfo.getPrice());
+                    dto.setAppliedPriceListName(priceInfo.getPriceListName());
+                    dto.setAppliedPriceListId(priceInfo.getPriceListId());
+                    return dto;
                 })
                 .collect(Collectors.toList());
     }
 
     public ProductDTO getProductById(@NonNull Long id) {
+        return getProductById(id, null, null);
+    }
+
+    public ProductDTO getProductById(@NonNull Long id, Long agencyId, Long customerId) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(id);
-        return new ProductDTO(product, images);
+        ProductDTO dto = new ProductDTO(product, images);
+        PriceListService.ResolvedPriceInfo priceInfo = priceListService.getResolvedPriceInfo(id, agencyId, customerId);
+        dto.setAppliedPrice(priceInfo.getPrice());
+        dto.setAppliedPriceListName(priceInfo.getPriceListName());
+        dto.setAppliedPriceListId(priceInfo.getPriceListId());
+        return dto;
     }
 
     @Transactional
@@ -69,6 +90,16 @@ public class ProductService {
         product.setDropshipPrice(request.getDropshipPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setDropship(request.isDropship());
+        product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
+        product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
+        product.setTags(request.getTags());
+        product.setBravoOrder(request.getBravoOrder());
+        product.setUnit(request.getUnit());
+        product.setInnerPackaging(request.getInnerPackaging());
+        product.setOuterPackaging(request.getOuterPackaging());
+        product.setMinPurchaseQuantity(request.getMinPurchaseQuantity() != null ? request.getMinPurchaseQuantity() : 1);
+        product.setQuantityStep(request.getQuantityStep() != null ? request.getQuantityStep() : 1);
+        product.setUserManual(request.getUserManual());
 
         Long brandId = request.getBrandId();
         if (brandId != null) {
@@ -87,6 +118,9 @@ public class ProductService {
 
         // Lưu attributes
         saveAttributes(savedProduct, request.getAttributeValueIds());
+
+        // Hook: Thêm sản phẩm mới vào tất cả bảng giá hiện có
+        priceListService.onProductCreated(savedProduct);
 
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(savedProduct.getId());
         return new ProductDTO(savedProduct, images);
@@ -109,6 +143,16 @@ public class ProductService {
         product.setDropshipPrice(request.getDropshipPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setDropship(request.isDropship());
+        product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
+        product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
+        product.setTags(request.getTags());
+        product.setBravoOrder(request.getBravoOrder());
+        product.setUnit(request.getUnit());
+        product.setInnerPackaging(request.getInnerPackaging());
+        product.setOuterPackaging(request.getOuterPackaging());
+        product.setMinPurchaseQuantity(request.getMinPurchaseQuantity() != null ? request.getMinPurchaseQuantity() : 1);
+        product.setQuantityStep(request.getQuantityStep() != null ? request.getQuantityStep() : 1);
+        product.setUserManual(request.getUserManual());
 
         Long brandIdUpdate = request.getBrandId();
         if (brandIdUpdate != null) {
