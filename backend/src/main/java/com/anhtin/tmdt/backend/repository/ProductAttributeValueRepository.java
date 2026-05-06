@@ -2,7 +2,9 @@ package com.anhtin.tmdt.backend.repository;
 
 import com.anhtin.tmdt.backend.entity.ProductAttributeValue;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +17,10 @@ public interface ProductAttributeValueRepository extends JpaRepository<ProductAt
     List<ProductAttributeValue> findByProductId(Long productId);
 
     /** Xóa tất cả attribute values của một sản phẩm (dùng khi update) */
-    void deleteByProductId(Long productId);
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM ProductAttributeValue pav WHERE pav.product.id = :productId")
+    void deleteByProductId(@Param("productId") Long productId);
 
     /**
      * [FACETING CORE] Từ danh sách product_id, thống kê ngược:
