@@ -307,7 +307,7 @@ export default function ProductDetailPage() {
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent-light)', marginBottom: 8 }}>
                 {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (resolvedPrice !== null ? resolvedPrice : (product.basePrice || 0)))}
               </div>
-              {resolvedPrice !== null && (
+              {!isCompanyAdmin && resolvedPrice !== null && (
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ textDecoration: 'line-through' }}>{formatPrice(product.basePrice || 0)}</span>
                   <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>

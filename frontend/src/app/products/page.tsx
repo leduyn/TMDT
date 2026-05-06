@@ -203,7 +203,7 @@ export default function ProductsPage() {
                     <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
                       {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
                     </span>
-                    {product.appliedPrice !== undefined && product.appliedPrice < (product.basePrice || 0) && (
+                    {!isCompanyAdmin && product.appliedPrice !== undefined && product.appliedPrice < (product.basePrice || 0) && (
                       <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>-%</span>
                     )}
                     <div style={{ display: 'flex', gap: 8 }}>
