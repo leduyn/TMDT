@@ -64,12 +64,17 @@ export default function ProductsPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
+  const stripHtml = (html: string) => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
+  };
+
   return (
     <>
       <Navbar />
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
         {/* Page header */}
-        <div className="fade-in-up" style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="fade-in-up" style={{ marginBottom: 32 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
               🛍️ <span className="gradient-text">Danh sách sản phẩm</span>
@@ -78,23 +83,23 @@ export default function ProductsPage() {
               Khám phá hàng nghìn sản phẩm từ các đại lý uy tín
             </p>
           </div>
-          {isAuthorized && (
-            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
-              + Thêm sản phẩm
-            </Link>
-          )}
         </div>
 
         {/* Search bar */}
-        <div className="fade-in-up" style={{ marginBottom: 32, animationDelay: '0.1s' }}>
+        <div className="fade-in-up" style={{ marginBottom: 32, animationDelay: '0.1s', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <input
             className="input-field"
             type="search"
             placeholder="🔍  Tìm kiếm sản phẩm..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 480, fontSize: '0.95rem' }}
+            style={{ maxWidth: 480, fontSize: '0.95rem', margin: 0 }}
           />
+          {isAuthorized && (
+            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none', width: 'auto', whiteSpace: 'nowrap' }}>
+              + Thêm sản phẩm
+            </Link>
+          )}
         </div>
 
         {/* States */}
@@ -196,7 +201,7 @@ export default function ProductsPage() {
                     WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     flexGrow: 1
                   }}>
-                    {product.description || 'Chưa có mô tả'}
+                    {stripHtml(product.description || '') || 'Chưa có mô tả'}
                   </p>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
