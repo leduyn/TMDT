@@ -158,7 +158,6 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
-      </div>
 
       <NotificationModal 
         isOpen={modal.isOpen} 

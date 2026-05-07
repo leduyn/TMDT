@@ -2,28 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-
 import { customerApi, UserDTO } from '@/lib/api';
 import Link from 'next/link';
 import NotificationModal from '@/components/NotificationModal';
 
-type Customer = UserDTO;
+// UI Components
+import PageHeader from '@/components/ui/PageHeader';
+import SearchActionHeader from '@/components/ui/SearchActionHeader';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import Badge from '@/components/ui/Badge';
+import { UserPlus, CheckCircle, Eye, Edit } from 'lucide-react';
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<UserDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({
     isOpen: false, title: '', message: '', type: 'info' as any
   });
   
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchCustomers = () => {
+    setIsLoading(true);
     customerApi.getAll()
       .then(d => {
         setCustomers(d);
@@ -50,96 +53,109 @@ export default function CustomersPage() {
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoading) return <div className="loading-spinner" />;
+  const columns: Column<UserDTO>[] = [
+    { 
+      header: 'Khách hàng', 
+      key: 'username',
+      render: (c) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{c.username}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {c.id}</div>
+        </div>
+      )
+    },
+    { header: 'Email', key: 'email' },
+    { 
+      header: 'Nhóm', 
+      key: 'customerGroupName',
+      render: (c) => (
+        <Badge 
+          label={c.customerGroupName || 'Vãng lai'} 
+          type={c.customerGroupName ? 'primary' : 'info'} 
+          icon="Users"
+        />
+      )
+    },
+    { 
+      header: 'Trạng thái', 
+      key: 'active',
+      render: (c) => (
+        <Badge 
+          label={c.active ? 'Đang hoạt động' : 'Chờ duyệt'} 
+          type={c.active ? 'success' : 'warning'} 
+          icon={c.active ? 'CheckCircle' : 'Clock'}
+        />
+      )
+    },
+    { 
+      header: 'Đại lý quản lý', 
+      key: 'agencyNames',
+      render: (c) => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {c.agencyNames && c.agencyNames.length > 0 ? (
+            c.agencyNames.map((name, i) => (
+              <Badge key={i} label={name} type="primary" />
+            ))
+          ) : (
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Chưa gán</span>
+          )}
+        </div>
+      )
+    },
+    { 
+      header: 'Thao tác', 
+      key: 'actions', 
+      align: 'right',
+      render: (c) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          {!c.active && (
+            <button 
+              onClick={() => handleActivate(c.id)}
+              className="btn-primary" 
+              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+            >
+              <CheckCircle size={14} style={{ marginRight: 4 }} /> Duyệt
+            </button>
+          )}
+          <Link href={`/customers/${c.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+            <Eye size={16} />
+          </Link>
+          <Link href={`/customers/${c.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+            <Edit size={16} />
+          </Link>
+        </div>
+      )
+    }
+  ];
 
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Quản lý Khách hàng</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Danh sách khách lẻ đăng ký trên hệ thống</p>
-          </div>
-          <Link href="/customers/create" className="btn-primary" style={{ textDecoration: 'none' }}>
-            + Thêm khách hàng
-          </Link>
-        </div>
+      <main style={{ padding: '20px 0' }}>
+        <PageHeader 
+          title="Quản lý Khách hàng" 
+          subtitle="Danh sách khách lẻ đăng ký trên hệ thống"
+          icon="Users"
+        />
 
-        <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm khách hàng theo tên hoặc email..." 
-            className="form-control"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <SearchActionHeader 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder="Tìm kiếm khách hàng theo tên hoặc email..."
+          actions={
+            <Link href="/customers/create" className="btn-primary" style={{ textDecoration: 'none' }}>
+              <UserPlus size={18} />
+              Thêm khách hàng
+            </Link>
+          }
+        />
 
-        <div className="glass-card" style={{ overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)' }}>
-                <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.85rem' }}>KHÁCH HÀNG</th>
-                <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.85rem' }}>EMAIL</th>
-                <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.85rem' }}>NHÓM KHÁCH HÀNG</th>
-                <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.85rem' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '16px 24px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.85rem' }}>ĐẠI LÝ QUẢN LÝ</th>
-                <th style={{ padding: '16px 24px', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.85rem' }}>THAO TÁC</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map(customer => (
-                <tr key={customer.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '16px 24px' }}>
-                    <div style={{ fontWeight: 600 }}>{customer.username}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {customer.id}</div>
-                  </td>
-                  <td style={{ padding: '16px 24px' }}>{customer.email}</td>
-                  <td style={{ padding: '16px 24px' }}>
-                    <span className="badge badge-outline">{customer.customerGroupName || 'Vãng lai'}</span>
-                  </td>
-                  <td style={{ padding: '16px 24px' }}>
-                    <span className={`badge ${customer.active ? 'badge-success' : 'badge-warning'}`}>
-                      {customer.active ? 'Đang hoạt động' : 'Chờ duyệt'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px 24px' }}>
-                    {customer.agencyNames && customer.agencyNames.length > 0 ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {customer.agencyNames.map((name, i) => (
-                          <span key={i} className="badge badge-outline" style={{ fontSize: '0.7rem', borderColor: 'var(--accent)', color: 'var(--accent-light)' }}>{name}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Chưa gán</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-                      {!customer.active && (
-                        <button 
-                          onClick={() => handleActivate(customer.id)}
-                          className="btn-primary" 
-                          style={{ padding: '4px 12px', fontSize: '0.75rem' }}
-                        >
-                          Duyệt
-                        </button>
-                      )}
-                      <Link href={`/customers/${customer.id}`} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', textDecoration: 'none' }}>Chi tiết</Link>
-                      <Link href={`/customers/${customer.id}/edit`} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', textDecoration: 'none' }}>Sửa</Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredCustomers.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-              Không tìm thấy khách hàng nào.
-            </div>
-          )}
-        </div>
+        <DataTable 
+          data={filteredCustomers}
+          columns={columns}
+          loading={isLoading}
+          emptyMessage={searchQuery ? 'Không tìm thấy khách hàng nào phù hợp' : 'Chưa có khách hàng nào'}
+        />
       </main>
 
       <NotificationModal 

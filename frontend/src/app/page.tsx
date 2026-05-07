@@ -6,9 +6,8 @@ import Navbar from '@/components/Navbar';
 export default function HomePage() {
   return (
     <>
-      <Navbar />
       <main style={{
-        minHeight: 'calc(100vh - 64px)',
+        minHeight: '100vh',
         background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.2) 0%, transparent 60%)',
         position: 'relative',
       }} className="bg-grid">

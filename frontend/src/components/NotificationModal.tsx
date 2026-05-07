@@ -72,7 +72,7 @@ export default function NotificationModal({ isOpen, onClose, title, message, typ
           onClick={onClose}
           className="btn-primary"
           style={{ 
-            width: '100%', padding: '12px', background: styles.color, 
+            minWidth: 120, padding: '12px 32px', background: styles.color, 
             borderColor: styles.color, color: 'white' 
           }}
         >

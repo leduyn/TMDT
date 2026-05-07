@@ -7,6 +7,13 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { resolveImageUrl } from '@/lib/utils';
 
+// UI Components
+import PageHeader from '@/components/ui/PageHeader';
+import SearchActionHeader from '@/components/ui/SearchActionHeader';
+import Badge from '@/components/ui/Badge';
+import GlassCard from '@/components/ui/GlassCard';
+import { Plus, Edit, Trash2, Eye, Package, ShoppingCart } from 'lucide-react';
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,12 +24,7 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('userId');
-      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
-
       let currentAgencyId: number | undefined = undefined;
-      
       const storedAgencyId = localStorage.getItem('agencyId');
       if (storedAgencyId) {
         currentAgencyId = Number(storedAgencyId);
@@ -72,89 +74,65 @@ export default function ProductsPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        {/* Page header */}
-        <div className="fade-in-up" style={{ marginBottom: 32 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
-              🛍️ <span className="gradient-text">Danh sách sản phẩm</span>
-            </h1>
-            <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-              Khám phá hàng nghìn sản phẩm từ các đại lý uy tín
-            </p>
-          </div>
-        </div>
+      <main style={{ padding: '20px 0' }}>
+        <PageHeader 
+          title="Danh sách sản phẩm" 
+          subtitle="Khám phá hàng nghìn sản phẩm từ các đối tác và đại lý uy tín"
+          icon="ShoppingBag"
+        />
 
-        {/* Search bar */}
-        <div className="fade-in-up" style={{ marginBottom: 32, animationDelay: '0.1s', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-          <input
-            className="input-field"
-            type="search"
-            placeholder="🔍  Tìm kiếm sản phẩm..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ maxWidth: 480, fontSize: '0.95rem', margin: 0 }}
-          />
-          {isAuthorized && (
-            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none', width: 'auto', whiteSpace: 'nowrap' }}>
-              + Thêm sản phẩm
+        <SearchActionHeader 
+          searchQuery={search}
+          onSearchChange={setSearch}
+          placeholder="Tìm kiếm sản phẩm..."
+          actions={isAuthorized && (
+            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
+              <Plus size={18} />
+              Thêm sản phẩm
             </Link>
           )}
-        </div>
+        />
 
         {/* States */}
-        {loading && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 16, padding: '80px 0',
-          }}>
-            <div style={{
-              width: 48, height: 48,
-              border: '3px solid var(--border)',
-              borderTopColor: 'var(--accent)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }} />
-            <p style={{ color: 'var(--text-secondary)' }}>Đang tải sản phẩm...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="alert-error fade-in-up" style={{ maxWidth: 480, margin: '40px auto' }}>
-            <strong>⚠️ Không thể tải sản phẩm</strong>
-            <br />{error}
-            <br />
-            <small style={{ color: 'var(--text-muted)', marginTop: 6, display: 'block' }}>
-              Hãy chắc chắn backend đang chạy ở localhost:8080
-            </small>
-          </div>
-        )}
-
-        {!loading && !error && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
-            <p style={{ fontSize: '1.1rem' }}>
-              {search ? 'Không tìm thấy sản phẩm phù hợp' : 'Chưa có sản phẩm nào trong hệ thống'}
+        {loading ? (
+          <GlassCard style={{ padding: '80px 0', textAlign: 'center' }}>
+            <div className="spinner" style={{ marginBottom: 16 }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>Đang tải danh sách sản phẩm...</p>
+          </GlassCard>
+        ) : error ? (
+          <GlassCard style={{ padding: 40, textAlign: 'center', borderColor: 'var(--danger)' }}>
+            <h3 style={{ color: 'var(--danger)', marginBottom: 12 }}>⚠️ Không thể tải dữ liệu</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
+            <button onClick={loadProducts} className="btn-outline" style={{ marginTop: 20 }}>Thử lại</button>
+          </GlassCard>
+        ) : filtered.length === 0 ? (
+          <GlassCard style={{ padding: '80px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}><Package size={64} style={{ margin: '0 auto' }} /></div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
+              {search ? 'Không tìm thấy sản phẩm nào phù hợp' : 'Hệ thống chưa có sản phẩm nào'}
             </p>
-          </div>
-        )}
-
-        {/* Product grid */}
-        {!loading && !error && filtered.length > 0 && (
+          </GlassCard>
+        ) : (
           <>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>
+            <div style={{ marginBottom: 20, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               Hiển thị {filtered.length} sản phẩm
-            </p>
+            </div>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: 24,
             }}>
               {filtered.map((product, i) => (
-                <div
+                <GlassCard
                   key={product.id}
-                  className="product-card fade-in-up"
-                  style={{ animationDelay: `${i * 0.05}s`, display: 'flex', flexDirection: 'column' }}
+                  hoverable
+                  className="fade-in-up"
+                  style={{ 
+                    animationDelay: `${i * 0.05}s`, 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    padding: 20
+                  }}
                 >
                   {/* Product image */}
                   <Link href={`/products/${product.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
@@ -165,11 +143,10 @@ export default function ProductsPage() {
                       backgroundPosition: 'center',
                       backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 48,
                       overflow: 'hidden',
                       position: 'relative'
                     }}>
-                      {!product.imageUrl && '🛒'}
+                      {!product.imageUrl && <ShoppingCart size={48} style={{ opacity: 0.2 }} />}
                       {product.isDropship && (
                         <span style={{
                           position: 'absolute', top: 12, right: 12,
@@ -181,11 +158,13 @@ export default function ProductsPage() {
                   </Link>
 
                   <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <span className="badge badge-primary">{product.categoryName || 'Chưa phân loại'}</span>
+                    <Badge label={product.categoryName || 'Chưa phân loại'} type="primary" />
                     {product.stockQuantity !== undefined && (
-                      <span className={`badge ${product.stockQuantity > 0 ? 'badge-success' : 'badge-warning'}`}>
-                        {product.stockQuantity > 0 ? `Kho: ${product.stockQuantity}` : 'Hết hàng'}
-                      </span>
+                      <Badge 
+                        label={product.stockQuantity > 0 ? `Kho: ${product.stockQuantity}` : 'Hết hàng'} 
+                        type={product.stockQuantity > 0 ? 'success' : 'warning'} 
+                        icon={product.stockQuantity > 0 ? 'Package' : 'AlertTriangle'}
+                      />
                     )}
                   </div>
 
@@ -208,27 +187,25 @@ export default function ProductsPage() {
                     <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
                       {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
                     </span>
-                    {!isCompanyAdmin && product.appliedPrice !== undefined && product.appliedPrice < (product.basePrice || 0) && (
-                      <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>-%</span>
-                    )}
+                    
                     <div style={{ display: 'flex', gap: 8 }}>
                       {isAuthorized ? (
                         <>
-                          <Link href={`/products/${product.id}/edit`} className="btn-outline" style={{ padding: '6px 12px', fontSize: '0.75rem', textDecoration: 'none' }}>
-                            Sửa
+                          <Link href={`/products/${product.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+                            <Edit size={16} />
                           </Link>
-                          <button onClick={() => handleDelete(product.id)} className="btn-outline" style={{ padding: '6px 12px', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>
-                            Xoá
+                          <button onClick={() => handleDelete(product.id)} className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#ef4444' }}>
+                            <Trash2 size={16} />
                           </button>
                         </>
                       ) : (
-                        <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none' }}>
-                          Chi tiết
+                        <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', borderRadius: 8, textDecoration: 'none', fontSize: '0.85rem' }}>
+                          <Eye size={16} style={{ marginRight: 6 }} /> Chi tiết
                         </Link>
                       )}
                     </div>
                   </div>
-                </div>
+                </GlassCard>
               ))}
             </div>
           </>
@@ -237,4 +214,3 @@ export default function ProductsPage() {
     </>
   );
 }
-

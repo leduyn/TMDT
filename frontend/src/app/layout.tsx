@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Nền tảng thương mại điện tử B2B2C: Kết nối Công ty, Đại lý và Khách hàng",
 };
 
+import DashboardLayout from "@/components/DashboardLayout";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +29,9 @@ export default function RootLayout({
     <html lang="vi">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
-          {children}
+          <DashboardLayout>
+            {children}
+          </DashboardLayout>
         </AuthProvider>
       </body>
     </html>
