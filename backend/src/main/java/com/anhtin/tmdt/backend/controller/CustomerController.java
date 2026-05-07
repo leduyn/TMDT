@@ -25,6 +25,24 @@ public class CustomerController {
     @Autowired
     private AgencyCustomerAssignmentRepository assignmentRepository;
 
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public UserDTO getMyProfile() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+        return userService.getUserById(userDetails.getId());
+    }
+
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public UserDTO updateProfile(@RequestBody CustomerRequest request) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+        return userService.updateCustomer(userDetails.getId(), request);
+    }
+
     @GetMapping("/customers")
     @PreAuthorize("hasRole('COMPANY')")
     public List<UserDTO> getAllCustomers() {
@@ -74,14 +92,18 @@ public class CustomerController {
                 // Ghi đè thông tin cá nhân hóa
                 assignmentRepository.findByAgencyIdAndCustomerId(myAgencyId, id).ifPresent(a -> {
                     if (a.getCustomName() != null && !a.getCustomName().isBlank()) {
-                        dto.setUsername(a.getCustomName());
+                        dto.setDisplayName(a.getCustomName());
                     }
                     if (a.getCustomShippingAddress() != null && !a.getCustomShippingAddress().isBlank()) {
                         dto.setShippingAddress(a.getCustomShippingAddress());
                     }
+                    if (a.getCustomPhone() != null && !a.getCustomPhone().isBlank()) {
+                        dto.setPhone(a.getCustomPhone());
+                    }
                     dto.setApproved(a.isApproved());
                     dto.setCustomName(a.getCustomName());
                     dto.setCustomShippingAddress(a.getCustomShippingAddress());
+                    dto.setCustomPhone(a.getCustomPhone());
                 });
             }
         }

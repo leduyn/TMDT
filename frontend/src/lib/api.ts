@@ -10,6 +10,8 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
+  phone?: string;
+  taxCode?: string;
   role?: string;
 }
 
@@ -40,6 +42,7 @@ export interface CustomerRequest {
   phone?: string;
   customName?: string;
   customShippingAddress?: string;
+  customPhone?: string;
 }
 
 export interface UserDTO {
@@ -58,8 +61,10 @@ export interface UserDTO {
   taxCode?: string;
   phone?: string;
   approved?: boolean;
+  displayName?: string;
   customName?: string;
   customShippingAddress?: string;
+  customPhone?: string;
 }
 
 // ─── Category ──────────────────────────────────────────────────────────────

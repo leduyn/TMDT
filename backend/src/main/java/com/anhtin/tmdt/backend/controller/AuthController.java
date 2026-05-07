@@ -85,10 +85,24 @@ public class AuthController {
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
 
+        if (signUpRequest.getPhone() != null && !signUpRequest.getPhone().isBlank() && userRepository.findByPhone(signUpRequest.getPhone()).isPresent()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: Phone number is already in use!"));
+        }
+
+        if (signUpRequest.getTaxCode() != null && !signUpRequest.getTaxCode().isBlank() && userRepository.findByTaxCode(signUpRequest.getTaxCode()).isPresent()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: Tax Code is already in use!"));
+        }
+
         // Create new user's account
         User user = new User();
         user.setUsername(signUpRequest.getUsername());
         user.setEmail(signUpRequest.getEmail());
+        user.setPhone(signUpRequest.getPhone());
+        user.setTaxCode(signUpRequest.getTaxCode());
         user.setPassword(encoder.encode(signUpRequest.getPassword()));
 
         String roleStr = signUpRequest.getRole();

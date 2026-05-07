@@ -22,5 +22,7 @@ public class RegisterRequest {
     @Size(min = 6, max = 40)
     private String password;
 
+    private String phone;
+    private String taxCode;
     private String role; // "CUSTOMER", "AGENCY", "COMPANY"
 }

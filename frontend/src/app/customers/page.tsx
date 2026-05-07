@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 
 import { customerApi, UserDTO } from '@/lib/api';
 import Link from 'next/link';
+import NotificationModal from '@/components/NotificationModal';
 
 type Customer = UserDTO;
 
@@ -12,6 +13,9 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({
+    isOpen: false, title: '', message: '', type: 'info' as any
+  });
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -34,9 +38,10 @@ export default function CustomersPage() {
   const handleActivate = async (id: number) => {
     try {
       await customerApi.activate(id);
+      setModal({ isOpen: true, title: 'Thành công', message: 'Đã kích hoạt khách hàng thành công!', type: 'success' });
       fetchCustomers();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi duyệt khách hàng');
+      setModal({ isOpen: true, title: 'Lỗi kích hoạt', message: err.message || 'Lỗi khi duyệt khách hàng', type: 'error' });
     }
   };
 
@@ -136,6 +141,14 @@ export default function CustomersPage() {
           )}
         </div>
       </main>
+
+      <NotificationModal 
+        isOpen={modal.isOpen} 
+        onClose={() => setModal({ ...modal, isOpen: false })} 
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </>
   );
 }

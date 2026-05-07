@@ -75,6 +75,12 @@ public class UserService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Error: Email is already in use!");
         }
+        if (request.getPhone() != null && !request.getPhone().isBlank() && userRepository.findByPhone(request.getPhone()).isPresent()) {
+            throw new RuntimeException("Error: Phone is already in use!");
+        }
+        if (request.getTaxCode() != null && !request.getTaxCode().isBlank() && userRepository.findByTaxCode(request.getTaxCode()).isPresent()) {
+            throw new RuntimeException("Error: Tax Code is already in use!");
+        }
 
         User user = new User();
         user.setUsername(request.getUsername());
@@ -107,6 +113,7 @@ public class UserService {
                 assignment.setAgency(agency);
                 assignment.setCustomName(request.getCustomName());
                 assignment.setCustomShippingAddress(request.getCustomShippingAddress());
+                assignment.setCustomPhone(request.getCustomPhone());
                 // Quan hệ Agency-Customer luôn là true khi tạo từ đây để đại lý thấy được khách
                 assignment.setApproved(true);
                 assignmentRepository.save(assignment);
@@ -127,34 +134,57 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Error: Email is already in use!");
-        }
-
-        user.setEmail(request.getEmail());
-        user.setActive(request.isActive());
-        user.setOrganizationName(request.getOrganizationName());
-        user.setShippingAddress(request.getShippingAddress());
-        user.setBillingAddress(request.getBillingAddress());
-        user.setTaxCode(request.getTaxCode());
-
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-
-        if (request.getCustomerGroupId() != null) {
-            user.setCustomerGroup(customerGroupRepository.findById(request.getCustomerGroupId())
-                    .orElseThrow(() -> new RuntimeException("Customer group not found")));
-        } else {
-            user.setCustomerGroup(null);
-        }
-
-        User savedUser = userRepository.save(user);
-
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
         boolean isAgency = auth != null
                 && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
+        boolean isCompany = auth != null
+                && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_COMPANY"));
+
+        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = null;
+        if (auth != null && auth.getPrincipal() instanceof com.anhtin.tmdt.backend.security.services.UserDetailsImpl) {
+            userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+        }
+        boolean isSelf = userDetails != null && userDetails.getId().equals(id);
+
+        if (isCompany || isSelf) {
+            if (request.getEmail() != null && !user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new RuntimeException("Error: Email is already in use!");
+            }
+            if (request.getPhone() != null && !request.getPhone().isBlank() && !request.getPhone().equals(user.getPhone()) && userRepository.findByPhone(request.getPhone()).isPresent()) {
+                throw new RuntimeException("Error: Phone is already in use!");
+            }
+            if (request.getTaxCode() != null && !request.getTaxCode().isBlank() && !request.getTaxCode().equals(user.getTaxCode()) && userRepository.findByTaxCode(request.getTaxCode()).isPresent()) {
+                throw new RuntimeException("Error: Tax Code is already in use!");
+            }
+
+            if (request.getEmail() != null) user.setEmail(request.getEmail());
+            if (isCompany && request.isActive() != user.isActive()) user.setActive(request.isActive());
+            if (request.getOrganizationName() != null) user.setOrganizationName(request.getOrganizationName());
+            if (request.getShippingAddress() != null) user.setShippingAddress(request.getShippingAddress());
+            if (request.getBillingAddress() != null) user.setBillingAddress(request.getBillingAddress());
+            if (request.getTaxCode() != null) user.setTaxCode(request.getTaxCode());
+            if (request.getPhone() != null) user.setPhone(request.getPhone());
+
+            if (request.getPassword() != null && !request.getPassword().isBlank()) {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
+
+            if (isCompany) {
+                if (request.getCustomerGroupId() != null) {
+                    user.setCustomerGroup(customerGroupRepository.findById(request.getCustomerGroupId())
+                            .orElseThrow(() -> new RuntimeException("Customer group not found")));
+                } else {
+                    user.setCustomerGroup(null);
+                }
+            }
+
+            userRepository.save(user);
+        }
+
+        User savedUser = user;
+
+
 
         if (request.getAgencyIds() != null) {
             // Xóa các gán cũ không còn trong list mới
@@ -167,7 +197,7 @@ public class UserService {
                     // Nếu là Agency đang update, cho phép update customName và customAddress của
                     // chính họ
                     // Ở đây cần biết agencyId của agency hiện tại
-                    com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth
+                    userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth
                             .getPrincipal();
                     com.anhtin.tmdt.backend.entity.Agency myAgency = agencyRepository.findByUserId(userDetails.getId())
                             .orElse(null);
@@ -176,6 +206,8 @@ public class UserService {
                             assignment.setCustomName(request.getCustomName());
                         if (request.getCustomShippingAddress() != null)
                             assignment.setCustomShippingAddress(request.getCustomShippingAddress());
+                        if (request.getCustomPhone() != null)
+                            assignment.setCustomPhone(request.getCustomPhone());
                         assignmentRepository.save(assignment);
                     }
                 }
@@ -192,6 +224,7 @@ public class UserService {
                     assignment.setApproved(true);
                     assignment.setCustomName(request.getCustomName());
                     assignment.setCustomShippingAddress(request.getCustomShippingAddress());
+                    assignment.setCustomPhone(request.getCustomPhone());
                     assignmentRepository.save(assignment);
                 }
             }
@@ -204,6 +237,13 @@ public class UserService {
     public UserDTO activateCustomer(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (user.getTaxCode() == null || user.getTaxCode().isBlank() ||
+            user.getOrganizationName() == null || user.getOrganizationName().isBlank() ||
+            user.getBillingAddress() == null || user.getBillingAddress().isBlank()) {
+            throw new RuntimeException("Error: Cần nhập đầy đủ Mã số thuế, Tên tổ chức và Địa chỉ xuất hóa đơn trước khi kích hoạt khách hàng.");
+        }
+        
         user.setActive(true);
         return new UserDTO(userRepository.save(user));
     }
