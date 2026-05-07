@@ -1,13 +1,21 @@
 package com.anhtin.tmdt.backend.service;
 
+import com.anhtin.tmdt.backend.dto.request.CustomerRequest;
 import com.anhtin.tmdt.backend.dto.response.UserDTO;
 import com.anhtin.tmdt.backend.entity.Role;
 import com.anhtin.tmdt.backend.entity.User;
+import com.anhtin.tmdt.backend.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
+import com.anhtin.tmdt.backend.repository.CustomerGroupRepository;
 import com.anhtin.tmdt.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,8 +25,18 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
+    private AgencyRepository agencyRepository;
 
+    @Autowired
+    private AgencyCustomerAssignmentRepository assignmentRepository;
+
+    @Autowired
+    private CustomerGroupRepository customerGroupRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Transactional(readOnly = true)
     public List<UserDTO> getAllCustomers() {
         return userRepository.findAll().stream()
                 .filter(u -> u.getRole() == Role.CUSTOMER)
@@ -26,24 +44,167 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(UserDTO::new)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     @SuppressWarnings("null")
     public UserDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return new UserDTO(user);
     }
-    
+
     public List<UserDTO> getUnassignedAgencies() {
         // Lấy danh sách user có role AGENCY nhưng chưa có trong bảng agencies
         return userRepository.findAll().stream()
                 .filter(u -> u.getRole() == Role.AGENCY && !agencyRepository.existsByUserId(u.getId()))
                 .map(UserDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public UserDTO createCustomer(CustomerRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Error: Username is already taken!");
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Error: Email is already in use!");
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword() != null ? request.getPassword() : "123456"));
+        user.setRole(Role.CUSTOMER);
+        user.setActive(request.isActive());
+        user.setOrganizationName(request.getOrganizationName());
+        user.setShippingAddress(request.getShippingAddress());
+        user.setBillingAddress(request.getBillingAddress());
+        user.setTaxCode(request.getTaxCode());
+        user.setPhone(request.getPhone());
+
+        if (request.getCustomerGroupId() != null) {
+            user.setCustomerGroup(customerGroupRepository.findById(request.getCustomerGroupId())
+                    .orElseThrow(() -> new RuntimeException("Customer group not found")));
+        }
+
+        User savedUser = userRepository.save(user);
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        boolean isAgency = auth != null
+                && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
+        if (request.getAgencyIds() != null && !request.getAgencyIds().isEmpty()) {
+            for (Long agencyId : request.getAgencyIds()) {
+                com.anhtin.tmdt.backend.entity.Agency agency = agencyRepository.findById(agencyId)
+                        .orElseThrow(() -> new RuntimeException("Agency not found"));
+                com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment = new com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment();
+                assignment.setCustomer(savedUser);
+                assignment.setAgency(agency);
+                assignment.setCustomName(request.getCustomName());
+                assignment.setCustomShippingAddress(request.getCustomShippingAddress());
+                // Quan hệ Agency-Customer luôn là true khi tạo từ đây để đại lý thấy được khách
+                assignment.setApproved(true);
+                assignmentRepository.save(assignment);
+            }
+        }
+
+        // Nếu được tạo bởi Agency, account global set active = false (chờ Admin duyệt)
+        if (isAgency) {
+            savedUser.setActive(false);
+            userRepository.save(savedUser);
+        }
+
+        return new UserDTO(savedUser);
+    }
+
+    @Transactional
+    public UserDTO updateCustomer(Long id, CustomerRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Error: Email is already in use!");
+        }
+
+        user.setEmail(request.getEmail());
+        user.setActive(request.isActive());
+        user.setOrganizationName(request.getOrganizationName());
+        user.setShippingAddress(request.getShippingAddress());
+        user.setBillingAddress(request.getBillingAddress());
+        user.setTaxCode(request.getTaxCode());
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        if (request.getCustomerGroupId() != null) {
+            user.setCustomerGroup(customerGroupRepository.findById(request.getCustomerGroupId())
+                    .orElseThrow(() -> new RuntimeException("Customer group not found")));
+        } else {
+            user.setCustomerGroup(null);
+        }
+
+        User savedUser = userRepository.save(user);
+
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        boolean isAgency = auth != null
+                && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
+
+        if (request.getAgencyIds() != null) {
+            // Xóa các gán cũ không còn trong list mới
+            List<com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment> existing = assignmentRepository
+                    .findByCustomerId(savedUser.getId());
+            for (com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment : existing) {
+                if (!request.getAgencyIds().contains(assignment.getAgency().getId())) {
+                    assignmentRepository.delete(assignment);
+                } else if (isAgency) {
+                    // Nếu là Agency đang update, cho phép update customName và customAddress của
+                    // chính họ
+                    // Ở đây cần biết agencyId của agency hiện tại
+                    com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth
+                            .getPrincipal();
+                    com.anhtin.tmdt.backend.entity.Agency myAgency = agencyRepository.findByUserId(userDetails.getId())
+                            .orElse(null);
+                    if (myAgency != null && assignment.getAgency().getId().equals(myAgency.getId())) {
+                        if (request.getCustomName() != null)
+                            assignment.setCustomName(request.getCustomName());
+                        if (request.getCustomShippingAddress() != null)
+                            assignment.setCustomShippingAddress(request.getCustomShippingAddress());
+                        assignmentRepository.save(assignment);
+                    }
+                }
+            }
+
+            // Thêm hoặc cập nhật gán mới
+            for (Long agencyId : request.getAgencyIds()) {
+                if (existing.stream().noneMatch(a -> a.getAgency().getId().equals(agencyId))) {
+                    com.anhtin.tmdt.backend.entity.Agency agency = agencyRepository.findById(agencyId)
+                            .orElseThrow(() -> new RuntimeException("Agency not found"));
+                    com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment = new com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment();
+                    assignment.setCustomer(savedUser);
+                    assignment.setAgency(agency);
+                    assignment.setApproved(true);
+                    assignment.setCustomName(request.getCustomName());
+                    assignment.setCustomShippingAddress(request.getCustomShippingAddress());
+                    assignmentRepository.save(assignment);
+                }
+            }
+        }
+
+        return new UserDTO(savedUser);
+    }
+
+    @Transactional
+    public UserDTO activateCustomer(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setActive(true);
+        return new UserDTO(userRepository.save(user));
     }
 }
