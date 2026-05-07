@@ -24,7 +24,8 @@ export default function EditCustomerPage() {
     taxCode: '',
     phone: '',
     customName: '',
-    customShippingAddress: ''
+    customShippingAddress: '',
+    customPhone: ''
   });
 
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
@@ -54,7 +55,8 @@ export default function EditCustomerPage() {
         taxCode: customer.taxCode || '',
         phone: customer.phone || '',
         customName: customer.customName || '',
-        customShippingAddress: customer.customShippingAddress || ''
+        customShippingAddress: customer.customShippingAddress || '',
+        customPhone: customer.customPhone || ''
       });
       setAgencies(agenciesData);
       setGroups(groupsData);
@@ -203,6 +205,16 @@ export default function EditCustomerPage() {
                       value={formData.customName}
                       onChange={e => setFormData({ ...formData, customName: e.target.value })}
                       placeholder="Ví dụ: Anh Tuấn VIP"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Số điện thoại riêng</label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={formData.customPhone}
+                      onChange={e => setFormData({ ...formData, customPhone: e.target.value })}
+                      placeholder="Số điện thoại dùng để liên lạc riêng..."
                     />
                   </div>
                   <div>

@@ -35,7 +35,7 @@ public class AgencyController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('COMPANY')")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
     public AgencyDTO updateAgency(@PathVariable Long id, @RequestBody AgencyRequest request) {
         return agencyService.updateAgency(id, request);
     }

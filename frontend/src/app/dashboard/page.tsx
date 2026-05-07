@@ -52,6 +52,7 @@ export default function DashboardPage() {
     { href: '/products', label: 'Xem sản phẩm', icon: '🛍️', desc: 'Duyệt danh mục' },
     { href: '#', label: 'Đơn hàng của tôi', icon: '📋', desc: 'Xem lịch sử' },
     { href: '#', label: 'Điểm tích lũy', icon: '💎', desc: 'Điểm & phần thưởng' },
+    { href: '/profile', label: 'Hồ sơ của tôi', icon: '👤', desc: 'Cập nhật thông tin' },
     ...(isAgency || isCompany ? [{ href: '/products/create', label: 'Thêm sản phẩm', icon: '➕', desc: 'Tạo sản phẩm mới' }] : []),
     ...(isAgency || isCompany ? [{ href: '/categories', label: 'Quản lý danh mục', icon: '📂', desc: 'Quản lý loại sản phẩm' }] : []),
     ...(isCompany ? [{ href: '/attributes', label: 'Quản lý thuộc tính', icon: '⚙️', desc: 'Thiết lập EAV' }] : []),

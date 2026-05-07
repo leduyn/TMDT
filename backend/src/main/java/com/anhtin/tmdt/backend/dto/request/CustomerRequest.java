@@ -30,4 +30,5 @@ public class CustomerRequest {
     private String phone;
     private String customName;
     private String customShippingAddress;
+    private String customPhone;
 }

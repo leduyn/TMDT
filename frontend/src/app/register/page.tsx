@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
+import NotificationModal from '@/components/NotificationModal';
 
 const ROLES = [
   { value: 'CUSTOMER', label: '👤 Khách hàng', desc: 'Mua sắm sản phẩm từ sàn' },
@@ -11,10 +12,13 @@ const ROLES = [
 ];
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '', role: 'CUSTOMER' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '', phone: '', taxCode: '', role: 'CUSTOMER' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({
+    isOpen: false, title: '', message: '', type: 'info' as any
+  });
   const router = useRouter();
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -24,21 +28,31 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     if (!form.username || !form.email || !form.password) {
-      setError('Vui lòng điền đầy đủ thông tin.'); return;
+      setModal({ isOpen: true, title: 'Thiếu thông tin', message: 'Vui lòng điền đầy đủ thông tin.', type: 'error' });
+      return;
     }
     if (form.password !== form.confirm) {
-      setError('Mật khẩu xác nhận không khớp.'); return;
+      setModal({ isOpen: true, title: 'Lỗi mật khẩu', message: 'Mật khẩu xác nhận không khớp.', type: 'error' });
+      return;
     }
     if (form.password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự.'); return;
+      setModal({ isOpen: true, title: 'Lỗi bảo mật', message: 'Mật khẩu phải có ít nhất 6 ký tự.', type: 'error' });
+      return;
     }
     setLoading(true);
     try {
-      const res = await authApi.register({ username: form.username, email: form.email, password: form.password, role: form.role });
-      setSuccess(res.message || 'Đăng ký thành công! Đang chuyển hướng...');
+      const res = await authApi.register({ 
+        username: form.username, 
+        email: form.email, 
+        password: form.password, 
+        phone: form.phone,
+        taxCode: form.taxCode,
+        role: form.role 
+      });
+      setModal({ isOpen: true, title: 'Thành công', message: res.message || 'Đăng ký thành công! Đang chuyển hướng...', type: 'success' });
       setTimeout(() => router.push('/login'), 1800);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Đăng ký thất bại.');
+      setModal({ isOpen: true, title: 'Lỗi đăng ký', message: err instanceof Error ? err.message : 'Đăng ký thất bại.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -110,6 +124,16 @@ export default function RegisterPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-group">
+              <label className="form-label" htmlFor="reg-phone">Số điện thoại</label>
+              <input id="reg-phone" className="input-field" type="text" placeholder="09xxxx" value={form.phone} onChange={update('phone')} />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="reg-taxCode">Mã số thuế</label>
+              <input id="reg-taxCode" className="input-field" type="text" placeholder="Nếu có" value={form.taxCode} onChange={update('taxCode')} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-group">
               <label className="form-label" htmlFor="reg-password">Mật khẩu</label>
               <input id="reg-password" className="input-field" type="password" placeholder="Ít nhất 6 ký tự" value={form.password} onChange={update('password')} />
             </div>
@@ -119,8 +143,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {error && <div className="alert-error" style={{ marginBottom: 16 }}>⚠️ {error}</div>}
-          {success && <div className="alert-success" style={{ marginBottom: 16 }}>✅ {success}</div>}
+
 
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading && <span className="spinner" />}
@@ -135,6 +158,15 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+      </div>
+
+      <NotificationModal 
+        isOpen={modal.isOpen} 
+        onClose={() => setModal({ ...modal, isOpen: false })} 
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </main>
   );
 }

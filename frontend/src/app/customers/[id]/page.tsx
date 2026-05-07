@@ -136,7 +136,7 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
 
-              {(customer.customName || customer.customShippingAddress) && (
+              {(customer.customName || customer.customShippingAddress || customer.customPhone) && (
                 <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 32, background: 'rgba(52, 152, 219, 0.05)', padding: 24, borderRadius: 16 }}>
                   <h3 style={{ margin: '0 0 24px', color: '#3498db' }}>Thông tin riêng của đại lý</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
@@ -145,6 +145,10 @@ export default function CustomerDetailPage() {
                       <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{customer.customName || '---'}</p>
                     </div>
                     <div>
+                      <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Số điện thoại riêng</small>
+                      <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{customer.customPhone || '---'}</p>
+                    </div>
+                    <div style={{ gridColumn: 'span 2' }}>
                       <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Địa chỉ nhận hàng riêng</small>
                       <p style={{ fontSize: '1rem', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{customer.customShippingAddress || '---'}</p>
                     </div>

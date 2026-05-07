@@ -65,12 +65,24 @@ public class AgencyService {
         Agency agency = agencyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
         
-        if (request.getName() != null) agency.setName(request.getName());
-        if (request.getPhone() != null) agency.setPhone(request.getPhone());
-        if (request.getAddress() != null) agency.setAddress(request.getAddress());
-        if (request.getLatitude() != null) agency.setLatitude(request.getLatitude());
-        if (request.getLongitude() != null) agency.setLongitude(request.getLongitude());
-        if (request.getActive() != null) agency.setActive(request.getActive());
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean isCompany = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_COMPANY"));
+        
+        if (!isCompany) {
+            com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+            if (!agency.getUser().getId().equals(userDetails.getId())) {
+                throw new RuntimeException("Bạn không có quyền thực hiện hành động này");
+            }
+            if (request.getName() != null) agency.setName(request.getName());
+            if (request.getPhone() != null) agency.setPhone(request.getPhone());
+        } else {
+            if (request.getName() != null) agency.setName(request.getName());
+            if (request.getPhone() != null) agency.setPhone(request.getPhone());
+            if (request.getAddress() != null) agency.setAddress(request.getAddress());
+            if (request.getLatitude() != null) agency.setLatitude(request.getLatitude());
+            if (request.getLongitude() != null) agency.setLongitude(request.getLongitude());
+            if (request.getActive() != null) agency.setActive(request.getActive());
+        }
         
         return new AgencyDTO(agencyRepository.save(agency));
     }
@@ -82,10 +94,13 @@ public class AgencyService {
             UserDTO dto = new UserDTO(a.getCustomer());
             // Ghi đè bằng thông tin cá nhân hóa của đại lý
             if (a.getCustomName() != null && !a.getCustomName().isBlank()) {
-                dto.setUsername(a.getCustomName()); // Hoặc thêm trường displayName riêng
+                dto.setDisplayName(a.getCustomName());
             }
             if (a.getCustomShippingAddress() != null && !a.getCustomShippingAddress().isBlank()) {
                 dto.setShippingAddress(a.getCustomShippingAddress());
+            }
+            if (a.getCustomPhone() != null && !a.getCustomPhone().isBlank()) {
+                dto.setPhone(a.getCustomPhone());
             }
             dto.setApproved(a.isApproved());
             return dto;
@@ -96,6 +111,14 @@ public class AgencyService {
     public void approveCustomer(Long agencyId, Long customerId) {
         com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment = assignmentRepository.findByAgencyIdAndCustomerId(agencyId, customerId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        
+        User customer = assignment.getCustomer();
+        if (customer.getTaxCode() == null || customer.getTaxCode().isBlank() ||
+            customer.getOrganizationName() == null || customer.getOrganizationName().isBlank() ||
+            customer.getBillingAddress() == null || customer.getBillingAddress().isBlank()) {
+            throw new RuntimeException("Error: Khách hàng cần có đầy đủ Mã số thuế, Tên tổ chức và Địa chỉ xuất hóa đơn để được duyệt.");
+        }
+        
         assignment.setApproved(true);
         assignmentRepository.save(assignment);
     }

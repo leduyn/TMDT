@@ -77,9 +77,14 @@ export default function MyCustomersPage() {
     <>
       <Navbar />
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Khách hàng của tôi</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Quản lý danh sách khách hàng đang do đại lý của bạn phụ trách</p>
+        <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Khách hàng của tôi</h1>
+            <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Quản lý danh sách khách hàng đang do đại lý của bạn phụ trách</p>
+          </div>
+          <Link href="/agency/customers/create" className="btn-primary" style={{ textDecoration: 'none' }}>
+            + Tạo khách hàng mới
+          </Link>
         </div>
 
         {error && (
@@ -127,7 +132,7 @@ export default function MyCustomersPage() {
                       </span>
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                      <Link href={`/customers/${customer.id}`} className="btn-outline" style={{ padding: '6px 16px', fontSize: '0.8rem', textDecoration: 'none' }}>
+                      <Link href={`/agency/customers/${customer.id}`} className="btn-outline" style={{ padding: '6px 16px', fontSize: '0.8rem', textDecoration: 'none' }}>
                         Xem chi tiết
                       </Link>
                     </td>

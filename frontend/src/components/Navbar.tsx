@@ -114,14 +114,16 @@ export default function Navbar() {
                   >Khách hàng của tôi</Link>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className={`badge ${getRoleBadge(user.roles).cls}`}>
-                    {getRoleBadge(user.roles).label}
-                  </span>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    {user.username}
-                  </span>
-                </div>
+                  <Link href="/profile" style={{ textDecoration: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <span className={`badge ${getRoleBadge(user.roles).cls}`}>
+                        {getRoleBadge(user.roles).label}
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        {user.username}
+                      </span>
+                    </div>
+                  </Link>
 
                 <button onClick={handleLogout} className="btn-outline"
                   style={{ padding: '7px 16px', fontSize: '0.85rem' }}>
