@@ -1,7 +1,10 @@
 package com.anhtin.tmdt.backend.controller;
 
+import com.anhtin.tmdt.backend.dto.request.CustomerRequest;
 import com.anhtin.tmdt.backend.dto.response.UserDTO;
 import com.anhtin.tmdt.backend.service.UserService;
+import com.anhtin.tmdt.backend.service.AgencyService;
+import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +19,12 @@ public class CustomerController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AgencyService agencyService;
+
+    @Autowired
+    private AgencyCustomerAssignmentRepository assignmentRepository;
+
     @GetMapping("/customers")
     @PreAuthorize("hasRole('COMPANY')")
     public List<UserDTO> getAllCustomers() {
@@ -29,8 +38,72 @@ public class CustomerController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('COMPANY')")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
     public UserDTO getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
+        UserDTO dto = userService.getUserById(id);
+
+        // Bảo mật: Nếu là AGENCY, chỉ cho thấy thông tin đại lý của chính họ
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        boolean isAgency = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
+
+        if (isAgency) {
+            com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth
+                    .getPrincipal();
+            // Lấy agencyId của user hiện tại
+            com.anhtin.tmdt.backend.dto.response.AgencyDTO myAgency = agencyService
+                    .getAgencyByUserId(userDetails.getId());
+
+            if (myAgency != null) {
+                Long myAgencyId = myAgency.getId();
+                // Lọc danh sách agencyIds và agencyNames trong DTO
+                java.util.List<Long> filteredIds = new java.util.ArrayList<>();
+                java.util.List<String> filteredNames = new java.util.ArrayList<>();
+
+                if (dto.getAgencyIds() != null) {
+                    for (int i = 0; i < dto.getAgencyIds().size(); i++) {
+                        if (dto.getAgencyIds().get(i).equals(myAgencyId)) {
+                            filteredIds.add(dto.getAgencyIds().get(i));
+                            filteredNames.add(dto.getAgencyNames().get(i));
+                        }
+                    }
+                }
+                dto.setAgencyIds(filteredIds);
+                dto.setAgencyNames(filteredNames);
+
+                // Ghi đè thông tin cá nhân hóa
+                assignmentRepository.findByAgencyIdAndCustomerId(myAgencyId, id).ifPresent(a -> {
+                    if (a.getCustomName() != null && !a.getCustomName().isBlank()) {
+                        dto.setUsername(a.getCustomName());
+                    }
+                    if (a.getCustomShippingAddress() != null && !a.getCustomShippingAddress().isBlank()) {
+                        dto.setShippingAddress(a.getCustomShippingAddress());
+                    }
+                    dto.setApproved(a.isApproved());
+                    dto.setCustomName(a.getCustomName());
+                    dto.setCustomShippingAddress(a.getCustomShippingAddress());
+                });
+            }
+        }
+
+        return dto;
+    }
+
+    @PostMapping("/customers")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
+    public UserDTO createCustomer(@RequestBody CustomerRequest request) {
+        return userService.createCustomer(request);
+    }
+
+    @PutMapping("/customers/{id}")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
+    public UserDTO updateCustomer(@PathVariable Long id, @RequestBody CustomerRequest request) {
+        return userService.updateCustomer(id, request);
+    }
+
+    @PutMapping("/customers/{id}/activate")
+    @PreAuthorize("hasRole('COMPANY')")
+    public UserDTO activateCustomer(@PathVariable Long id) {
+        return userService.activateCustomer(id);
     }
 }

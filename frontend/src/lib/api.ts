@@ -26,6 +26,42 @@ export interface MessageResponse {
   message: string;
 }
 
+export interface CustomerRequest {
+  username: string;
+  email: string;
+  password?: string;
+  customerGroupId?: number;
+  agencyIds?: number[];
+  active: boolean;
+  organizationName?: string;
+  shippingAddress?: string;
+  billingAddress?: string;
+  taxCode?: string;
+  phone?: string;
+  customName?: string;
+  customShippingAddress?: string;
+}
+
+export interface UserDTO {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  customerGroupId?: number;
+  customerGroupName?: string;
+  agencyIds?: number[];
+  agencyNames?: string[];
+  active: boolean;
+  organizationName?: string;
+  shippingAddress?: string;
+  billingAddress?: string;
+  taxCode?: string;
+  phone?: string;
+  approved?: boolean;
+  customName?: string;
+  customShippingAddress?: string;
+}
+
 // ─── Category ──────────────────────────────────────────────────────────────
 export interface CategoryDTO {
   id: number;
@@ -279,11 +315,31 @@ export const brandApi = {
 export const agencyApi = {
   getAll: () => fetchJSON<AgencyDTO[]>('/api/agencies'),
   getById: (id: number) => fetchJSON<AgencyDTO>(`/api/agencies/${id}`),
+  getMe: (userId: number) => fetchJSON<AgencyDTO>(`/api/agencies/me?userId=${userId}`),
+  getCustomers: (agencyId: number) => fetchJSON<UserDTO[]>(`/api/agencies/${agencyId}/customers`),
+  approveCustomer: (agencyId: number, customerId: number) => fetchJSON<void>(`/api/agencies/${agencyId}/approve/${customerId}`, { method: 'POST' }),
 };
 
 // ─── Customer API ───────────────────────────────────────────────────────────
 export const customerApi = {
-  getAll: () => fetchJSON<any[]>('/api/users/customers'),
+  getAll: () => fetchJSON<UserDTO[]>('/api/users/customers'),
+  getById: (id: number) => fetchJSON<UserDTO>(`/api/users/${id}`),
+  create: (data: CustomerRequest) =>
+    fetchJSON<UserDTO>('/api/users/customers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: CustomerRequest) =>
+    fetchJSON<UserDTO>(`/api/users/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  activate: (id: number) => fetchJSON<UserDTO>(`/api/users/customers/${id}/activate`, { method: 'PUT' }),
+};
+
+// ─── Customer Group API ───────────────────────────────────────────────────
+export const customerGroupApi = {
+  getAll: () => fetchJSON<{ id: number; name: string }[]>('/api/customer-groups'),
 };
 
 // ─── PriceList API ──────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import com.anhtin.tmdt.backend.entity.Agency;
 import com.anhtin.tmdt.backend.entity.User;
 import com.anhtin.tmdt.backend.repository.AgencyRepository;
 import com.anhtin.tmdt.backend.repository.UserRepository;
-import com.anhtin.tmdt.backend.repository.OrderRepository;
+import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +24,9 @@ public class AgencyService {
     @Autowired
     private UserRepository userRepository;
 
+
     @Autowired
-    private OrderRepository orderRepository;
+    private AgencyCustomerAssignmentRepository assignmentRepository;
 
     public List<AgencyDTO> getAllAgencies() {
         return agencyRepository.findAll().stream()
@@ -74,12 +75,29 @@ public class AgencyService {
         return new AgencyDTO(agencyRepository.save(agency));
     }
 
+    @Transactional(readOnly = true)
     public List<UserDTO> getCustomersByAgency(Long agencyId) {
-        return orderRepository.findByAgencyId(agencyId).stream()
-                .map(o -> o.getCustomer())
-                .distinct()
-                .map(UserDTO::new)
-                .collect(Collectors.toList());
+        List<com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment> assignments = assignmentRepository.findByAgencyId(agencyId);
+        return assignments.stream().map(a -> {
+            UserDTO dto = new UserDTO(a.getCustomer());
+            // Ghi đè bằng thông tin cá nhân hóa của đại lý
+            if (a.getCustomName() != null && !a.getCustomName().isBlank()) {
+                dto.setUsername(a.getCustomName()); // Hoặc thêm trường displayName riêng
+            }
+            if (a.getCustomShippingAddress() != null && !a.getCustomShippingAddress().isBlank()) {
+                dto.setShippingAddress(a.getCustomShippingAddress());
+            }
+            dto.setApproved(a.isApproved());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void approveCustomer(Long agencyId, Long customerId) {
+        com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment = assignmentRepository.findByAgencyIdAndCustomerId(agencyId, customerId)
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        assignment.setApproved(true);
+        assignmentRepository.save(assignment);
     }
 
     public AgencyDTO getAgencyByUserId(Long userId) {
