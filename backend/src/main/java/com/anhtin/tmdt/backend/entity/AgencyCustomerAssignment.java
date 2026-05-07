@@ -28,6 +28,7 @@ public class AgencyCustomerAssignment {
 
     private String customName;
     private String customShippingAddress;
+    private String customPhone;
     private boolean approved = false;
 
     @Column(name = "created_at")

@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import NotificationModal from '@/components/NotificationModal';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
@@ -18,6 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!username || !password) {
       setError('Vui lòng nhập đầy đủ thông tin.');
+      setShowError(true);
       return;
     }
     setError('');
@@ -28,6 +31,7 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại.');
+      setShowError(true);
     } finally {
       setLoading(false);
     }
@@ -100,11 +104,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && (
-            <div className="alert-error" style={{ marginBottom: 16 }}>
-              ⚠️ {error}
-            </div>
-          )}
+
 
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading && <span className="spinner" />}
@@ -131,6 +131,14 @@ export default function LoginPage() {
           💡 <strong style={{ color: 'var(--text-secondary)' }}>Demo:</strong> Đảm bảo backend đang chạy ở <code style={{ color: 'var(--accent-light)' }}>localhost:8080</code>
         </div>
       </div>
+      </div>
+
+      <NotificationModal 
+        isOpen={showError} 
+        onClose={() => setShowError(false)} 
+        type="error"
+        message={error}
+      />
     </main>
   );
 }

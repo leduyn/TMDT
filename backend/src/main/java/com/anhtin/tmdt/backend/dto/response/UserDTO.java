@@ -23,8 +23,10 @@ public class UserDTO {
     private String taxCode;
     private String phone;
     private boolean approved; // Status duyệt cho quan hệ Agency-Customer
+    private String displayName; // Tên hiển thị cá nhân hóa
     private String customName;
     private String customShippingAddress;
+    private String customPhone;
 
     public UserDTO(User user) {
         this.id = user.getId();
@@ -50,8 +52,10 @@ public class UserDTO {
             // Lấy thông tin từ assignment đầu tiên làm mặc định
             com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment first = user.getAssignments().get(0);
             this.approved = first.isApproved();
+            this.displayName = first.getCustomName();
             this.customName = first.getCustomName();
             this.customShippingAddress = first.getCustomShippingAddress();
+            this.customPhone = first.getCustomPhone();
         } else {
             this.agencyIds = new java.util.ArrayList<>();
             this.agencyNames = new java.util.ArrayList<>();

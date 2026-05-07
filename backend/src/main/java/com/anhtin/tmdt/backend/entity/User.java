@@ -43,7 +43,10 @@ public class User {
     private String organizationName;
     private String shippingAddress;
     private String billingAddress;
+    @Column(unique = true)
     private String taxCode;
+    
+    @Column(unique = true)
     private String phone;
 
     @Column(name = "created_at")
