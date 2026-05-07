@@ -33,13 +33,18 @@ public class User {
 
     private boolean active = true;
 
-    /**
-     * Nhóm khách hàng (nullable) — dùng để áp dụng bảng giá theo điều kiện nhóm KH.
-     * Chỉ có ý nghĩa với role = CUSTOMER.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_group_id")
     private CustomerGroup customerGroup;
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<AgencyCustomerAssignment> assignments = new java.util.ArrayList<>();
+
+    private String organizationName;
+    private String shippingAddress;
+    private String billingAddress;
+    private String taxCode;
+    private String phone;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
