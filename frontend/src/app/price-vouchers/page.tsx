@@ -5,6 +5,14 @@ import Navbar from '@/components/Navbar';
 import { priceAssignmentVoucherApi, PriceAssignmentVoucher, priceListApi, PriceListDTO, agencyApi, AgencyDTO, customerApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
+// UI Components
+import PageHeader from '@/components/ui/PageHeader';
+import SearchActionHeader from '@/components/ui/SearchActionHeader';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import Badge from '@/components/ui/Badge';
+import GlassCard from '@/components/ui/GlassCard';
+import { Plus } from 'lucide-react';
+
 export default function PriceVouchersPage() {
   const [vouchers, setVouchers] = useState<PriceAssignmentVoucher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +20,7 @@ export default function PriceVouchersPage() {
   const [priceLists, setPriceLists] = useState<PriceListDTO[]>([]);
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const { user } = useAuth();
   const isAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
@@ -70,7 +79,6 @@ export default function PriceVouchersPage() {
         rankLevel: type === 'AGENCY_RANK' ? rank : undefined,
         agencyId: type === 'DIRECT_AGENCY' ? selectedAgencyId : undefined,
         customerId: type === 'DIRECT_CUSTOMER' ? selectedCustomerId : undefined,
-        // Gửi lên backend theo múi giờ local của thiết bị (vì backend dùng LocalDateTime)
         scheduledAt: scheduledAt.length === 16 ? scheduledAt + ':00' : scheduledAt,
       };
 
@@ -132,103 +140,119 @@ export default function PriceVouchersPage() {
     }
   };
 
+  const filteredVouchers = vouchers.filter(v => 
+    v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (v.priceListName && v.priceListName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.agencyName && v.agencyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.customerName && v.customerName.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const columns: Column<PriceAssignmentVoucher>[] = [
+    { header: 'Tên lệnh', key: 'name', width: '25%' },
+    { header: 'Bảng giá', key: 'priceListName', width: '20%' },
+    { 
+      header: 'Đối tượng', 
+      key: 'assignmentType', 
+      width: '20%',
+      render: (v) => (
+        <div style={{ fontSize: '0.9rem' }}>
+          {v.assignmentType === 'ALL_AGENCY' && 'Tất cả đại lý'}
+          {v.assignmentType === 'AGENCY_RANK' && `Hạng ${v.rankLevel}`}
+          {v.assignmentType === 'DIRECT_AGENCY' && `Đại lý: ${v.agencyName}`}
+          {v.assignmentType === 'DIRECT_CUSTOMER' && `Khách hàng: ${v.customerName}`}
+        </div>
+      )
+    },
+    { 
+      header: 'Thời gian thực hiện', 
+      key: 'scheduledAt', 
+      width: '15%',
+      render: (v) => (
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          {new Date(v.scheduledAt).toLocaleString('vi-VN', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          })}
+        </div>
+      )
+    },
+    { 
+      header: 'Trạng thái', 
+      key: 'status', 
+      width: '10%',
+      render: (v) => (
+        <Badge 
+          type={v.status === 'APPLIED' ? 'success' : v.status === 'PENDING' ? 'warning' : 'error'}
+          label={v.status === 'PENDING' ? 'Đang chờ' : v.status === 'APPLIED' ? 'Đã áp dụng' : v.status === 'STOPPED' ? 'Đã dừng' : 'Đã hủy'}
+          icon={v.status === 'APPLIED' ? 'CheckCircle' : v.status === 'PENDING' ? 'Clock' : 'XCircle'}
+        />
+      )
+    },
+    { 
+      header: 'Thao tác', 
+      key: 'actions', 
+      align: 'center',
+      render: (v) => (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          {v.status === 'PENDING' && (
+            <button onClick={() => v.id && handleCancel(v.id)} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef4444' }}>
+              Hủy
+            </button>
+          )}
+          {v.status === 'APPLIED' && (
+            <button onClick={() => v.id && handleStop(v.id)} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', color: '#f59e0b', borderColor: '#f59e0b' }}>
+              Dừng
+            </button>
+          )}
+          {v.status === 'STOPPED' && (
+            <button onClick={() => v.id && handleReactivate(v.id)} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', color: '#10b981', borderColor: '#10b981' }}>
+              Kích hoạt lại
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
   if (!isAdmin) return <div className="p-8">Bạn không có quyền truy cập trang này.</div>;
 
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
-              ⏰ <span className="gradient-text">Hẹn giờ áp dụng bảng giá</span>
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>
-              Tự động hóa việc gán bảng giá cho đại lý theo lịch trình
-            </p>
-          </div>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
-            + Tạo lệnh mới
-          </button>
-        </div>
+      <main style={{ padding: '20px 0' }}>
+        <PageHeader 
+          title="Hẹn giờ áp dụng bảng giá" 
+          subtitle="Tự động hóa việc gán bảng giá cho đại lý và khách hàng lẻ theo lịch trình"
+          icon="Clock"
+        />
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 0' }}>Đang tải dữ liệu...</div>
-        ) : (
-          <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <tr>
-                  <th style={{ padding: '16px 20px', textAlign: 'left' }}>Tên lệnh</th>
-                  <th style={{ padding: '16px 20px', textAlign: 'left' }}>Bảng giá</th>
-                  <th style={{ padding: '16px 20px', textAlign: 'left' }}>Đối tượng</th>
-                  <th style={{ padding: '16px 20px', textAlign: 'left' }}>Thời gian thực hiện</th>
-                  <th style={{ padding: '16px 20px', textAlign: 'left' }}>Trạng thái</th>
-                  <th style={{ padding: '16px 20px', textAlign: 'center' }}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vouchers.map(v => (
-                  <tr key={v.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '16px 20px', fontWeight: 600 }}>{v.name}</td>
-                    <td style={{ padding: '16px 20px' }}>{v.priceListName}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      {v.assignmentType === 'ALL_AGENCY' && 'Tất cả đại lý'}
-                      {v.assignmentType === 'AGENCY_RANK' && `Hạng ${v.rankLevel}`}
-                      {v.assignmentType === 'DIRECT_AGENCY' && `Đại lý: ${v.agencyName}`}
-                      {v.assignmentType === 'DIRECT_CUSTOMER' && `Khách hàng: ${v.customerName}`}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      {new Date(v.scheduledAt).toLocaleString('vi-VN', {
-                        year: 'numeric', month: '2-digit', day: '2-digit',
-                        hour: '2-digit', minute: '2-digit', second: '2-digit',
-                        timeZoneName: 'short'
-                      })}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span className={`badge ${
-                        v.status === 'APPLIED' ? 'badge-success' : 
-                        v.status === 'CANCELLED' ? 'badge-error' : 
-                        v.status === 'STOPPED' ? 'badge-error' : 'badge-warning'
-                      }`}>
-                        {v.status === 'PENDING' ? 'Đang chờ' : 
-                         v.status === 'APPLIED' ? 'Đã áp dụng' : 
-                         v.status === 'STOPPED' ? 'Đã dừng' : 'Đã hủy'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        {v.status === 'PENDING' && (
-                          <button onClick={() => v.id && handleCancel(v.id)} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', color: '#ef4444', borderColor: '#ef4444' }}>
-                            Hủy
-                          </button>
-                        )}
-                        {v.status === 'APPLIED' && (
-                          <button onClick={() => v.id && handleStop(v.id)} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', color: '#f59e0b', borderColor: '#f59e0b' }}>
-                            Dừng
-                          </button>
-                        )}
-                        {v.status === 'STOPPED' && (
-                          <button onClick={() => v.id && handleReactivate(v.id)} className="btn-outline" style={{ padding: '4px 12px', fontSize: '0.8rem', color: '#10b981', borderColor: '#10b981' }}>
-                            Kích hoạt lại
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <SearchActionHeader 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder="Tìm kiếm lệnh hẹn giờ..."
+          actions={
+            <button onClick={() => setShowModal(true)} className="btn-primary">
+              <Plus size={18} />
+              Tạo lệnh mới
+            </button>
+          }
+        />
 
+        <DataTable 
+          data={filteredVouchers}
+          columns={columns}
+          loading={loading}
+          emptyMessage={searchQuery ? 'Không tìm thấy lệnh nào phù hợp' : 'Chưa có lệnh hẹn giờ nào'}
+        />
+
+        {/* Create Modal */}
         {showModal && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 1000, backdropFilter: 'blur(4px)'
           }}>
-            <div className="glass-card" style={{ width: '100%', maxWidth: 500, padding: 40 }}>
+            <GlassCard style={{ width: '100%', maxWidth: 500, padding: 40 }}>
               <h2 style={{ marginTop: 0, marginBottom: 24 }}>Tạo lệnh hẹn giờ mới</h2>
               <form onSubmit={handleCreate}>
                 <div style={{ marginBottom: 16 }}>
@@ -314,16 +338,18 @@ export default function PriceVouchersPage() {
                   <button type="submit" className="btn-primary">Lưu lệnh</button>
                 </div>
               </form>
-            </div>
+            </GlassCard>
           </div>
         )}
+
+        {/* Reactivate Modal */}
         {showReactivateModal && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 1000, backdropFilter: 'blur(4px)'
           }}>
-            <div className="glass-card" style={{ width: '100%', maxWidth: 450, padding: 40 }}>
+            <GlassCard style={{ width: '100%', maxWidth: 450, padding: 40 }}>
               <h2 style={{ marginTop: 0, marginBottom: 24 }}>Kích hoạt lại thiết lập</h2>
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, cursor: 'pointer' }}>
@@ -363,7 +389,7 @@ export default function PriceVouchersPage() {
                 <button onClick={() => setShowReactivateModal(false)} className="btn-outline">Đóng</button>
                 <button onClick={submitReactivate} className="btn-primary">Xác nhận</button>
               </div>
-            </div>
+            </GlassCard>
           </div>
         )}
       </main>

@@ -80,6 +80,7 @@ public class PriceAssignmentService {
 
     @Transactional
     public void stopVoucher(Long voucherId) {
+        if (voucherId == null) throw new RuntimeException("ID cannot be null");
         PriceAssignmentVoucher voucher = voucherRepository.findById(voucherId)
                 .orElseThrow(() -> new RuntimeException("Voucher not found"));
 
@@ -135,6 +136,7 @@ public class PriceAssignmentService {
 
     @Transactional
     public void reactivateVoucher(Long voucherId, LocalDateTime newScheduledAt) {
+        if (voucherId == null) throw new RuntimeException("ID cannot be null");
         PriceAssignmentVoucher voucher = voucherRepository.findById(voucherId)
                 .orElseThrow(() -> new RuntimeException("Voucher not found"));
 

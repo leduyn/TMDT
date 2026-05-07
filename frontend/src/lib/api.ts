@@ -460,6 +460,8 @@ export interface PriceAssignmentVoucher {
   agencyName?: string;
   customerGroupId?: number;
   customerGroupName?: string;
+  customerId?: number;
+  customerName?: string;
   scheduledAt: string;
   status?: string;
   createdAt?: string;

@@ -1,20 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
-import { customerApi, UserDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import NotificationModal from '@/components/NotificationModal';
 
+// UI Components
+import PageHeader from '@/components/ui/PageHeader';
+import GlassCard from '@/components/ui/GlassCard';
+import { User, ShieldCheck, Building, MapPin, Save, Key } from 'lucide-react';
+
 export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const [profile, setProfile] = useState<UserDTO | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({
     isOpen: false, title: '', message: '', type: 'info' as any
   });
@@ -37,7 +38,6 @@ export default function ProfilePage() {
     }
 
     if (user) {
-      // Fetch profile data from /api/users/me (added in backend)
       fetch('/api/users/me', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -68,16 +68,12 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
     if (formData.password && formData.password !== formData.confirmPassword) {
       setModal({ isOpen: true, title: 'Lỗi', message: 'Mật khẩu xác nhận không khớp', type: 'error' });
       return;
     }
 
     setSaving(true);
-
     try {
       const res = await fetch('/api/users/profile', {
         method: 'PUT',
@@ -105,137 +101,151 @@ export default function ProfilePage() {
   if (loading || authLoading) return <div className="loading-spinner" />;
 
   return (
-    <>
-      <Navbar />
-      <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800 }}>Hồ sơ tài khoản</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Quản lý thông tin cá nhân và bảo mật tài khoản</p>
+    <main style={{ padding: '20px 0' }}>
+      <PageHeader 
+        title="Hồ sơ tài khoản" 
+        subtitle="Quản lý thông tin cá nhân và bảo mật tài khoản người dùng"
+        icon="User"
+      />
+
+      <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 24, marginTop: 32 }}>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <GlassCard style={{ padding: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <User className="gradient-text" size={24} />
+              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Thông tin cơ bản</h3>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên đăng nhập</label>
+                <input type="text" className="input-field" value={profile?.username} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Email liên hệ</label>
+                <input 
+                  type="email" 
+                  className="input-field" 
+                  value={formData.email} 
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Số điện thoại</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={formData.phone} 
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Nhập số điện thoại chính thức"
+                />
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard style={{ padding: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <ShieldCheck className="gradient-text" size={24} />
+              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Bảo mật & Mật khẩu</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mật khẩu mới</label>
+                <input 
+                  type="password" 
+                  className="input-field" 
+                  value={formData.password} 
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Để trống nếu không muốn đổi"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Xác nhận mật khẩu</label>
+                <input 
+                  type="password" 
+                  className="input-field" 
+                  value={formData.confirmPassword} 
+                  onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="Nhập lại mật khẩu mới"
+                />
+              </div>
+            </div>
+          </GlassCard>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div className="glass-card" style={{ padding: 32 }}>
-              <h3 style={{ margin: '0 0 24px', fontSize: '1.2rem' }}>Thông tin cơ bản</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Tên đăng nhập</label>
-                  <input type="text" className="input-field" value={profile?.username} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Email</label>
-                  <input 
-                    type="email" 
-                    className="input-field" 
-                    value={formData.email} 
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Số điện thoại</label>
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    value={formData.phone} 
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Nhập số điện thoại chính thức"
-                  />
-                </div>
+        {/* Right Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <GlassCard style={{ padding: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <Building className="gradient-text" size={24} />
+              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Thông tin tổ chức</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên tổ chức / Công ty</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={formData.organizationName} 
+                  onChange={e => setFormData({ ...formData, organizationName: e.target.value })}
+                  placeholder="Tên công ty hoặc hộ kinh doanh"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mã số thuế</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  value={formData.taxCode} 
+                  onChange={e => setFormData({ ...formData, taxCode: e.target.value })}
+                  placeholder="Nhập mã số thuế (nếu có)"
+                />
               </div>
             </div>
+          </GlassCard>
 
-            <div className="glass-card" style={{ padding: 32 }}>
-              <h3 style={{ margin: '0 0 24px', fontSize: '1.2rem' }}>Đổi mật khẩu</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Mật khẩu mới</label>
-                  <input 
-                    type="password" 
-                    className="input-field" 
-                    value={formData.password} 
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Để trống nếu không muốn đổi"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Xác nhận mật khẩu</label>
-                  <input 
-                    type="password" 
-                    className="input-field" 
-                    value={formData.confirmPassword} 
-                    onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    placeholder="Nhập lại mật khẩu mới"
-                  />
-                </div>
+          <GlassCard style={{ padding: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <MapPin className="gradient-text" size={24} />
+              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Địa chỉ liên hệ</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Địa chỉ nhận hàng</label>
+                <textarea 
+                  className="input-field" 
+                  rows={3} 
+                  value={formData.shippingAddress} 
+                  onChange={e => setFormData({ ...formData, shippingAddress: e.target.value })}
+                  placeholder="Địa chỉ nhận hàng mặc định"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Địa chỉ xuất hóa đơn</label>
+                <textarea 
+                  className="input-field" 
+                  rows={3} 
+                  value={formData.billingAddress} 
+                  onChange={e => setFormData({ ...formData, billingAddress: e.target.value })}
+                  placeholder="Địa chỉ ghi trên hóa đơn"
+                />
               </div>
             </div>
-          </div>
+          </GlassCard>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div className="glass-card" style={{ padding: 32 }}>
-              <h3 style={{ margin: '0 0 24px', fontSize: '1.2rem' }}>Thông tin tổ chức</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Tên tổ chức / Công ty</label>
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    value={formData.organizationName} 
-                    onChange={e => setFormData({ ...formData, organizationName: e.target.value })}
-                    placeholder="Tên công ty hoặc hộ kinh doanh"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Mã số thuế</label>
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    value={formData.taxCode} 
-                    onChange={e => setFormData({ ...formData, taxCode: e.target.value })}
-                    placeholder="Nhập mã số thuế (nếu có)"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="glass-card" style={{ padding: 32 }}>
-              <h3 style={{ margin: '0 0 24px', fontSize: '1.2rem' }}>Địa chỉ mặc định</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Địa chỉ nhận hàng</label>
-                  <textarea 
-                    className="input-field" 
-                    rows={3} 
-                    value={formData.shippingAddress} 
-                    onChange={e => setFormData({ ...formData, shippingAddress: e.target.value })}
-                    placeholder="Địa chỉ nhận hàng mặc định"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem' }}>Địa chỉ xuất hóa đơn</label>
-                  <textarea 
-                    className="input-field" 
-                    rows={3} 
-                    value={formData.billingAddress} 
-                    onChange={e => setFormData({ ...formData, billingAddress: e.target.value })}
-                    placeholder="Địa chỉ ghi trên hóa đơn"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              style={{ padding: '16px', fontWeight: 600, fontSize: '1rem', marginTop: 8 }}
-              disabled={saving}
-            >
-              {saving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
-            </button>
-          </div>
-        </form>
-      </main>
+          <button 
+            type="submit" 
+            className="btn-primary" 
+            style={{ padding: '16px', fontWeight: 600, fontSize: '1rem', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+            disabled={saving}
+          >
+            <Save size={20} />
+            {saving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
+          </button>
+        </div>
+      </form>
 
       <NotificationModal 
         isOpen={modal.isOpen} 
@@ -244,6 +254,6 @@ export default function ProfilePage() {
         message={modal.message}
         type={modal.type}
       />
-    </>
+    </main>
   );
 }

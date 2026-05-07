@@ -194,8 +194,8 @@ export default function AgencyCreateCustomerPage() {
               <button
                 type="submit"
                 className="btn-primary"
-                style={{ flex: 2 }}
                 disabled={loading || !!error}
+                style={{ padding: '12px 32px' }}
               >
                 {loading ? 'Đang tạo...' : 'Tạo khách hàng'}
               </button>

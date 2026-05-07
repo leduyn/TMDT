@@ -131,7 +131,6 @@ export default function LoginPage() {
           💡 <strong style={{ color: 'var(--text-secondary)' }}>Demo:</strong> Đảm bảo backend đang chạy ở <code style={{ color: 'var(--accent-light)' }}>localhost:8080</code>
         </div>
       </div>
-      </div>
 
       <NotificationModal 
         isOpen={showError} 
