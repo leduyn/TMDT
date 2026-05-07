@@ -13,9 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,8 +50,8 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("null")
     public UserDTO getUserById(Long id) {
+        if (id == null) throw new RuntimeException("ID cannot be null");
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return new UserDTO(user);
@@ -68,6 +66,7 @@ public class UserService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public UserDTO createCustomer(CustomerRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new RuntimeException("Error: Username is already taken!");
@@ -95,7 +94,8 @@ public class UserService {
         user.setPhone(request.getPhone());
 
         if (request.getCustomerGroupId() != null) {
-            user.setCustomerGroup(customerGroupRepository.findById(request.getCustomerGroupId())
+            Long groupId = request.getCustomerGroupId();
+            user.setCustomerGroup(customerGroupRepository.findById(groupId)
                     .orElseThrow(() -> new RuntimeException("Customer group not found")));
         }
 
@@ -106,6 +106,7 @@ public class UserService {
                 && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
         if (request.getAgencyIds() != null && !request.getAgencyIds().isEmpty()) {
             for (Long agencyId : request.getAgencyIds()) {
+                if (agencyId == null) continue;
                 com.anhtin.tmdt.backend.entity.Agency agency = agencyRepository.findById(agencyId)
                         .orElseThrow(() -> new RuntimeException("Agency not found"));
                 com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment = new com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment();
@@ -130,7 +131,9 @@ public class UserService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public UserDTO updateCustomer(Long id, CustomerRequest request) {
+        if (id == null) throw new RuntimeException("ID cannot be null");
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -172,7 +175,8 @@ public class UserService {
 
             if (isCompany) {
                 if (request.getCustomerGroupId() != null) {
-                    user.setCustomerGroup(customerGroupRepository.findById(request.getCustomerGroupId())
+                    Long groupId = request.getCustomerGroupId();
+                    user.setCustomerGroup(customerGroupRepository.findById(groupId)
                             .orElseThrow(() -> new RuntimeException("Customer group not found")));
                 } else {
                     user.setCustomerGroup(null);
@@ -193,7 +197,7 @@ public class UserService {
             for (com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment : existing) {
                 if (!request.getAgencyIds().contains(assignment.getAgency().getId())) {
                     assignmentRepository.delete(assignment);
-                } else if (isAgency) {
+                } else if (isAgency && auth != null) {
                     // Nếu là Agency đang update, cho phép update customName và customAddress của
                     // chính họ
                     // Ở đây cần biết agencyId của agency hiện tại
@@ -215,6 +219,7 @@ public class UserService {
 
             // Thêm hoặc cập nhật gán mới
             for (Long agencyId : request.getAgencyIds()) {
+                if (agencyId == null) continue;
                 if (existing.stream().noneMatch(a -> a.getAgency().getId().equals(agencyId))) {
                     com.anhtin.tmdt.backend.entity.Agency agency = agencyRepository.findById(agencyId)
                             .orElseThrow(() -> new RuntimeException("Agency not found"));
@@ -234,7 +239,9 @@ public class UserService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public UserDTO activateCustomer(Long id) {
+        if (id == null) throw new RuntimeException("ID cannot be null");
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
