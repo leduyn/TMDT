@@ -12,14 +12,35 @@ import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
-import { Plus, Edit, Trash2, Eye, Package, ShoppingCart } from 'lucide-react';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  Package, 
+  ShoppingCart, 
+  LayoutGrid, 
+  List as ListIcon,
+  AlertTriangle,
+  ExternalLink
+} from 'lucide-react';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const { user } = useAuth();
+
+  useEffect(() => {
+    // Load preference from localStorage
+    const savedMode = localStorage.getItem('productViewMode');
+    if (savedMode === 'table' || savedMode === 'grid') {
+      setViewMode(savedMode);
+    }
+  }, []);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -43,6 +64,11 @@ export default function ProductsPage() {
     loadProducts();
   }, []);
 
+  const toggleViewMode = (mode: 'grid' | 'table') => {
+    setViewMode(mode);
+    localStorage.setItem('productViewMode', mode);
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Bạn có chắc chắn muốn xoá sản phẩm này?')) return;
     try {
@@ -58,11 +84,12 @@ export default function ProductsPage() {
 
   const filtered = products.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.description?.toLowerCase().includes(search.toLowerCase())
+    p.description?.toLowerCase().includes(search.toLowerCase()) ||
+    p.categoryName?.toLowerCase().includes(search.toLowerCase())
   );
 
   const formatPrice = (price: number) => {
-    if (price === -1) return 'Liên hệ';
+    if (price === -1 || price === undefined) return 'Liên hệ';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
@@ -70,6 +97,85 @@ export default function ProductsPage() {
     if (!html) return '';
     return html.replace(/<[^>]*>?/gm, '');
   };
+
+  const tableColumns: Column<ProductDTO>[] = [
+    {
+      header: 'Hình ảnh',
+      key: 'imageUrl',
+      width: '80px',
+      render: (p) => (
+        <div style={{ 
+          width: 48, height: 48, borderRadius: 8, 
+          backgroundImage: p.imageUrl ? `url(${resolveImageUrl(p.imageUrl)})` : 'none',
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          {!p.imageUrl && <ShoppingCart size={20} style={{ opacity: 0.3 }} />}
+        </div>
+      )
+    },
+    {
+      header: 'Tên sản phẩm',
+      key: 'name',
+      render: (p) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Link href={`/products/${p.id}`} style={{ fontWeight: 600, color: 'white', textDecoration: 'none' }}>
+            {p.name}
+          </Link>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.categoryName || 'Chưa phân loại'}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Giá áp dụng',
+      key: 'appliedPrice',
+      align: 'right',
+      render: (p) => {
+        const price = isCompanyAdmin ? p.basePrice : (p.appliedPrice !== undefined ? p.appliedPrice : p.basePrice);
+        return <span style={{ fontWeight: 700, color: 'var(--accent-light)' }}>{formatPrice(price || 0)}</span>;
+      }
+    },
+    {
+      header: 'Tồn kho',
+      key: 'stockQuantity',
+      align: 'center',
+      render: (p) => (
+        <Badge 
+          label={p.stockQuantity !== undefined ? p.stockQuantity.toString() : 'N/A'} 
+          type={(p.stockQuantity || 0) > 0 ? 'success' : 'warning'} 
+        />
+      )
+    },
+    {
+      header: 'Loại',
+      key: 'isDropship',
+      align: 'center',
+      render: (p) => p.isDropship ? <Badge label="Dropship" type="primary" /> : <Badge label="Standard" type="info" />
+    },
+    {
+      header: 'Thao tác',
+      key: 'actions',
+      align: 'right',
+      render: (p) => (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Link href={`/products/${p.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+            <Eye size={16} />
+          </Link>
+          {isAuthorized && (
+            <>
+              <Link href={`/products/${p.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+                <Edit size={16} />
+              </Link>
+              <button onClick={() => handleDelete(p.id)} className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#ef4444' }}>
+                <Trash2 size={16} />
+              </button>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
 
   return (
     <>
@@ -85,12 +191,51 @@ export default function ProductsPage() {
           searchQuery={search}
           onSearchChange={setSearch}
           placeholder="Tìm kiếm sản phẩm..."
-          actions={isAuthorized && (
-            <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
-              <Plus size={18} />
-              Thêm sản phẩm
-            </Link>
-          )}
+          actions={
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              {/* View Switcher */}
+              <div style={{ 
+                display: 'flex', 
+                background: 'rgba(255,255,255,0.05)', 
+                padding: 4, 
+                borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.1)',
+                marginRight: 8
+              }}>
+                <button 
+                  onClick={() => toggleViewMode('grid')}
+                  style={{ 
+                    padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: viewMode === 'grid' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                    color: viewMode === 'grid' ? 'white' : 'rgba(255,255,255,0.4)',
+                    display: 'flex', alignItems: 'center', transition: 'all 0.2s'
+                  }}
+                  title="Xem dạng lưới"
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button 
+                  onClick={() => toggleViewMode('table')}
+                  style={{ 
+                    padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: viewMode === 'table' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                    color: viewMode === 'table' ? 'white' : 'rgba(255,255,255,0.4)',
+                    display: 'flex', alignItems: 'center', transition: 'all 0.2s'
+                  }}
+                  title="Xem dạng bảng"
+                >
+                  <ListIcon size={18} />
+                </button>
+              </div>
+
+              {isAuthorized && (
+                <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
+                  <Plus size={18} />
+                  Thêm sản phẩm
+                </Link>
+              )}
+            </div>
+          }
         />
 
         {/* States */}
@@ -114,100 +259,109 @@ export default function ProductsPage() {
           </GlassCard>
         ) : (
           <>
-            <div style={{ marginBottom: 20, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Hiển thị {filtered.length} sản phẩm
+            <div style={{ marginBottom: 20, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Hiển thị {filtered.length} sản phẩm</span>
+              <span>Chế độ: {viewMode === 'grid' ? 'Lưới' : 'Bảng'}</span>
             </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 24,
-            }}>
-              {filtered.map((product, i) => (
-                <GlassCard
-                  key={product.id}
-                  hoverable
-                  className="fade-in-up"
-                  style={{ 
-                    animationDelay: `${i * 0.05}s`, 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    padding: 20
-                  }}
-                >
-                  {/* Product image */}
-                  <Link href={`/products/${product.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-                    <div style={{
-                      height: 180, borderRadius: 12, marginBottom: 16,
-                      backgroundImage: product.imageUrl ? `url(${resolveImageUrl(product.imageUrl)})` : 'none',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      overflow: 'hidden',
-                      position: 'relative'
-                    }}>
-                      {!product.imageUrl && <ShoppingCart size={48} style={{ opacity: 0.2 }} />}
-                      {product.isDropship && (
-                        <span style={{
-                          position: 'absolute', top: 12, right: 12,
-                          background: 'var(--accent)', color: 'white',
-                          fontSize: '0.65rem', padding: '4px 8px', borderRadius: 20, fontWeight: 700
-                        }}>DROPSHIP</span>
-                      )}
-                    </div>
-                  </Link>
 
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <Badge label={product.categoryName || 'Chưa phân loại'} type="primary" />
-                    {product.stockQuantity !== undefined && (
-                      <Badge 
-                        label={product.stockQuantity > 0 ? `Kho: ${product.stockQuantity}` : 'Hết hàng'} 
-                        type={product.stockQuantity > 0 ? 'success' : 'warning'} 
-                        icon={product.stockQuantity > 0 ? 'Package' : 'AlertTriangle'}
-                      />
-                    )}
-                  </div>
-
-                  <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.4 }}>
-                    <Link href={`/products/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      {product.name || 'Sản phẩm'}
+            {viewMode === 'grid' ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 24,
+              }}>
+                {filtered.map((product, i) => (
+                  <GlassCard
+                    key={product.id}
+                    hoverable
+                    className="fade-in-up"
+                    style={{ 
+                      animationDelay: `${i * 0.05}s`, 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      padding: 20
+                    }}
+                  >
+                    {/* Product image */}
+                    <Link href={`/products/${product.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                      <div style={{
+                        height: 180, borderRadius: 12, marginBottom: 16,
+                        backgroundImage: product.imageUrl ? `url(${resolveImageUrl(product.imageUrl)})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundColor: `hsl(${(product.id * 47) % 360}, 40%, 15%)`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden',
+                        position: 'relative'
+                      }}>
+                        {!product.imageUrl && <ShoppingCart size={48} style={{ opacity: 0.2 }} />}
+                        {product.isDropship && (
+                          <span style={{
+                            position: 'absolute', top: 12, right: 12,
+                            background: 'var(--accent)', color: 'white',
+                            fontSize: '0.65rem', padding: '4px 8px', borderRadius: 20, fontWeight: 700
+                          }}>DROPSHIP</span>
+                        )}
+                      </div>
                     </Link>
-                  </h3>
-                  <p style={{
-                    margin: '0 0 16px', color: 'var(--text-muted)',
-                    fontSize: '0.85rem', lineHeight: 1.5,
-                    display: '-webkit-box', WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                    flexGrow: 1
-                  }}>
-                    {stripHtml(product.description || '') || 'Chưa có mô tả'}
-                  </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
-                      {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
-                    </span>
-                    
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {isAuthorized ? (
-                        <>
-                          <Link href={`/products/${product.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
-                            <Edit size={16} />
-                          </Link>
-                          <button onClick={() => handleDelete(product.id)} className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#ef4444' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      ) : (
-                        <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', borderRadius: 8, textDecoration: 'none', fontSize: '0.85rem' }}>
-                          <Eye size={16} style={{ marginRight: 6 }} /> Chi tiết
-                        </Link>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                      <Badge label={product.categoryName || 'Chưa phân loại'} type="primary" />
+                      {product.stockQuantity !== undefined && (
+                        <Badge 
+                          label={product.stockQuantity > 0 ? `Kho: ${product.stockQuantity}` : 'Hết hàng'} 
+                          type={product.stockQuantity > 0 ? 'success' : 'warning'} 
+                        />
                       )}
                     </div>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
+
+                    <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.4 }}>
+                      <Link href={`/products/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        {product.name || 'Sản phẩm'}
+                      </Link>
+                    </h3>
+                    <p style={{
+                      margin: '0 0 16px', color: 'var(--text-muted)',
+                      fontSize: '0.85rem', lineHeight: 1.5,
+                      display: '-webkit-box', WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      flexGrow: 1
+                    }}>
+                      {stripHtml(product.description || '') || 'Chưa có mô tả'}
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
+                        {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
+                      </span>
+                      
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {isAuthorized ? (
+                          <>
+                            <Link href={`/products/${product.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+                              <Edit size={16} />
+                            </Link>
+                            <button onClick={() => handleDelete(product.id)} className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#ef4444' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        ) : (
+                          <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', borderRadius: 8, textDecoration: 'none', fontSize: '0.85rem' }}>
+                            <Eye size={16} style={{ marginRight: 6 }} /> Chi tiết
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+            ) : (
+              <DataTable 
+                data={filtered}
+                columns={tableColumns}
+                loading={loading}
+              />
+            )}
           </>
         )}
       </main>
