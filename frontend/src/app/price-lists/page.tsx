@@ -11,7 +11,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
-import { Plus, Eye, Trash2, FileText } from 'lucide-react';
+import { Plus, Eye, Trash2, FileText, Clock } from 'lucide-react';
 
 interface PriceList {
   id: number;
@@ -187,10 +187,18 @@ export default function PriceListsPage() {
           onSearchChange={setSearchQuery}
           placeholder="Tìm kiếm bảng giá..."
           actions={
-            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-              <Plus size={18} />
-              Tạo bảng giá mới
-            </button>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Link href="/price-update-vouchers">
+                <button className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileText size={18} />
+                  Cập nhật giá
+                </button>
+              </Link>
+              <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                <Plus size={18} />
+                Tạo bảng giá mới
+              </button>
+            </div>
           }
         />
 
