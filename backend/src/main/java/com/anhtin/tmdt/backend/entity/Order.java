@@ -54,4 +54,10 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
+
+    @Column(name = "price_list_id")
+    private Long priceListId;
+
+    @Column(name = "receiver_type")
+    private String receiverType;
 }

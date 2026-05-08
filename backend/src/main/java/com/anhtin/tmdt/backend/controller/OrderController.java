@@ -7,6 +7,7 @@ import com.anhtin.tmdt.backend.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -25,6 +26,36 @@ public class OrderController {
             Long userId = userDetails.getId();
             if (userId == null) throw new RuntimeException("User ID not found");
             orderService.createOrder(userId, request);
+            return ResponseEntity.ok(new MessageResponse("Order placed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/by-employee")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> createOrderByEmployee(@RequestBody OrderRequest request, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        
+        try {
+            Long userId = userDetails.getId();
+            if (userId == null) throw new RuntimeException("User ID not found");
+            orderService.createOrderByEmployee(userId, request);
+            return ResponseEntity.ok(new MessageResponse("Order placed successfully by employee"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/by-agency")
+    @PreAuthorize("hasRole('AGENCY') or hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> createOrderByAgency(@RequestBody OrderRequest request, Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        
+        try {
+            Long userId = userDetails.getId();
+            if (userId == null) throw new RuntimeException("User ID not found");
+            orderService.createOrderByAgency(userId, request);
             return ResponseEntity.ok(new MessageResponse("Order placed successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));

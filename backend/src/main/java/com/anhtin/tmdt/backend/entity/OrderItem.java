@@ -23,4 +23,7 @@ public class OrderItem {
 
     private Integer quantity;
     private Double price;
+
+    @Column(name = "price_list_id")
+    private Long priceListId;
 }
