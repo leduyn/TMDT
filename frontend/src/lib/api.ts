@@ -553,3 +553,63 @@ export const priceUpdateVoucherApi = {
     method: 'POST'
   })
 };
+
+// ─── Credit API ──────────────────────────────────────────────────────────────
+export interface OverdueDebtInfo {
+  id: number;
+  orderId: number;
+  principalAmount: number;
+  interestAccrued: number;
+  status: 'ACTIVE' | 'CLOSED';
+  startDate: string;
+  lastCalculatedAt?: string;
+}
+
+export interface LedgerEntry {
+  id: number;
+  type: 'DEBT' | 'PAYMENT' | 'INTEREST' | 'HOLD' | 'REFUND';
+  amount: number;
+  referenceId?: string;
+  createdAt: string;
+}
+
+export interface CreditDetail {
+  agencyId: number;
+  creditLimit: number;
+  totalDebt: number;
+  vtcAvailable: number;
+  vtcHold: number;
+  hmkd: number;
+  updatedAt: string;
+  overdueDebts: OverdueDebtInfo[];
+  ledgerHistory: LedgerEntry[];
+}
+
+export const creditApi = {
+  getHmkd: (agencyId: number) =>
+    fetchJSON<{ agencyId: number; hmkd: number }>(`/api/credit/agents/${agencyId}/hmkd`),
+
+  getDetail: (agencyId: number) =>
+    fetchJSON<CreditDetail>(`/api/credit/agents/${agencyId}/detail`),
+
+  updateLimit: (agencyId: number, creditLimit: number) =>
+    fetchJSON<{ message: string; creditLimit: number }>(`/api/credit/agents/${agencyId}/limit`, {
+      method: 'PUT',
+      body: JSON.stringify({ creditLimit }),
+    }),
+
+  depositVtc: (agencyId: number, amount: number) =>
+    fetchJSON<{ message: string; amount: number }>(`/api/credit/agents/${agencyId}/deposit`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
+
+  payDebt: (agentId: number, amount: number, orderId?: number) =>
+    fetchJSON<{ message: string }>('/api/credit/payments', {
+      method: 'POST',
+      body: JSON.stringify({ agentId, amount, orderId }),
+    }),
+
+  triggerInterest: () =>
+    fetchJSON<{ message: string }>('/api/credit/admin/trigger-interest', { method: 'POST' }),
+};

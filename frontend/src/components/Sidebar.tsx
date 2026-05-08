@@ -16,6 +16,7 @@ import {
   LayoutDashboard, 
   LogOut,
   ClipboardList,
+  CreditCard,
   User as UserIcon,
 } from 'lucide-react';
 
@@ -51,6 +52,7 @@ export default function Sidebar() {
     { label: 'Đại lý', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Khách hàng', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Khách của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
+    { label: 'Tín dụng', href: '/credit', icon: CreditCard, roles: ['ROLE_COMPANY', 'ROLE_AGENCY'] },
   ];
 
   const filteredNavItems = navItems.filter(item => 

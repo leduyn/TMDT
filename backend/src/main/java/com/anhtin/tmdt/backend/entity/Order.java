@@ -47,6 +47,9 @@ public class Order {
     @Column(name = "discount_amount")
     private Double discountAmount = 0.0;
     
+    @Column(name = "due_date")
+    private LocalDateTime dueDate;
+
     private LocalDateTime orderDate = LocalDateTime.now();
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)

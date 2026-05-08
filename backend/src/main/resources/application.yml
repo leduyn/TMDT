@@ -34,3 +34,7 @@ jwt:
 
 file:
   upload-dir: uploads
+
+app:
+  credit:
+    overdue-interest-rate: 0.0004   # 0.04%/ngày

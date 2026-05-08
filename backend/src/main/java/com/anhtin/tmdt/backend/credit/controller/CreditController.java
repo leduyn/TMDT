@@ -1,0 +1,113 @@
+package com.anhtin.tmdt.backend.credit.controller;
+
+import com.anhtin.tmdt.backend.credit.dto.CreditDetailResponse;
+import com.anhtin.tmdt.backend.credit.dto.CreditOrderRequest;
+import com.anhtin.tmdt.backend.credit.dto.PaymentRequest;
+import com.anhtin.tmdt.backend.credit.entity.AgentCredit;
+import com.anhtin.tmdt.backend.credit.entity.CreditLedger;
+import com.anhtin.tmdt.backend.credit.entity.OverdueDebt;
+import com.anhtin.tmdt.backend.credit.repository.AgentCreditRepository;
+import com.anhtin.tmdt.backend.credit.repository.CreditLedgerRepository;
+import com.anhtin.tmdt.backend.credit.repository.OverdueDebtRepository;
+import com.anhtin.tmdt.backend.credit.service.CreditService;
+import com.anhtin.tmdt.backend.credit.service.InterestScheduler;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/credit")
+@RequiredArgsConstructor
+public class CreditController {
+
+    private final CreditService           creditService;
+    private final AgentCreditRepository   agentCreditRepository;
+    private final OverdueDebtRepository   overdueDebtRepository;
+    private final CreditLedgerRepository  creditLedgerRepository;
+    private final InterestScheduler       interestScheduler;
+
+    // ── Lấy HMKD (số đơn giản) ─────────────────────────────────────────────
+    @GetMapping("/agents/{agencyId}/hmkd")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<?> getHMKD(@PathVariable Long agencyId) {
+        double hmkd = creditService.calculateHMKD(agencyId);
+        return ResponseEntity.ok(Map.of("agencyId", agencyId, "hmkd", hmkd));
+    }
+
+    // ── Lấy toàn bộ chi tiết tài khoản tín dụng ───────────────────────────
+    @GetMapping("/agents/{agencyId}/detail")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<CreditDetailResponse> getCreditDetail(@PathVariable Long agencyId) {
+        AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
+                .orElseThrow(() -> new RuntimeException("Credit account not found for agency " + agencyId));
+
+        List<OverdueDebt> debts = overdueDebtRepository
+                .findByAgencyIdAndStatus(agencyId, OverdueDebt.OverdueStatus.ACTIVE);
+
+        // Lấy 50 bản ghi ledger gần nhất
+        List<CreditLedger> ledger = creditLedgerRepository
+                .findTop50ByAgencyIdOrderByCreatedAtDesc(agencyId);
+
+        return ResponseEntity.ok(CreditDetailResponse.from(credit, debts, ledger));
+    }
+
+    // ── Cập nhật hạn mức tín dụng (chỉ COMPANY) ────────────────────────────
+    @PutMapping("/agents/{agencyId}/limit")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> updateCreditLimit(
+            @PathVariable Long agencyId,
+            @RequestBody Map<String, Double> body) {
+
+        Double newLimit = body.get("creditLimit");
+        if (newLimit == null || newLimit < 0) {
+            return ResponseEntity.badRequest().body(Map.of("message", "creditLimit không hợp lệ"));
+        }
+        creditService.updateCreditLimit(agencyId, newLimit);
+        return ResponseEntity.ok(Map.of("message", "Đã cập nhật hạn mức", "creditLimit", newLimit));
+    }
+
+    // ── Nạp tiền vào ví ký quỹ VTC ──────────────────────────────────────────
+    @PostMapping("/agents/{agencyId}/deposit")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> depositVtc(
+            @PathVariable Long agencyId,
+            @RequestBody Map<String, Double> body) {
+
+        Double amount = body.get("amount");
+        if (amount == null || amount <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("message", "amount không hợp lệ"));
+        }
+        creditService.depositVtc(agencyId, amount);
+        return ResponseEntity.ok(Map.of("message", "Nạp ký quỹ thành công", "amount", amount));
+    }
+
+    // ── Tạo đơn hàng dùng tín dụng ──────────────────────────────────────────
+    @PostMapping("/orders")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<?> createOrder(@RequestBody CreditOrderRequest request) {
+        creditService.createCreditOrder(request.getAgentId(), request.getOrderId(), request.getAmount());
+        return ResponseEntity.ok(Map.of("message", "Đơn hàng đã tạo bằng tín dụng", "orderId", request.getOrderId()));
+    }
+
+    // ── Thanh toán nợ ────────────────────────────────────────────────────────
+    @PostMapping("/payments")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<?> payDebt(@RequestBody PaymentRequest request) {
+        creditService.processPayment(request.getAgentId(), request.getAmount(), request.getOrderId());
+        return ResponseEntity.ok(Map.of("message", "Thanh toán thành công"));
+    }
+
+    // ── Kích hoạt tính lãi thủ công (dùng để test) ──────────────────────────
+    @PostMapping("/admin/trigger-interest")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> triggerInterest() {
+        interestScheduler.calculateDailyInterest();
+        return ResponseEntity.ok(Map.of("message", "Đã kích hoạt tính lãi thủ công"));
+    }
+}

@@ -8,6 +8,7 @@ import com.anhtin.tmdt.backend.entity.User;
 import com.anhtin.tmdt.backend.repository.AgencyRepository;
 import com.anhtin.tmdt.backend.repository.UserRepository;
 import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
+import com.anhtin.tmdt.backend.credit.service.CreditService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class AgencyService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CreditService creditService;
 
     public List<AgencyDTO> getAllAgencies() {
         return agencyRepository.findAll().stream()
@@ -61,8 +65,10 @@ public class AgencyService {
         agency.setDefaultCommissionRate(request.getDefaultCommissionRate());
         agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.APPROVED);
         agency.setActive(true);
-        
-        return new AgencyDTO(agencyRepository.save(agency));
+
+        Agency savedAgency = agencyRepository.save(agency);
+        creditService.initializeCredit(savedAgency);
+        return new AgencyDTO(savedAgency);
     }
 
     @SuppressWarnings("null")
@@ -95,7 +101,9 @@ public class AgencyService {
         agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.APPROVED);
         agency.setActive(true);
 
-        return new AgencyDTO(agencyRepository.save(agency));
+        Agency savedAgency = agencyRepository.save(agency);
+        creditService.initializeCredit(savedAgency);
+        return new AgencyDTO(savedAgency);
     }
 
     @SuppressWarnings("null")
