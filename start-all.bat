@@ -14,6 +14,17 @@ echo [2/3] Cleaning and starting Backend...
 start "TMDT-Backend" cmd /c "cd backend && mvnw clean spring-boot:run"
 
 echo.
+echo Waiting for Backend to start on port 8080...
+:wait_loop
+timeout /t 2 /nobreak >nul
+netstat -ano | findstr :8080 | findstr LISTENING >nul
+if errorlevel 1 (
+    echo ...still waiting...
+    goto wait_loop
+)
+echo Backend is UP!
+
+echo.
 echo [3/3] Starting Frontend...
 start "TMDT-Frontend" cmd /c "cd frontend && npm run dev"
 
@@ -21,7 +32,7 @@ echo.
 echo =======================================================
 echo FINISHED!
 echo.
-echo - Backend is starting in a new window (Port 8080)
-echo - Frontend is starting in a new window (Port 3000)
+echo - Backend is running (Port 8080)
+echo - Frontend is starting (Port 3000)
 echo =======================================================
 pause
