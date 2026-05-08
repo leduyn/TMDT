@@ -124,7 +124,28 @@ public class AuthController {
         }
 
         user.setRole(userRole);
-        userRepository.save(user);
+        
+        // Nếu là Đại lý, mặc định chưa được kích hoạt cho đến khi Admin duyệt
+        if (userRole == Role.AGENCY) {
+            user.setActive(false);
+        } else {
+            user.setActive(true);
+        }
+
+        User savedUser = userRepository.save(user);
+
+        // Tạo bản ghi Agency cho tài khoản Đại lý
+        if (userRole == Role.AGENCY) {
+            com.anhtin.tmdt.backend.entity.Agency agency = new com.anhtin.tmdt.backend.entity.Agency();
+            agency.setUser(savedUser);
+            agency.setName(savedUser.getUsername()); // Tạm thời lấy username làm tên đại lý
+            agency.setPhone(savedUser.getPhone());
+            agency.setLatitude(0.0);
+            agency.setLongitude(0.0);
+            agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.PENDING);
+            agency.setActive(false);
+            agencyRepository.save(agency);
+        }
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
