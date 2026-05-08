@@ -1,0 +1,497 @@
+'use client';
+
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { creditApi, agencyApi, CreditDetail, AgencyDTO } from '@/lib/api';
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const fmt = (n: number) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+
+const fmtDate = (s?: string) =>
+  s ? new Date(s).toLocaleString('vi-VN') : '—';
+
+const LEDGER_LABELS: Record<string, { label: string; color: string }> = {
+  DEBT:     { label: 'Ghi nợ',     color: '#ef4444' },
+  PAYMENT:  { label: 'Thanh toán', color: '#22c55e' },
+  INTEREST: { label: 'Lãi',        color: '#f59e0b' },
+  HOLD:     { label: 'Giữ quỹ',    color: '#a78bfa' },
+  REFUND:   { label: 'Hoàn tiền',  color: '#38bdf8' },
+};
+
+// ── Sub-components ───────────────────────────────────────────────────────────
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)',
+      border: `1px solid ${color}30`,
+      borderRadius: 16,
+      padding: '20px 24px',
+      minWidth: 200,
+      flex: 1,
+    }}>
+      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: '#1e293b', borderRadius: 16, padding: 32, minWidth: 380, maxWidth: 480,
+        border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h3 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18, margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page Content ────────────────────────────────────────────────────────
+function CreditManagementContent() {
+  const searchParams = useSearchParams();
+  const [agencies, setAgencies]         = useState<AgencyDTO[]>([]);
+  const [selectedId, setSelectedId]     = useState<number | null>(null);
+  const [detail, setDetail]             = useState<CreditDetail | null>(null);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [success, setSuccess]           = useState('');
+
+  // Modal state
+  const [modal, setModal] = useState<'limit' | 'deposit' | 'payment' | null>(null);
+  const [inputAmount, setInputAmount]   = useState('');
+  const [inputOrderId, setInputOrderId] = useState('');
+  const [submitting, setSubmitting]     = useState(false);
+
+  // Role detection
+  const [isCompany, setIsCompany]       = useState(false);
+  const [agencyIdFromToken, setAgencyIdFromToken] = useState<number | null>(null);
+
+  useEffect(() => {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    if (raw) {
+      try {
+        const u = JSON.parse(raw);
+        const roles: string[] = u.roles ?? [];
+        setIsCompany(roles.includes('ROLE_COMPANY'));
+        if (roles.includes('ROLE_AGENCY') && u.agencyId) {
+          setAgencyIdFromToken(Number(u.agencyId));
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    const qId = searchParams.get('agencyId');
+    
+    if (isCompany) {
+      agencyApi.getAll().then(setAgencies).catch(() => {});
+      if (qId) {
+        setSelectedId(Number(qId));
+      }
+    } else if (agencyIdFromToken) {
+      setSelectedId(agencyIdFromToken);
+    }
+  }, [isCompany, agencyIdFromToken, searchParams]);
+
+  const loadDetail = useCallback(async (id: number) => {
+    setLoading(true);
+    setError('');
+    try {
+      const d = await creditApi.getDetail(id);
+      setDetail(d);
+    } catch (e: any) {
+      setError(e.message ?? 'Không thể tải dữ liệu tín dụng');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedId) loadDetail(selectedId);
+  }, [selectedId, loadDetail]);
+
+  const notify = (msg: string) => {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(''), 4000);
+  };
+
+  const closeModal = () => { setModal(null); setInputAmount(''); setInputOrderId(''); };
+
+  const handleSubmitModal = async () => {
+    if (!selectedId || !detail) return;
+    setSubmitting(true);
+    try {
+      const amt = parseFloat(inputAmount);
+      if (isNaN(amt) || amt <= 0) throw new Error('Số tiền không hợp lệ');
+
+      if (modal === 'limit') {
+        await creditApi.updateLimit(selectedId, amt);
+        notify(`Đã cập nhật hạn mức thành ${fmt(amt)}`);
+      } else if (modal === 'deposit') {
+        await creditApi.depositVtc(selectedId, amt);
+        notify(`Đã nạp ${fmt(amt)} vào ví ký quỹ`);
+      } else if (modal === 'payment') {
+        const oid = inputOrderId ? parseInt(inputOrderId) : undefined;
+        await creditApi.payDebt(selectedId, amt, oid);
+        notify(`Thanh toán ${fmt(amt)} thành công`);
+      }
+      closeModal();
+      loadDetail(selectedId);
+    } catch (e: any) {
+      setError(e.message ?? 'Thao tác thất bại');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+      padding: '32px 24px',
+    }}>
+      {/* Header */}
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{
+            fontSize: 30, fontWeight: 800, margin: 0,
+            background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+            💳 Quản lý Tín dụng Đại lý
+          </h1>
+          <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
+            Theo dõi hạn mức khả dụng (HMKD), ví ký quỹ và lịch sử giao dịch
+          </p>
+        </div>
+
+        {/* Agency selector (company only) */}
+        {isCompany && (
+          <div style={{ marginBottom: 28 }}>
+            <label style={{ color: '#94a3b8', fontSize: 13, display: 'block', marginBottom: 8 }}>
+              Chọn đại lý
+            </label>
+            <select
+              id="credit-agency-select"
+              value={selectedId ?? ''}
+              onChange={e => setSelectedId(Number(e.target.value))}
+              style={{
+                background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155',
+                borderRadius: 10, padding: '10px 16px', fontSize: 14, minWidth: 320,
+                outline: 'none', cursor: 'pointer',
+              }}
+            >
+              <option value="">-- Chọn đại lý --</option>
+              {agencies.map(a => (
+                <option key={a.id} value={a.id}>{a.name} (ID: {a.id})</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Alerts */}
+        {error && (
+          <div style={{
+            background: '#450a0a', border: '1px solid #dc2626', borderRadius: 10,
+            padding: '12px 16px', color: '#fca5a5', marginBottom: 20, fontSize: 14,
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+        {success && (
+          <div style={{
+            background: '#052e16', border: '1px solid #16a34a', borderRadius: 10,
+            padding: '12px 16px', color: '#86efac', marginBottom: 20, fontSize: 14,
+          }}>
+            ✅ {success}
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign: 'center', color: '#64748b', padding: 60 }}>
+            <div style={{ fontSize: 36, marginBottom: 12, animation: 'spin 1s linear infinite' }}>⟳</div>
+            Đang tải dữ liệu...
+          </div>
+        )}
+
+        {/* Detail */}
+        {!loading && detail && (
+          <>
+            {/* Stats grid */}
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+              <StatCard label="Hạn mức khả dụng (HMKD)" value={fmt(detail.hmkd)}
+                sub="= Hạn mức − Nợ + Ký quỹ" color="#38bdf8" />
+              <StatCard label="Hạn mức tín dụng" value={fmt(detail.creditLimit)} color="#818cf8" />
+              <StatCard label="Tổng dư nợ" value={fmt(detail.totalDebt)}
+                sub={detail.overdueDebts.length > 0 ? `${detail.overdueDebts.length} khoản quá hạn` : 'Không có nợ quá hạn'}
+                color={detail.totalDebt > 0 ? '#ef4444' : '#22c55e'} />
+              <StatCard label="Ví ký quỹ (VTC)" value={fmt(detail.vtcAvailable)}
+                sub={detail.vtcHold > 0 ? `Đang giữ: ${fmt(detail.vtcHold)}` : undefined}
+                color="#f59e0b" />
+            </div>
+
+            {/* Action buttons (company only) */}
+            {isCompany && (
+              <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+                <Link href="/credit/config">
+                  <button style={{
+                    background: 'rgba(255,255,255,0.05)', color: '#f1f5f9', border: '1px solid #334155',
+                    borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    ⚙️ Cấu hình công nợ
+                  </button>
+                </Link>
+                {[
+                  { id: 'btn-update-limit',   action: () => setModal('limit'),   label: '✏️ Cập nhật hạn mức', bg: '#4f46e5' },
+                  { id: 'btn-deposit-vtc',    action: () => setModal('deposit'), label: '💰 Nạp ký quỹ VTC',    bg: '#0891b2' },
+                  { id: 'btn-pay-debt',       action: () => setModal('payment'), label: '💳 Thanh toán nợ',      bg: '#16a34a' },
+                ].map(btn => (
+                  <button key={btn.id} id={btn.id} onClick={btn.action} style={{
+                    background: btn.bg, color: '#fff', border: 'none', borderRadius: 10,
+                    padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    transition: 'opacity .2s',
+                  }}
+                    onMouseOver={e => (e.currentTarget.style.opacity = '0.85')}
+                    onMouseOut={e => (e.currentTarget.style.opacity = '1')}
+                  >{btn.label}</button>
+                ))}
+              </div>
+            )}
+
+            {/* Agency pay debt button */}
+            {!isCompany && (
+              <div style={{ marginBottom: 28 }}>
+                <button id="btn-agency-pay" onClick={() => setModal('payment')} style={{
+                  background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10,
+                  padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  💳 Thanh toán nợ
+                </button>
+              </div>
+            )}
+
+            {/* Overdue debts */}
+            {detail.overdueDebts.length > 0 && (
+              <div style={{
+                background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 16, padding: 24, marginBottom: 24,
+              }}>
+                <h2 style={{ color: '#fca5a5', fontWeight: 700, fontSize: 16, marginTop: 0, marginBottom: 16 }}>
+                  ⚠️ Nợ quá hạn ({detail.overdueDebts.length} khoản)
+                </h2>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ color: '#94a3b8' }}>
+                        {['Đơn hàng', 'Gốc', 'Lãi tích lũy', 'Tổng phải trả', 'Ngày bắt đầu', 'Tính lãi lần cuối'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.overdueDebts.map(d => (
+                        <tr key={d.id} style={{ color: '#e2e8f0' }}>
+                          <td style={{ padding: '10px 12px' }}>#{d.orderId}</td>
+                          <td style={{ padding: '10px 12px', color: '#ef4444' }}>{fmt(d.principalAmount)}</td>
+                          <td style={{ padding: '10px 12px', color: '#f59e0b' }}>{fmt(d.interestAccrued)}</td>
+                          <td style={{ padding: '10px 12px', fontWeight: 700 }}>{fmt(d.principalAmount + d.interestAccrued)}</td>
+                          <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{fmtDate(d.startDate)}</td>
+                          <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{fmtDate(d.lastCalculatedAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Ledger history */}
+            <div style={{
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16, padding: 24,
+            }}>
+              <h2 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 16, marginTop: 0, marginBottom: 16 }}>
+                📋 Lịch sử giao dịch (50 gần nhất)
+              </h2>
+              {detail.ledgerHistory.length === 0 ? (
+                <div style={{ color: '#64748b', textAlign: 'center', padding: 32 }}>Chưa có giao dịch nào</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ color: '#94a3b8' }}>
+                        {['Loại', 'Số tiền', 'Mã tham chiếu', 'Thời gian'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.ledgerHistory.map((l, i) => {
+                        const meta = LEDGER_LABELS[l.type] ?? { label: l.type, color: '#94a3b8' };
+                        return (
+                          <tr key={l.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                            <td style={{ padding: '10px 12px' }}>
+                              <span style={{
+                                background: meta.color + '22', color: meta.color,
+                                borderRadius: 6, padding: '2px 10px', fontWeight: 600, fontSize: 12,
+                              }}>{meta.label}</span>
+                            </td>
+                            <td style={{ padding: '10px 12px', color: meta.color, fontWeight: 600 }}>
+                              {['DEBT', 'HOLD', 'INTEREST'].includes(l.type) ? '−' : '+'}{fmt(l.amount)}
+                            </td>
+                            <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{l.referenceId ?? '—'}</td>
+                            <td style={{ padding: '10px 12px', color: '#64748b' }}>{fmtDate(l.createdAt)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Last updated */}
+            <div style={{ textAlign: 'right', color: '#475569', fontSize: 12, marginTop: 12 }}>
+              Cập nhật lần cuối: {fmtDate(detail.updatedAt)}
+            </div>
+          </>
+        )}
+
+        {!loading && !detail && selectedId && (
+          <div style={{ textAlign: 'center', color: '#64748b', padding: 60 }}>
+            Không tìm thấy tài khoản tín dụng cho đại lý này.
+          </div>
+        )}
+
+        {!loading && !selectedId && (
+          <div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>💳</div>
+            <div>Vui lòng chọn một đại lý để xem thông tin tín dụng</div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Modals ───────────────────────────────────────────────────────────── */}
+      {modal === 'limit' && (
+        <Modal title="Cập nhật hạn mức tín dụng" onClose={closeModal}>
+          <label style={{ color: '#94a3b8', fontSize: 13 }}>Hạn mức mới (VND)</label>
+          <input
+            id="input-credit-limit"
+            type="number" min="0" value={inputAmount}
+            onChange={e => setInputAmount(e.target.value)}
+            placeholder="Ví dụ: 100000000"
+            style={inputStyle}
+          />
+          {detail && <div style={{ color: '#64748b', fontSize: 12, marginTop: 6 }}>
+            Hiện tại: {fmt(detail.creditLimit)}
+          </div>}
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            <button id="btn-confirm-limit" onClick={handleSubmitModal} disabled={submitting} style={confirmBtn('#4f46e5')}>
+              {submitting ? 'Đang xử lý...' : 'Xác nhận'}
+            </button>
+            <button onClick={closeModal} style={cancelBtn}>Huỷ</button>
+          </div>
+        </Modal>
+      )}
+
+      {modal === 'deposit' && (
+        <Modal title="Nạp tiền ký quỹ VTC" onClose={closeModal}>
+          <label style={{ color: '#94a3b8', fontSize: 13 }}>Số tiền nạp (VND)</label>
+          <input
+            id="input-deposit-amount"
+            type="number" min="0" value={inputAmount}
+            onChange={e => setInputAmount(e.target.value)}
+            placeholder="Ví dụ: 5000000"
+            style={inputStyle}
+          />
+          {detail && <div style={{ color: '#64748b', fontSize: 12, marginTop: 6 }}>
+            Ký quỹ hiện tại: {fmt(detail.vtcAvailable)}
+          </div>}
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            <button id="btn-confirm-deposit" onClick={handleSubmitModal} disabled={submitting} style={confirmBtn('#0891b2')}>
+              {submitting ? 'Đang xử lý...' : 'Nạp ngay'}
+            </button>
+            <button onClick={closeModal} style={cancelBtn}>Huỷ</button>
+          </div>
+        </Modal>
+      )}
+
+      {modal === 'payment' && (
+        <Modal title="Thanh toán nợ tín dụng" onClose={closeModal}>
+          <label style={{ color: '#94a3b8', fontSize: 13 }}>Số tiền thanh toán (VND)</label>
+          <input
+            id="input-payment-amount"
+            type="number" min="0" value={inputAmount}
+            onChange={e => setInputAmount(e.target.value)}
+            placeholder="Ví dụ: 2000000"
+            style={inputStyle}
+          />
+          <label style={{ color: '#94a3b8', fontSize: 13, marginTop: 14, display: 'block' }}>
+            ID đơn hàng cụ thể (để trống = trả FIFO)
+          </label>
+          <input
+            id="input-payment-order-id"
+            type="number" min="0" value={inputOrderId}
+            onChange={e => setInputOrderId(e.target.value)}
+            placeholder="Bỏ trống để trả nợ cũ nhất trước"
+            style={inputStyle}
+          />
+          {detail && detail.totalDebt > 0 && (
+            <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 6 }}>
+              Tổng nợ: {fmt(detail.totalDebt)}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            <button id="btn-confirm-payment" onClick={handleSubmitModal} disabled={submitting} style={confirmBtn('#16a34a')}>
+              {submitting ? 'Đang xử lý...' : 'Thanh toán'}
+            </button>
+            <button onClick={closeModal} style={cancelBtn}>Huỷ</button>
+          </div>
+        </Modal>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+export default function CreditManagementPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Đang tải...</div>}>
+      <CreditManagementContent />
+    </Suspense>
+  );
+}
+
+// ── Shared button styles ──────────────────────────────────────────────────────
+const inputStyle: React.CSSProperties = {
+  width: '100%', marginTop: 8, padding: '10px 14px',
+  background: '#0f172a', border: '1px solid #334155',
+  borderRadius: 8, color: '#f1f5f9', fontSize: 14, outline: 'none',
+  boxSizing: 'border-box',
+};
+
+const confirmBtn = (bg: string): React.CSSProperties => ({
+  flex: 1, background: bg, color: '#fff', border: 'none',
+  borderRadius: 8, padding: '10px 0', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+});
+
+const cancelBtn: React.CSSProperties = {
+  flex: 1, background: 'transparent', color: '#94a3b8',
+  border: '1px solid #334155', borderRadius: 8, padding: '10px 0',
+  fontWeight: 600, fontSize: 14, cursor: 'pointer',
+};
