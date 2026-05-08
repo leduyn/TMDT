@@ -12,7 +12,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
-import { UserPlus, Eye, Phone, MapPin, User as UserIcon, CheckCircle, XCircle, ShieldCheck, Mail, Lock } from 'lucide-react';
+import { UserPlus, Eye, Phone, MapPin, User as UserIcon, CheckCircle, XCircle, ShieldCheck, Mail, Lock, Edit } from 'lucide-react';
 
 interface Agency {
   id: number;
@@ -20,9 +20,12 @@ interface Agency {
   phone?: string;
   address?: string;
   username?: string;
-  userId: number;
+  userId?: number;
   active: boolean;
-  status: string;
+  status?: string;
+  latitude?: number;
+  longitude?: number;
+  defaultCommissionRate?: number;
 }
 
 interface User {
@@ -49,6 +52,11 @@ export default function AgenciesPage() {
     organizationName: '', taxCode: '', billingAddress: ''
   });
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState({
+    id: 0, name: '', phone: '', address: '', latitude: 0, longitude: 0, defaultCommissionRate: 10, active: true
+  });
+  
   // Form for approval
   const [approvalData, setApprovalData] = useState({
     name: '', phone: '', address: '', defaultCommissionRate: 10, latitude: 0, longitude: 0
@@ -137,6 +145,25 @@ export default function AgenciesPage() {
     }
   };
 
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await agencyApi.update(editData.id, {
+        name: editData.name,
+        phone: editData.phone,
+        address: editData.address,
+        latitude: editData.latitude,
+        longitude: editData.longitude,
+        defaultCommissionRate: editData.defaultCommissionRate,
+        active: editData.active
+      });
+      setShowEditModal(false);
+      fetchData();
+    } catch (err) {
+      alert('Lỗi khi cập nhật đại lý');
+    }
+  };
+
   const resetForm = () => {
     setNewAgency({ 
       name: '', phone: '', address: '', userId: 0,
@@ -156,6 +183,20 @@ export default function AgenciesPage() {
       longitude: 0
     });
     setShowApproveModal(true);
+  };
+
+  const openEditModal = (agency: any) => {
+    setEditData({
+      id: agency.id,
+      name: agency.name || '',
+      phone: agency.phone || '',
+      address: agency.address || '',
+      latitude: agency.latitude || 0,
+      longitude: agency.longitude || 0,
+      defaultCommissionRate: agency.defaultCommissionRate || 10,
+      active: agency.active
+    });
+    setShowEditModal(true);
   };
 
   const filteredAgencies = agencies.filter(a => {
@@ -233,6 +274,13 @@ export default function AgenciesPage() {
               Duyệt
             </button>
           )}
+          <button 
+            className="btn-outline" 
+            style={{ padding: '8px', borderRadius: 8 }}
+            onClick={() => openEditModal(a)}
+          >
+            <Edit size={16} />
+          </button>
           <button 
             className="btn-outline" 
             style={{ padding: '8px', borderRadius: 8 }}
@@ -445,6 +493,63 @@ export default function AgenciesPage() {
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                   <button type="button" className="btn-outline" onClick={() => setShowApproveModal(false)}>Hủy</button>
                   <button type="submit" className="btn-primary" style={{ background: '#10b981' }}>Duyệt ngay</button>
+                </div>
+              </form>
+            </GlassCard>
+          </div>
+        )}
+
+        {/* Modal Điều chỉnh Đại lý */}
+        {showEditModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <GlassCard className="fade-in" style={{ width: '100%', maxWidth: 550, padding: 32 }}>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ width: 64, height: 64, background: 'rgba(99,102,241,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Edit size={32} style={{ color: 'var(--accent)' }} />
+                </div>
+                <h2 style={{ margin: 0 }}>Điều chỉnh Đại lý</h2>
+                <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Cập nhật thông tin và tọa độ định vị đại lý</p>
+              </div>
+
+              <form onSubmit={handleUpdate}>
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Tên Đại lý</label>
+                  <input type="text" className="input-field" required value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                  <div>
+                    <label className="form-label">Số điện thoại</label>
+                    <input type="text" className="input-field" required value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="form-label">% Chiết khấu</label>
+                    <input type="number" className="input-field" required value={editData.defaultCommissionRate} onChange={e => setEditData({...editData, defaultCommissionRate: parseFloat(e.target.value)})} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Địa chỉ</label>
+                  <input type="text" className="input-field" required value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                  <div>
+                    <label className="form-label">Vĩ độ (Latitude)</label>
+                    <input type="number" step="any" className="input-field" required value={editData.latitude} onChange={e => setEditData({...editData, latitude: parseFloat(e.target.value)})} placeholder="VD: 10.762622" />
+                  </div>
+                  <div>
+                    <label className="form-label">Kinh độ (Longitude)</label>
+                    <input type="number" step="any" className="input-field" required value={editData.longitude} onChange={e => setEditData({...editData, longitude: parseFloat(e.target.value)})} placeholder="VD: 106.660172" />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                  <input type="checkbox" checked={editData.active} onChange={e => setEditData({...editData, active: e.target.checked})} id="edit-active" style={{ width: 18, height: 18 }} />
+                  <label htmlFor="edit-active" style={{ color: 'white', fontWeight: 500, cursor: 'pointer' }}>Kích hoạt tài khoản</label>
+                </div>
+                
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn-outline" onClick={() => setShowEditModal(false)}>Hủy</button>
+                  <button type="submit" className="btn-primary">Lưu thay đổi</button>
                 </div>
               </form>
             </GlassCard>
