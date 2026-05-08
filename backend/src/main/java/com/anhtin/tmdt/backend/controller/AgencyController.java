@@ -34,6 +34,24 @@ public class AgencyController {
         return agencyService.createAgency(request);
     }
 
+    @PostMapping("/with-account")
+    @PreAuthorize("hasRole('COMPANY')")
+    public AgencyDTO createAgencyWithAccount(@RequestBody com.anhtin.tmdt.backend.dto.request.AgencyWithAccountRequest request) {
+        return agencyService.createAgencyWithAccount(request);
+    }
+
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasRole('COMPANY')")
+    public AgencyDTO approveAgency(@PathVariable Long id, @RequestBody AgencyRequest request) {
+        return agencyService.approveAgency(id, request);
+    }
+
+    @PostMapping("/convert-from-user/{userId}")
+    @PreAuthorize("hasRole('COMPANY')")
+    public AgencyDTO convertUserToAgency(@PathVariable Long userId, @RequestBody AgencyRequest request) {
+        return agencyService.convertUserToAgency(userId, request);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
     public AgencyDTO updateAgency(@PathVariable Long id, @RequestBody AgencyRequest request) {
