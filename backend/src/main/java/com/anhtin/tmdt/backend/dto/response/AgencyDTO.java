@@ -20,12 +20,16 @@ public class AgencyDTO {
     private String billingAddress;
     private String email;
     private Double defaultCommissionRate;
+    private Double latitude;
+    private Double longitude;
 
     public AgencyDTO(Agency agency) {
         this.id = agency.getId();
         this.name = agency.getName();
         this.phone = agency.getPhone();
         this.address = agency.getAddress();
+        this.latitude = agency.getLatitude();
+        this.longitude = agency.getLongitude();
         this.defaultCommissionRate = agency.getDefaultCommissionRate();
         if (agency.getUser() != null) {
             this.username = agency.getUser().getUsername();

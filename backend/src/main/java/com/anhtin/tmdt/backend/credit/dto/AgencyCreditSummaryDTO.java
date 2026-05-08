@@ -1,0 +1,63 @@
+package com.anhtin.tmdt.backend.credit.dto;
+
+import com.anhtin.tmdt.backend.credit.entity.AgentCredit;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+/**
+ * Summary of one agency's credit terms — used in the credit management list page.
+ */
+@Data
+public class AgencyCreditSummaryDTO {
+
+    private Long   agencyId;
+    private String agencyName;
+    private String agencyPhone;
+    private String agencyAddress;
+
+    private double  creditLimit;
+    private double  totalDebt;
+    private double  vtcAvailable;
+    private double  vtcHold;
+    private double  hmkd;            // creditLimit - totalDebt + vtcAvailable
+    private int     debtTermDays;    // kỳ hạn nợ (ngày)
+    private int     activeOverdueCount;
+
+    private LocalDateTime updatedAt;
+    private boolean creditInitialized;  // false = chưa có tài khoản tín dụng
+
+    // ── Static factories ────────────────────────────────────────────────────
+
+    /** Khi đã có AgentCredit */
+    public static AgencyCreditSummaryDTO from(AgentCredit ac, int overdueCount) {
+        AgencyCreditSummaryDTO d = new AgencyCreditSummaryDTO();
+        d.setAgencyId(ac.getAgency().getId());
+        d.setAgencyName(ac.getAgency().getName());
+        d.setAgencyPhone(ac.getAgency().getPhone());
+        d.setAgencyAddress(ac.getAgency().getAddress());
+        d.setCreditLimit(ac.getCreditLimit());
+        d.setTotalDebt(ac.getTotalDebt());
+        d.setVtcAvailable(ac.getVtcAvailable());
+        d.setVtcHold(ac.getVtcHold());
+        d.setHmkd(ac.getCreditLimit() - ac.getTotalDebt() + ac.getVtcAvailable());
+        d.setDebtTermDays(ac.getDebtTermDays() != null ? ac.getDebtTermDays() : 30);
+        d.setActiveOverdueCount(overdueCount);
+        d.setUpdatedAt(ac.getUpdatedAt());
+        d.setCreditInitialized(true);
+        return d;
+    }
+
+    /** Khi chưa khởi tạo AgentCredit (đại lý chưa có tài khoản tín dụng) */
+    public static AgencyCreditSummaryDTO uninitialized(Long agencyId, String name,
+                                                       String phone, String address) {
+        AgencyCreditSummaryDTO d = new AgencyCreditSummaryDTO();
+        d.setAgencyId(agencyId);
+        d.setAgencyName(name);
+        d.setAgencyPhone(phone);
+        d.setAgencyAddress(address);
+        d.setCreditInitialized(false);
+        d.setDebtTermDays(30);
+        return d;
+    }
+}
