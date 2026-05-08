@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { creditApi, agencyApi, CreditDetail, AgencyDTO } from '@/lib/api';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -56,8 +58,9 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-export default function CreditManagementPage() {
+// ── Main Page Content ────────────────────────────────────────────────────────
+function CreditManagementContent() {
+  const searchParams = useSearchParams();
   const [agencies, setAgencies]         = useState<AgencyDTO[]>([]);
   const [selectedId, setSelectedId]     = useState<number | null>(null);
   const [detail, setDetail]             = useState<CreditDetail | null>(null);
@@ -90,12 +93,17 @@ export default function CreditManagementPage() {
   }, []);
 
   useEffect(() => {
+    const qId = searchParams.get('agencyId');
+    
     if (isCompany) {
       agencyApi.getAll().then(setAgencies).catch(() => {});
+      if (qId) {
+        setSelectedId(Number(qId));
+      }
     } else if (agencyIdFromToken) {
       setSelectedId(agencyIdFromToken);
     }
-  }, [isCompany, agencyIdFromToken]);
+  }, [isCompany, agencyIdFromToken, searchParams]);
 
   const loadDetail = useCallback(async (id: number) => {
     setLoading(true);
@@ -239,6 +247,14 @@ export default function CreditManagementPage() {
             {/* Action buttons (company only) */}
             {isCompany && (
               <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+                <Link href="/credit/config">
+                  <button style={{
+                    background: 'rgba(255,255,255,0.05)', color: '#f1f5f9', border: '1px solid #334155',
+                    borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    ⚙️ Cấu hình công nợ
+                  </button>
+                </Link>
                 {[
                   { id: 'btn-update-limit',   action: () => setModal('limit'),   label: '✏️ Cập nhật hạn mức', bg: '#4f46e5' },
                   { id: 'btn-deposit-vtc',    action: () => setModal('deposit'), label: '💰 Nạp ký quỹ VTC',    bg: '#0891b2' },
@@ -450,6 +466,14 @@ export default function CreditManagementPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+export default function CreditManagementPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Đang tải...</div>}>
+      <CreditManagementContent />
+    </Suspense>
   );
 }
 

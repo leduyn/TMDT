@@ -35,6 +35,10 @@ public class AgentCredit {
     @Column(name = "vtc_hold", nullable = false)
     private Double vtcHold = 0.0;
 
+    /** Kỳ hạn nợ (số ngày được phép trả sau khi đơn hàng tạo) */
+    @Column(name = "debt_term_days", nullable = false)
+    private Integer debtTermDays = 30;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 

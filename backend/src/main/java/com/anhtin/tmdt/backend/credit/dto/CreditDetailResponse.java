@@ -79,4 +79,17 @@ public class CreditDetailResponse {
         r.setLedgerHistory(ledger.stream().map(LedgerEntry::from).toList());
         return r;
     }
+
+    public static CreditDetailResponse empty(Long agencyId) {
+        CreditDetailResponse r = new CreditDetailResponse();
+        r.setAgencyId(agencyId);
+        r.setCreditLimit(0.0);
+        r.setTotalDebt(0.0);
+        r.setVtcAvailable(0.0);
+        r.setVtcHold(0.0);
+        r.setHmkd(0.0);
+        r.setOverdueDebts(List.of());
+        r.setLedgerHistory(List.of());
+        return r;
+    }
 }

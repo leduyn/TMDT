@@ -24,9 +24,48 @@ public class CreditService {
     private final OverdueDebtRepository overdueDebtRepository;
     private final CreditLedgerRepository creditLedgerRepository;
     private final OrderRepository orderRepository;
+    private final com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
 
     @Value("${app.credit.overdue-interest-rate:0.0004}")
     private double dailyInterestRate;
+
+    public List<com.anhtin.tmdt.backend.credit.dto.AgencyCreditSummaryDTO> getAllAgencyCreditSummaries() {
+        List<com.anhtin.tmdt.backend.entity.Agency> agencies = agencyRepository.findAll();
+        return agencies.stream().map(agency -> {
+            AgentCredit credit = agentCreditRepository.findByAgencyId(agency.getId()).orElse(null);
+            if (credit != null) {
+                int overdueCount = overdueDebtRepository.findByAgencyIdAndStatus(agency.getId(), OverdueDebt.OverdueStatus.ACTIVE).size();
+                return com.anhtin.tmdt.backend.credit.dto.AgencyCreditSummaryDTO.from(credit, overdueCount);
+            } else {
+                return com.anhtin.tmdt.backend.credit.dto.AgencyCreditSummaryDTO.uninitialized(
+                        agency.getId(), agency.getName(), agency.getPhone(), agency.getAddress());
+            }
+        }).toList();
+    }
+
+    @Transactional
+    public void updateCreditTerms(Long agencyId, com.anhtin.tmdt.backend.credit.dto.CreditTermsRequest request) {
+        AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId).orElseGet(() -> {
+            com.anhtin.tmdt.backend.entity.Agency agency = agencyRepository.findById(agencyId)
+                    .orElseThrow(() -> new RuntimeException("Agency not found"));
+            AgentCredit newCredit = new AgentCredit();
+            newCredit.setAgency(agency);
+            newCredit.setTotalDebt(0.0);
+            newCredit.setVtcAvailable(request.getInitialVtc() != null ? request.getInitialVtc() : 0.0);
+            newCredit.setVtcHold(0.0);
+            return newCredit;
+        });
+
+        if (request.getCreditLimit() != null) {
+            credit.setCreditLimit(request.getCreditLimit());
+        }
+        if (request.getDebtTermDays() != null) {
+            credit.setDebtTermDays(request.getDebtTermDays());
+        }
+        
+        agentCreditRepository.save(credit);
+        saveLedger(agencyId, CreditLedger.LedgerType.PAYMENT, 0.0, "TERMS_UPDATE: Limit=" + request.getCreditLimit() + ", Term=" + request.getDebtTermDays());
+    }
 
     @Transactional
     public void initializeCredit(com.anhtin.tmdt.backend.entity.Agency agency) {

@@ -32,6 +32,23 @@ public class CreditController {
     private final CreditLedgerRepository  creditLedgerRepository;
     private final InterestScheduler       interestScheduler;
 
+    // ── Lấy danh sách tổng quan tín dụng tất cả đại lý (ADMIN/COMPANY) ─────
+    @GetMapping("/admin/summaries")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<List<com.anhtin.tmdt.backend.credit.dto.AgencyCreditSummaryDTO>> getAllSummaries() {
+        return ResponseEntity.ok(creditService.getAllAgencyCreditSummaries());
+    }
+
+    // ── Cập nhật/Tạo hạn mức & Kỳ hạn nợ (COMPANY) ─────────────────────────
+    @PutMapping("/agents/{agencyId}/terms")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> updateTerms(
+            @PathVariable Long agencyId,
+            @RequestBody com.anhtin.tmdt.backend.credit.dto.CreditTermsRequest request) {
+        creditService.updateCreditTerms(agencyId, request);
+        return ResponseEntity.ok(Map.of("message", "Đã cập nhật cấu hình công nợ"));
+    }
+
     // ── Lấy HMKD (số đơn giản) ─────────────────────────────────────────────
     @GetMapping("/agents/{agencyId}/hmkd")
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
@@ -44,8 +61,11 @@ public class CreditController {
     @GetMapping("/agents/{agencyId}/detail")
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
     public ResponseEntity<CreditDetailResponse> getCreditDetail(@PathVariable Long agencyId) {
-        AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
-                .orElseThrow(() -> new RuntimeException("Credit account not found for agency " + agencyId));
+        AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId).orElse(null);
+
+        if (credit == null) {
+            return ResponseEntity.ok(CreditDetailResponse.empty(agencyId));
+        }
 
         List<OverdueDebt> debts = overdueDebtRepository
                 .findByAgencyIdAndStatus(agencyId, OverdueDebt.OverdueStatus.ACTIVE);

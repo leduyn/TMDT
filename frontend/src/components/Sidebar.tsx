@@ -126,12 +126,19 @@ export default function Sidebar() {
       <nav style={{ flex: 1, padding: '0 0 20px', overflowY: 'auto', overflowX: 'hidden' }}>
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          let href = item.href;
+          
+          // Redirect COMPANY to config page for Credit
+          if (item.label === 'Tín dụng' && user?.roles.includes('ROLE_COMPANY')) {
+            href = '/credit/config';
+          }
+
+          const isActive = pathname === href || pathname.startsWith(href + '/');
           
           return (
             <Link 
               key={item.href} 
-              href={item.href} 
+              href={href} 
               className={`sidebar-link ${isActive ? 'active' : ''}`}
               title={isCollapsed ? item.label : ''}
               style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
