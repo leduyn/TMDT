@@ -29,15 +29,19 @@ public class Agency {
     private String address;
 
     @Column(nullable = false)
-    private Double latitude;
+    private Double latitude = 0.0;
 
     @Column(nullable = false)
-    private Double longitude;
+    private Double longitude = 0.0;
 
     @Column(name = "default_commission_rate")
     private Double defaultCommissionRate;
 
-    private boolean active = true;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'PENDING'")
+    private AgencyStatus status = AgencyStatus.PENDING;
+
+    private boolean active = false;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

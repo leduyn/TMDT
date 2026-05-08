@@ -5,13 +5,20 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AgencyRequest {
+public class AgencyWithAccountRequest {
+    // Account info
+    private String username;
+    private String email;
+    private String password;
+    
+    // Agency info
     private String name;
     private String phone;
     private String address;
-    private Long userId;
+    private String organizationName;
+    private String taxCode;
+    private String billingAddress;
     private Double latitude;
     private Double longitude;
     private Double defaultCommissionRate;
-    private Boolean active;
 }
