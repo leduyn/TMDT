@@ -11,7 +11,9 @@ import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
-import { UserPlus, CheckCircle, Eye, Edit } from 'lucide-react';
+import { UserPlus, CheckCircle, Eye, Edit, ShieldCheck } from 'lucide-react';
+import GlassCard from '@/components/ui/GlassCard';
+import { agencyApi } from '@/lib/api';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<UserDTO[]>([]);
@@ -21,6 +23,13 @@ export default function CustomersPage() {
     isOpen: false, title: '', message: '', type: 'info' as any
   });
   
+  // Conversion state
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserDTO | null>(null);
+  const [convertData, setConvertData] = useState({
+    name: '', phone: '', address: '', defaultCommissionRate: 10
+  });
+
   useEffect(() => {
     fetchCustomers();
   }, []);
@@ -45,6 +54,30 @@ export default function CustomersPage() {
       fetchCustomers();
     } catch (err: any) {
       setModal({ isOpen: true, title: 'Lỗi kích hoạt', message: err.message || 'Lỗi khi duyệt khách hàng', type: 'error' });
+    }
+  };
+
+  const openConvertModal = (user: UserDTO) => {
+    setSelectedUser(user);
+    setConvertData({
+      name: user.displayName || user.username,
+      phone: user.phone || '',
+      address: '',
+      defaultCommissionRate: 10
+    });
+    setShowConvertModal(true);
+  };
+
+  const handleConvert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    try {
+      await agencyApi.convertFromUser(selectedUser.id, convertData);
+      setShowConvertModal(false);
+      setModal({ isOpen: true, title: 'Thành công', message: 'Đã chuyển khách hàng thành đại lý thành công!', type: 'success' });
+      fetchCustomers();
+    } catch (err: any) {
+      setModal({ isOpen: true, title: 'Lỗi chuyển đổi', message: err.message || 'Lỗi khi chuyển đổi đại lý', type: 'error' });
     }
   };
 
@@ -117,6 +150,13 @@ export default function CustomersPage() {
               <CheckCircle size={14} style={{ marginRight: 4 }} /> Duyệt
             </button>
           )}
+          <button 
+            onClick={() => openConvertModal(c)}
+            className="btn-primary" 
+            style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+          >
+            <ShieldCheck size={14} style={{ marginRight: 4 }} /> Đại lý
+          </button>
           <Link href={`/customers/${c.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
             <Eye size={16} />
           </Link>
@@ -156,6 +196,49 @@ export default function CustomersPage() {
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy khách hàng nào phù hợp' : 'Chưa có khách hàng nào'}
         />
+
+        {/* Modal Chuyển đổi thành Đại lý */}
+        {showConvertModal && selectedUser && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <GlassCard className="fade-in" style={{ width: '100%', maxWidth: 500, padding: 32 }}>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <ShieldCheck size={32} style={{ color: '#10b981' }} />
+                </div>
+                <h2 style={{ margin: 0 }}>Chuyển thành Đại lý</h2>
+                <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>
+                  Tài khoản <strong>{selectedUser.username}</strong> sẽ được nâng cấp thành Đại lý
+                </p>
+              </div>
+
+              <form onSubmit={handleConvert}>
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Tên Đại lý</label>
+                  <input type="text" className="input-field" required value={convertData.name} onChange={e => setConvertData({...convertData, name: e.target.value})} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                  <div>
+                    <label className="form-label">Số điện thoại</label>
+                    <input type="text" className="input-field" required value={convertData.phone} onChange={e => setConvertData({...convertData, phone: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="form-label">% Chiết khấu</label>
+                    <input type="number" className="input-field" required value={convertData.defaultCommissionRate} onChange={e => setConvertData({...convertData, defaultCommissionRate: parseFloat(e.target.value)})} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: 24 }}>
+                  <label className="form-label">Địa chỉ</label>
+                  <input type="text" className="input-field" required value={convertData.address} onChange={e => setConvertData({...convertData, address: e.target.value})} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn-outline" onClick={() => setShowConvertModal(false)}>Hủy</button>
+                  <button type="submit" className="btn-primary" style={{ background: '#10b981' }}>Xác nhận chuyển</button>
+                </div>
+              </form>
+            </GlassCard>
+          </div>
+        )}
       </main>
 
       <NotificationModal 
@@ -165,6 +248,16 @@ export default function CustomersPage() {
         message={modal.message}
         type={modal.type}
       />
+
+      <style jsx>{`
+        .form-label {
+          display: block;
+          margin-bottom: 8px;
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+      `}</style>
     </>
   );
 }

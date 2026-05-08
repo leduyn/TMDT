@@ -9,6 +9,7 @@ import com.anhtin.tmdt.backend.repository.AgencyRepository;
 import com.anhtin.tmdt.backend.repository.UserRepository;
 import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,9 @@ public class AgencyService {
 
     @Autowired
     private AgencyCustomerAssignmentRepository assignmentRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public List<AgencyDTO> getAllAgencies() {
         return agencyRepository.findAll().stream()
@@ -54,6 +58,91 @@ public class AgencyService {
         agency.setAddress(request.getAddress());
         agency.setLatitude(request.getLatitude() != null ? request.getLatitude() : 0.0);
         agency.setLongitude(request.getLongitude() != null ? request.getLongitude() : 0.0);
+        agency.setDefaultCommissionRate(request.getDefaultCommissionRate());
+        agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.APPROVED);
+        agency.setActive(true);
+        
+        return new AgencyDTO(agencyRepository.save(agency));
+    }
+
+    @SuppressWarnings("null")
+    @Transactional
+    public AgencyDTO createAgencyWithAccount(com.anhtin.tmdt.backend.dto.request.AgencyWithAccountRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Error: Username is already taken!");
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPhone(request.getPhone());
+        user.setOrganizationName(request.getOrganizationName());
+        user.setTaxCode(request.getTaxCode());
+        user.setBillingAddress(request.getBillingAddress());
+        user.setRole(com.anhtin.tmdt.backend.entity.Role.AGENCY);
+        user.setActive(true);
+        User savedUser = userRepository.save(user);
+
+        Agency agency = new Agency();
+        agency.setUser(savedUser);
+        agency.setName(request.getName());
+        agency.setPhone(request.getPhone());
+        agency.setAddress(request.getAddress());
+        agency.setLatitude(request.getLatitude() != null ? request.getLatitude() : 0.0);
+        agency.setLongitude(request.getLongitude() != null ? request.getLongitude() : 0.0);
+        agency.setDefaultCommissionRate(request.getDefaultCommissionRate());
+        agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.APPROVED);
+        agency.setActive(true);
+
+        return new AgencyDTO(agencyRepository.save(agency));
+    }
+
+    @SuppressWarnings("null")
+    @Transactional
+    public AgencyDTO approveAgency(Long id, AgencyRequest request) {
+        Agency agency = agencyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agency not found"));
+        
+        if (request.getName() != null) agency.setName(request.getName());
+        if (request.getPhone() != null) agency.setPhone(request.getPhone());
+        if (request.getAddress() != null) agency.setAddress(request.getAddress());
+        if (request.getLatitude() != null) agency.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) agency.setLongitude(request.getLongitude());
+        if (request.getDefaultCommissionRate() != null) agency.setDefaultCommissionRate(request.getDefaultCommissionRate());
+        
+        agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.APPROVED);
+        agency.setActive(true);
+        
+        // Kích hoạt luôn tài khoản user
+        User user = agency.getUser();
+        if (user != null) {
+            user.setActive(true);
+            userRepository.save(user);
+        }
+        
+        return new AgencyDTO(agencyRepository.save(agency));
+    }
+
+    @SuppressWarnings("null")
+    @Transactional
+    public AgencyDTO convertUserToAgency(Long userId, AgencyRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        user.setRole(com.anhtin.tmdt.backend.entity.Role.AGENCY);
+        user.setActive(true);
+        userRepository.save(user);
+        
+        Agency agency = agencyRepository.findByUserId(userId).orElse(new Agency());
+        agency.setUser(user);
+        agency.setName(request.getName() != null ? request.getName() : user.getUsername());
+        agency.setPhone(request.getPhone() != null ? request.getPhone() : user.getPhone());
+        agency.setAddress(request.getAddress());
+        agency.setLatitude(request.getLatitude() != null ? request.getLatitude() : 0.0);
+        agency.setLongitude(request.getLongitude() != null ? request.getLongitude() : 0.0);
+        agency.setDefaultCommissionRate(request.getDefaultCommissionRate() != null ? request.getDefaultCommissionRate() : 10.0);
+        agency.setStatus(com.anhtin.tmdt.backend.entity.AgencyStatus.APPROVED);
         agency.setActive(true);
         
         return new AgencyDTO(agencyRepository.save(agency));
@@ -107,6 +196,7 @@ public class AgencyService {
         }).collect(Collectors.toList());
     }
 
+    @SuppressWarnings("null")
     @Transactional
     public void approveCustomer(Long agencyId, Long customerId) {
         com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment assignment = assignmentRepository.findByAgencyIdAndCustomerId(agencyId, customerId)
