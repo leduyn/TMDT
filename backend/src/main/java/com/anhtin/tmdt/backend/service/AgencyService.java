@@ -158,7 +158,11 @@ public class AgencyService {
         boolean isCompany = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_COMPANY"));
         
         if (!isCompany) {
-            com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+            Object principal = auth.getPrincipal();
+            if (!(principal instanceof com.anhtin.tmdt.backend.security.services.UserDetailsImpl)) {
+                throw new RuntimeException("Bạn không có quyền thực hiện hành động này");
+            }
+            com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) principal;
             if (!agency.getUser().getId().equals(userDetails.getId())) {
                 throw new RuntimeException("Bạn không có quyền thực hiện hành động này");
             }
@@ -170,7 +174,17 @@ public class AgencyService {
             if (request.getAddress() != null) agency.setAddress(request.getAddress());
             if (request.getLatitude() != null) agency.setLatitude(request.getLatitude());
             if (request.getLongitude() != null) agency.setLongitude(request.getLongitude());
-            if (request.getActive() != null) agency.setActive(request.getActive());
+            if (request.getDefaultCommissionRate() != null) agency.setDefaultCommissionRate(request.getDefaultCommissionRate());
+            
+            if (request.getActive() != null) {
+                agency.setActive(request.getActive());
+                // Đồng bộ trạng thái active của user
+                if (agency.getUser() != null) {
+                    User user = agency.getUser();
+                    user.setActive(request.getActive());
+                    userRepository.save(user);
+                }
+            }
         }
         
         return new AgencyDTO(agencyRepository.save(agency));

@@ -105,6 +105,8 @@ export interface AgencyDTO {
   taxCode?: string;
   billingAddress?: string;
   defaultCommissionRate?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 // ─── PriceList ─────────────────────────────────────────────────────────────
@@ -341,6 +343,10 @@ export const agencyApi = {
   }),
   convertFromUser: (userId: number, data: any) => fetchJSON<AgencyDTO>(`/api/agencies/convert-from-user/${userId}`, {
     method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  update: (id: number, data: any) => fetchJSON<AgencyDTO>(`/api/agencies/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(data)
   }),
 };

@@ -164,6 +164,10 @@ export default function AgencyDetailPage() {
                   label="Ngày tham gia" 
                   value="08/05/2026" 
                 />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <InfoItem icon={<MapIcon size={16} />} label="Vĩ độ" value={agency.latitude?.toString() || '0.0'} />
+                  <InfoItem icon={<MapIcon size={16} />} label="Kinh độ" value={agency.longitude?.toString() || '0.0'} />
+                </div>
               </div>
             </GlassCard>
           </div>
