@@ -1,12 +1,11 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "attribute_values")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AttributeValue {
@@ -19,7 +18,13 @@ public class AttributeValue {
     @JoinColumn(name = "attribute_id", nullable = false)
     private Attribute attribute;
 
-    /** Giá trị cụ thể, ví dụ: "8GB", "16GB", "Intel Core i5" */
     @Column(nullable = false)
     private String value;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Attribute getAttribute() { return attribute; }
+    public void setAttribute(Attribute attribute) { this.attribute = attribute; }
+    public String getValue() { return value; }
+    public void setValue(String value) { this.value = value; }
 }

@@ -18,6 +18,7 @@ import {
   ClipboardList,
   CreditCard,
   User as UserIcon,
+  FileText,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -49,6 +50,7 @@ export default function Sidebar() {
     { label: 'Danh mục', href: '/categories', icon: Layers, roles: ['ROLE_USER'] },
     { label: 'Bảng giá', href: '/price-lists', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Hẹn giờ giá', href: '/price-vouchers', icon: Clock, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Đơn hàng', href: '/orders', icon: FileText, roles: ['ROLE_USER'] },
     { label: 'Đại lý', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Khách hàng', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Khách của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },

@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
@@ -14,8 +12,6 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "price_update_vouchers")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PriceUpdateVoucher {
@@ -30,15 +26,9 @@ public class PriceUpdateVoucher {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    /**
-     * Thời điểm hẹn giờ thực hiện cập nhật.
-     */
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;
 
-    /**
-     * Trạng thái phiếu: PENDING → APPLIED hoặc CANCELLED.
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VoucherStatus status = VoucherStatus.PENDING;
@@ -46,9 +36,21 @@ public class PriceUpdateVoucher {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    /**
-     * Thời điểm phiếu thực sự được áp dụng (null khi chưa apply).
-     */
     @Column(name = "applied_at")
     private LocalDateTime appliedAt;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public LocalDateTime getScheduledAt() { return scheduledAt; }
+    public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
+    public VoucherStatus getStatus() { return status; }
+    public void setStatus(VoucherStatus status) { this.status = status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getAppliedAt() { return appliedAt; }
+    public void setAppliedAt(LocalDateTime appliedAt) { this.appliedAt = appliedAt; }
 }

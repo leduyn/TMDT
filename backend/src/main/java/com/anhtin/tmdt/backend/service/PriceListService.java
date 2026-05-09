@@ -7,8 +7,6 @@ import com.anhtin.tmdt.backend.dto.response.PriceListDTO;
 import com.anhtin.tmdt.backend.dto.response.PriceListItemDTO;
 import com.anhtin.tmdt.backend.entity.*;
 import com.anhtin.tmdt.backend.repository.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -305,12 +303,17 @@ public class PriceListService {
                 .collect(Collectors.toList());
     }
 
-    @Getter
-    @Setter
     public static class ResolvedPriceInfo {
         private Double price;
         private String priceListName;
         private Long priceListId;
+
+        public Double getPrice() { return price; }
+        public void setPrice(Double price) { this.price = price; }
+        public String getPriceListName() { return priceListName; }
+        public void setPriceListName(String priceListName) { this.priceListName = priceListName; }
+        public Long getPriceListId() { return priceListId; }
+        public void setPriceListId(Long priceListId) { this.priceListId = priceListId; }
     }
 
     public ResolvedPriceInfo getResolvedPriceInfo(Long productId, Long agencyId, Long customerId) {

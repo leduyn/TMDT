@@ -8,7 +8,7 @@ import com.anhtin.tmdt.backend.credit.repository.CreditLedgerRepository;
 import com.anhtin.tmdt.backend.credit.repository.OverdueDebtRepository;
 import com.anhtin.tmdt.backend.entity.Order;
 import com.anhtin.tmdt.backend.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,14 +17,18 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class CreditService {
 
-    private final AgentCreditRepository agentCreditRepository;
-    private final OverdueDebtRepository overdueDebtRepository;
-    private final CreditLedgerRepository creditLedgerRepository;
-    private final OrderRepository orderRepository;
-    private final com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
+    @Autowired
+    private AgentCreditRepository agentCreditRepository;
+    @Autowired
+    private OverdueDebtRepository overdueDebtRepository;
+    @Autowired
+    private CreditLedgerRepository creditLedgerRepository;
+    @Autowired
+    private OrderRepository orderRepository;
+    @Autowired
+    private com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
 
     @Value("${app.credit.overdue-interest-rate:0.0004}")
     private double dailyInterestRate;

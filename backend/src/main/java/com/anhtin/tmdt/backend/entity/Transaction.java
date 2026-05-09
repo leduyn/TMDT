@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
@@ -13,8 +11,6 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "transactions")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Transaction {
@@ -30,19 +26,15 @@ public class Transaction {
     @JoinColumn(name = "agency_id")
     private Agency agency;
 
-    // Tổng tiền khách trả
     @Column(name = "total_amount", nullable = false)
     private Double totalAmount;
 
-    // Phí sàn (Công ty thu) - cho đơn Marketplace
     @Column(name = "platform_fee")
     private Double platformFee = 0.0;
 
-    // Hoa hồng Đại lý được hưởng - cho đơn Dropship
     @Column(name = "agency_commission")
     private Double agencyCommission = 0.0;
 
-    // Thu nhập ròng Đại lý (sau trừ phí sàn hoặc hoa hồng nhận được)
     @Column(name = "agency_net_income")
     private Double agencyNetIncome = 0.0;
 
@@ -56,4 +48,25 @@ public class Transaction {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Order getOrder() { return order; }
+    public void setOrder(Order order) { this.order = order; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+    public Double getPlatformFee() { return platformFee; }
+    public void setPlatformFee(Double platformFee) { this.platformFee = platformFee; }
+    public Double getAgencyCommission() { return agencyCommission; }
+    public void setAgencyCommission(Double agencyCommission) { this.agencyCommission = agencyCommission; }
+    public Double getAgencyNetIncome() { return agencyNetIncome; }
+    public void setAgencyNetIncome(Double agencyNetIncome) { this.agencyNetIncome = agencyNetIncome; }
+    public OrderType getOrderType() { return orderType; }
+    public void setOrderType(OrderType orderType) { this.orderType = orderType; }
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

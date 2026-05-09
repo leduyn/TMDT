@@ -3,11 +3,7 @@ package com.anhtin.tmdt.backend.dto.request;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
 public class ReviewRequest {
     @NotNull
     @Min(1)
@@ -15,4 +11,9 @@ public class ReviewRequest {
     private Integer rating;
 
     private String comment;
+
+    public Integer getRating() { return rating; }
+    public void setRating(Integer rating) { this.rating = rating; }
+    public String getComment() { return comment; }
+    public void setComment(String comment) { this.comment = comment; }
 }

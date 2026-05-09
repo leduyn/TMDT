@@ -13,14 +13,17 @@ import {
   User as UserIcon, 
   Key, 
   UserCog,
-  ChevronDown
+  ChevronDown,
+  ShoppingCart
 } from 'lucide-react';
 import Badge from './ui/Badge';
+import { useCart } from '@/context/CartContext';
 
 export default function TopBar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { totalItems } = useCart();
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -61,7 +64,7 @@ export default function TopBar() {
 
   const crumbs = (() => {
     const paths = pathname.split('/').filter(p => p);
-    const c = [{ label: <Home size={18} />, href: '/' }];
+    const c: { label: React.ReactNode; href: string }[] = [{ label: <Home size={18} />, href: '/' }];
     const pathMap: Record<string, string> = {
       'dashboard': 'Tổng quan', 'products': 'Sản phẩm', 'categories': 'Danh mục',
       'customers': 'Khách hàng', 'agencies': 'Đại lý', 'price-lists': 'Bảng giá',
@@ -102,6 +105,20 @@ export default function TopBar() {
         <button style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', padding: 8, borderRadius: 10, display: 'flex' }}>
           <Bell size={20} />
         </button>
+
+        <Link href="/checkout" style={{ position: 'relative', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', padding: 8, borderRadius: 10, display: 'flex' }}>
+          <ShoppingCart size={20} />
+          {totalItems > 0 && (
+            <span style={{
+              position: 'absolute', top: -6, right: -6,
+              background: 'var(--accent)', color: 'white',
+              fontSize: '0.65rem', padding: '2px 6px', borderRadius: 10, fontWeight: 800,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.3)', border: '2px solid #0f172a'
+            }}>
+              {totalItems}
+            </span>
+          )}
+        </Link>
 
         {user && (
           <div style={{ position: 'relative' }} ref={dropdownRef}>

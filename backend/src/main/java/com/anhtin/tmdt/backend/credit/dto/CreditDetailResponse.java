@@ -3,12 +3,9 @@ package com.anhtin.tmdt.backend.credit.dto;
 import com.anhtin.tmdt.backend.credit.entity.AgentCredit;
 import com.anhtin.tmdt.backend.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.credit.entity.OverdueDebt;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
 public class CreditDetailResponse {
 
     private Long agencyId;
@@ -22,7 +19,25 @@ public class CreditDetailResponse {
     private List<OverdueDebtInfo> overdueDebts;
     private List<LedgerEntry>     ledgerHistory;
 
-    @Data
+    public Long getAgencyId() { return agencyId; }
+    public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
+    public double getCreditLimit() { return creditLimit; }
+    public void setCreditLimit(double creditLimit) { this.creditLimit = creditLimit; }
+    public double getTotalDebt() { return totalDebt; }
+    public void setTotalDebt(double totalDebt) { this.totalDebt = totalDebt; }
+    public double getVtcAvailable() { return vtcAvailable; }
+    public void setVtcAvailable(double vtcAvailable) { this.vtcAvailable = vtcAvailable; }
+    public double getVtcHold() { return vtcHold; }
+    public void setVtcHold(double vtcHold) { this.vtcHold = vtcHold; }
+    public double getHmkd() { return hmkd; }
+    public void setHmkd(double hmkd) { this.hmkd = hmkd; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public List<OverdueDebtInfo> getOverdueDebts() { return overdueDebts; }
+    public void setOverdueDebts(List<OverdueDebtInfo> overdueDebts) { this.overdueDebts = overdueDebts; }
+    public List<LedgerEntry> getLedgerHistory() { return ledgerHistory; }
+    public void setLedgerHistory(List<LedgerEntry> ledgerHistory) { this.ledgerHistory = ledgerHistory; }
+
     public static class OverdueDebtInfo {
         private Long   id;
         private Long   orderId;
@@ -31,6 +46,21 @@ public class CreditDetailResponse {
         private String status;
         private LocalDateTime startDate;
         private LocalDateTime lastCalculatedAt;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public Long getOrderId() { return orderId; }
+        public void setOrderId(Long orderId) { this.orderId = orderId; }
+        public double getPrincipalAmount() { return principalAmount; }
+        public void setPrincipalAmount(double principalAmount) { this.principalAmount = principalAmount; }
+        public double getInterestAccrued() { return interestAccrued; }
+        public void setInterestAccrued(double interestAccrued) { this.interestAccrued = interestAccrued; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public LocalDateTime getStartDate() { return startDate; }
+        public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
+        public LocalDateTime getLastCalculatedAt() { return lastCalculatedAt; }
+        public void setLastCalculatedAt(LocalDateTime lastCalculatedAt) { this.lastCalculatedAt = lastCalculatedAt; }
 
         public static OverdueDebtInfo from(OverdueDebt d) {
             OverdueDebtInfo info = new OverdueDebtInfo();
@@ -45,13 +75,23 @@ public class CreditDetailResponse {
         }
     }
 
-    @Data
     public static class LedgerEntry {
         private Long   id;
         private String type;
         private double amount;
         private String referenceId;
         private LocalDateTime createdAt;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getType() { return type; }
+        public void setType(String type) { this.type = type; }
+        public double getAmount() { return amount; }
+        public void setAmount(double amount) { this.amount = amount; }
+        public String getReferenceId() { return referenceId; }
+        public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
+        public LocalDateTime getCreatedAt() { return createdAt; }
+        public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
         public static LedgerEntry from(CreditLedger l) {
             LedgerEntry e = new LedgerEntry();

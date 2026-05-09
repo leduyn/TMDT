@@ -32,7 +32,7 @@ export default function DataTable<T extends { id?: string | number }>({
   }
 
   return (
-    <GlassCard style={{ padding: 0, overflow: 'hidden' }} className="fade-in">
+    <GlassCard style={{ overflow: 'hidden' }} className="fade-in" noPadding>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: 'rgba(255,255,255,0.03)' }}>

@@ -12,4 +12,6 @@ public interface AgencyCustomerAssignmentRepository extends JpaRepository<Agency
     List<AgencyCustomerAssignment> findByAgencyId(Long agencyId);
     List<AgencyCustomerAssignment> findByCustomerId(Long customerId);
     Optional<AgencyCustomerAssignment> findByAgencyIdAndCustomerId(Long agencyId, Long customerId);
+    boolean existsByAgencyIdAndCustomerId(Long agencyId, Long customerId);
+    List<AgencyCustomerAssignment> findByAgencyIdAndApprovedFalse(Long agencyId);
 }

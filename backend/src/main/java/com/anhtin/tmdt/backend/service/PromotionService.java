@@ -63,7 +63,7 @@ public class PromotionService {
                 .collect(Collectors.toList());
     }
 
-    public List<PromotionDTO> getAgencyPromotions(@NonNull Long agencyId) {
+    public List<PromotionDTO> getAgencyPromotions(Long agencyId) {
         return promotionRepository.findByAgencyIdAndStatus(agencyId, PromotionStatus.ACTIVE).stream()
                 .map(PromotionDTO::new)
                 .collect(Collectors.toList());
@@ -127,7 +127,7 @@ public class PromotionService {
     }
 
     @Transactional
-    public void disablePromotion(@NonNull Long id) {
+    public void disablePromotion(Long id) {
         Promotion promo = promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại"));
         promo.setStatus(PromotionStatus.DISABLED);

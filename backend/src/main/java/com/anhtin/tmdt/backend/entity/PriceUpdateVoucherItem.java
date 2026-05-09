@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 /**
  * Sản phẩm cần cập nhật giá trong phiếu cập nhật giá.
@@ -15,8 +13,6 @@ import lombok.AllArgsConstructor;
 @Table(name = "price_update_voucher_items", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"voucher_id", "product_id"})
 })
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PriceUpdateVoucherItem {
@@ -33,15 +29,20 @@ public class PriceUpdateVoucherItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    /**
-     * Giá mới muốn cập nhật. -1.0 = "Liên hệ".
-     */
     @Column(name = "new_price", nullable = false)
     private Double newPrice = -1.0;
 
-    /**
-     * Trạng thái hiển thị mới của sản phẩm trong các bảng giá được chọn.
-     */
     @Column(name = "is_visible")
     private Boolean isVisible = true;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public PriceUpdateVoucher getVoucher() { return voucher; }
+    public void setVoucher(PriceUpdateVoucher voucher) { this.voucher = voucher; }
+    public Product getProduct() { return product; }
+    public void setProduct(Product product) { this.product = product; }
+    public Double getNewPrice() { return newPrice; }
+    public void setNewPrice(Double newPrice) { this.newPrice = newPrice; }
+    public Boolean getIsVisible() { return isVisible; }
+    public void setIsVisible(Boolean isVisible) { this.isVisible = isVisible; }
 }
