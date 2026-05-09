@@ -1,13 +1,14 @@
 package com.anhtin.tmdt.backend.dto.request;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
 @NoArgsConstructor
 public class AgencyPriceListRequest {
     private Long agencyId;
     private Long priceListId;
+
+    public Long getAgencyId() { return agencyId; }
+    public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
+    public Long getPriceListId() { return priceListId; }
+    public void setPriceListId(Long priceListId) { this.priceListId = priceListId; }
 }

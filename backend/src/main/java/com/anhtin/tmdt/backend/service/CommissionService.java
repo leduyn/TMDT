@@ -27,7 +27,7 @@ public class CommissionService {
      * Lấy tỷ lệ phí sàn (Marketplace) cho một Đại lý.
      * Ưu tiên: cấu hình theo category > cấu hình chung > default của Agency.
      */
-    public double getPlatformFeeRate(@NonNull Long agencyId, Long categoryId) {
+    public double getPlatformFeeRate(Long agencyId, Long categoryId) {
         // 1. Tìm cấu hình theo Agency + Category
         if (categoryId != null) {
             var config = commissionConfigRepository
@@ -53,7 +53,7 @@ public class CommissionService {
     /**
      * Lấy tỷ lệ chiết khấu Dropship cho một Đại lý.
      */
-    public double getDropshipCommissionRate(@NonNull Long agencyId, Long categoryId) {
+    public double getDropshipCommissionRate(Long agencyId, Long categoryId) {
         if (categoryId != null) {
             var config = commissionConfigRepository
                     .findFirstByAgencyIdAndCategoryIdAndActiveTrueOrderByCreatedAtDesc(agencyId, categoryId);

@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 /**
  * Điều kiện áp dụng bảng giá tự động.
@@ -18,8 +16,6 @@ import lombok.AllArgsConstructor;
  */
 @Entity
 @Table(name = "price_list_conditions")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PriceListCondition {
@@ -36,38 +32,37 @@ public class PriceListCondition {
     @Column(name = "condition_type", nullable = false)
     private PriceListConditionType conditionType;
 
-    /**
-     * Hạng đại lý: BRONZE, SILVER, GOLD, PLATINUM, DIAMOND.
-     * Chỉ dùng khi conditionType = AGENCY_RANK.
-     */
     @Column(name = "rank_level")
     private String rankLevel;
 
-    /**
-     * FK → CustomerGroup.
-     * Chỉ dùng khi conditionType = CUSTOMER_GROUP.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_group_id")
     private CustomerGroup customerGroup;
 
-    /**
-     * FK → User.
-     * Chỉ dùng khi conditionType = DIRECT_CUSTOMER.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
-    /**
-     * Độ ưu tiên: số lớn hơn = ưu tiên cao hơn.
-     */
     @Column(nullable = false)
     private Integer priority = 0;
 
-    /**
-     * Thời điểm bắt đầu có hiệu lực.
-     */
     @Column(name = "effective_from")
     private java.time.LocalDateTime effectiveFrom = java.time.LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public PriceList getPriceList() { return priceList; }
+    public void setPriceList(PriceList priceList) { this.priceList = priceList; }
+    public PriceListConditionType getConditionType() { return conditionType; }
+    public void setConditionType(PriceListConditionType conditionType) { this.conditionType = conditionType; }
+    public String getRankLevel() { return rankLevel; }
+    public void setRankLevel(String rankLevel) { this.rankLevel = rankLevel; }
+    public CustomerGroup getCustomerGroup() { return customerGroup; }
+    public void setCustomerGroup(CustomerGroup customerGroup) { this.customerGroup = customerGroup; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public Integer getPriority() { return priority; }
+    public void setPriority(Integer priority) { this.priority = priority; }
+    public java.time.LocalDateTime getEffectiveFrom() { return effectiveFrom; }
+    public void setEffectiveFrom(java.time.LocalDateTime effectiveFrom) { this.effectiveFrom = effectiveFrom; }
 }

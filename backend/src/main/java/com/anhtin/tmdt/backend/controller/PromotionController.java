@@ -1,14 +1,10 @@
 package com.anhtin.tmdt.backend.controller;
 
-import com.anhtin.tmdt.backend.dto.request.PromotionRequest;
-import com.anhtin.tmdt.backend.dto.response.MessageResponse;
-import com.anhtin.tmdt.backend.dto.response.PromotionDTO;
 import com.anhtin.tmdt.backend.service.PromotionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,12 +22,12 @@ public class PromotionController {
      */
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
     @PostMapping
-    public ResponseEntity<?> createPromotion(@Valid @RequestBody PromotionRequest request) {
+    public ResponseEntity<?> createPromotion(@Valid @RequestBody com.anhtin.tmdt.backend.dto.request.PromotionRequest request) {
         try {
-            PromotionDTO dto = promotionService.createPromotion(request);
+            com.anhtin.tmdt.backend.dto.response.PromotionDTO dto = promotionService.createPromotion(request);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+            return ResponseEntity.badRequest().body(new com.anhtin.tmdt.backend.dto.response.MessageResponse(e.getMessage()));
         }
     }
 
@@ -39,7 +35,7 @@ public class PromotionController {
      * Lấy tất cả mã giảm giá đang hoạt động.
      */
     @GetMapping
-    public ResponseEntity<List<PromotionDTO>> getActivePromotions() {
+    public ResponseEntity<List<com.anhtin.tmdt.backend.dto.response.PromotionDTO>> getActivePromotions() {
         return ResponseEntity.ok(promotionService.getActivePromotions());
     }
 
@@ -47,7 +43,7 @@ public class PromotionController {
      * Lấy voucher toàn sàn (do Công ty phát).
      */
     @GetMapping("/platform")
-    public ResponseEntity<List<PromotionDTO>> getPlatformPromotions() {
+    public ResponseEntity<List<com.anhtin.tmdt.backend.dto.response.PromotionDTO>> getPlatformPromotions() {
         return ResponseEntity.ok(promotionService.getPlatformPromotions());
     }
 
@@ -55,7 +51,7 @@ public class PromotionController {
      * Lấy voucher riêng của Đại lý.
      */
     @GetMapping("/agency/{agencyId}")
-    public ResponseEntity<List<PromotionDTO>> getAgencyPromotions(@PathVariable @NonNull Long agencyId) {
+    public ResponseEntity<List<com.anhtin.tmdt.backend.dto.response.PromotionDTO>> getAgencyPromotions(@PathVariable Long agencyId) {
         return ResponseEntity.ok(promotionService.getAgencyPromotions(agencyId));
     }
 
@@ -68,9 +64,9 @@ public class PromotionController {
             @RequestParam Double orderTotal) {
         try {
             double discount = promotionService.validateAndCalculateDiscount(code, orderTotal);
-            return ResponseEntity.ok(new MessageResponse("Giảm: " + discount + "đ"));
+            return ResponseEntity.ok(new com.anhtin.tmdt.backend.dto.response.MessageResponse("Giảm: " + discount + "đ"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+            return ResponseEntity.badRequest().body(new com.anhtin.tmdt.backend.dto.response.MessageResponse(e.getMessage()));
         }
     }
 
@@ -79,12 +75,12 @@ public class PromotionController {
      */
     @PreAuthorize("hasRole('COMPANY')")
     @PutMapping("/{id}/disable")
-    public ResponseEntity<?> disablePromotion(@PathVariable @NonNull Long id) {
+    public ResponseEntity<?> disablePromotion(@PathVariable Long id) {
         try {
             promotionService.disablePromotion(id);
-            return ResponseEntity.ok(new MessageResponse("Đã vô hiệu hoá mã giảm giá"));
+            return ResponseEntity.ok(new com.anhtin.tmdt.backend.dto.response.MessageResponse("Đã vô hiệu hoá mã giảm giá"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+            return ResponseEntity.badRequest().body(new com.anhtin.tmdt.backend.dto.response.MessageResponse(e.getMessage()));
         }
     }
 }

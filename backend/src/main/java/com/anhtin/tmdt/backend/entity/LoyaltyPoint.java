@@ -1,18 +1,10 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loyalty_points")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class LoyaltyPoint {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,4 +22,17 @@ public class LoyaltyPoint {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public User getCustomer() { return customer; }
+    public void setCustomer(User customer) { this.customer = customer; }
+    public Integer getPointsBalance() { return pointsBalance; }
+    public void setPointsBalance(Integer pointsBalance) { this.pointsBalance = pointsBalance; }
+    public Integer getTotalEarned() { return totalEarned; }
+    public void setTotalEarned(Integer totalEarned) { this.totalEarned = totalEarned; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LoyaltyPoint() {}
 }

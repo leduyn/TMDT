@@ -2,17 +2,19 @@ package com.anhtin.tmdt.backend.service;
 
 import com.anhtin.tmdt.backend.dto.request.OrderRequest;
 import com.anhtin.tmdt.backend.dto.request.OrderItemRequest;
+import com.anhtin.tmdt.backend.dto.response.OrderDTO;
+import com.anhtin.tmdt.backend.dto.response.OrderItemDTO;
 import com.anhtin.tmdt.backend.entity.*;
 import com.anhtin.tmdt.backend.repository.*;
-import com.anhtin.tmdt.backend.service.AgencyService;
+import com.anhtin.tmdt.backend.credit.service.CreditService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -48,13 +50,28 @@ public class OrderService {
     private AgencyService agencyService;
 
     @Autowired
+    private CreditService creditService;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Transactional
-    public Order createOrder(@NonNull Long customerId, OrderRequest request) {
+    public Order createOrder(Long customerId, Long createdByUserId, OrderRequest request) {
+        if (createdByUserId == null) throw new RuntimeException("Creator ID is required");
+        User creator = userRepository.findById(createdByUserId)
+                .orElseThrow(() -> new RuntimeException("Creator user not found"));
         Long agencyId = request.getAgencyId();
+        
         if (agencyId == null) {
-            throw new RuntimeException("Agency ID is required");
+            // Try to find the agency assigned to this customer
+            agencyId = agencyCustomerAssignmentRepository.findByCustomerId(customerId).stream()
+                    .findFirst()
+                    .map(a -> a.getAgency().getId())
+                    .orElse(null);
+        }
+
+        if (agencyId == null) {
+            throw new RuntimeException("Agency ID is required. Please select an agency.");
         }
 
         Agency agency = agencyRepository.findById(agencyId)
@@ -85,6 +102,8 @@ public class OrderService {
         Order order = new Order();
         order.setCustomer(receiver);
         order.setAgency(agency);
+        order.setCreatedBy(creator);
+        order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
@@ -188,6 +207,8 @@ public class OrderService {
         Order order = new Order();
         order.setCustomer(receiver);
         order.setAgency(agency);
+        order.setCreatedBy(createdByUser);
+        order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
@@ -245,6 +266,8 @@ public class OrderService {
 
         order.setDiscountAmount(discountAmount);
         order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
+
+        checkAndConsumeCredit(agencyId, order.getTotalAmount());
 
         Order savedOrder = orderRepository.save(order);
 
@@ -271,6 +294,9 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Creator user not found"));
+
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
         Long priceListId = null;
@@ -296,6 +322,8 @@ public class OrderService {
         Order order = new Order();
         order.setCustomer(receiver);
         order.setAgency(agency);
+        order.setCreatedBy(creator);
+        order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
@@ -353,6 +381,8 @@ public class OrderService {
 
         order.setDiscountAmount(discountAmount);
         order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
+
+        checkAndConsumeCredit(agencyId, order.getTotalAmount());
 
         Order savedOrder = orderRepository.save(order);
 
@@ -389,5 +419,98 @@ public class OrderService {
         agencyCustomerAssignmentRepository.save(assignment);
 
         return savedUser;
+    }
+
+    public List<OrderDTO> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<OrderDTO> getOrdersByAgency(Long agencyId) {
+        return orderRepository.findByAgencyId(agencyId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<OrderDTO> getOrdersByCustomer(Long customerId) {
+        return orderRepository.findByCustomerId(customerId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public OrderDTO getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        return convertToDTO(order);
+    }
+
+    @Transactional
+    public OrderDTO updateOrderStatus(Long id, String status) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setStatus(status);
+        order.setUpdatedDate(LocalDateTime.now());
+        return convertToDTO(orderRepository.save(order));
+    }
+
+    private OrderDTO convertToDTO(Order order) {
+        OrderDTO dto = new OrderDTO();
+        dto.setId(order.getId());
+        dto.setCustomerId(order.getCustomer().getId());
+        dto.setCustomerName(order.getCustomer().getOrganizationName() != null ? 
+                order.getCustomer().getOrganizationName() : order.getCustomer().getUsername());
+        
+        if (order.getAgency() != null) {
+            dto.setAgencyId(order.getAgency().getId());
+            dto.setAgencyName(order.getAgency().getName());
+        }
+        
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setDiscountAmount(order.getDiscountAmount());
+        dto.setStatus(order.getStatus());
+        dto.setOrderType(order.getOrderType() != null ? order.getOrderType().name() : null);
+        dto.setShippingAddress(order.getShippingAddress());
+        dto.setPromotionCode(order.getPromotionCode());
+        dto.setPointsRedeemed(order.getPointsRedeemed());
+        dto.setOrderDate(order.getOrderDate());
+        dto.setPriceListId(order.getPriceListId());
+        dto.setReceiverType(order.getReceiverType());
+        
+        if (order.getCreatedBy() != null) {
+            dto.setCreatedByName(order.getCreatedBy().getOrganizationName() != null ? 
+                    order.getCreatedBy().getOrganizationName() : order.getCreatedBy().getUsername());
+        }
+        dto.setUpdatedDate(order.getUpdatedDate());
+        
+        dto.setItems(order.getItems().stream()
+                .map(this::convertToItemDTO)
+                .collect(Collectors.toList()));
+        
+        return dto;
+    }
+
+    private OrderItemDTO convertToItemDTO(OrderItem item) {
+        OrderItemDTO dto = new OrderItemDTO();
+        dto.setId(item.getId());
+        dto.setProductId(item.getProduct().getId());
+        dto.setProductName(item.getProduct().getName());
+        dto.setProductImageUrl(item.getProduct().getImageUrl());
+        dto.setQuantity(item.getQuantity());
+        dto.setPrice(item.getPrice());
+        return dto;
+    }
+
+    private void checkAndConsumeCredit(Long agencyId, double amount) {
+        try {
+            double hmkd = creditService.calculateHMKD(agencyId);
+            if (amount > hmkd) {
+                throw new RuntimeException("Hạn mức tín dụng không đủ. Khả dụng: " + String.format("%,.0f", hmkd) + "đ, Cần: " + String.format("%,.0f", amount) + "đ");
+            }
+        } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("Hạn mức")) {
+                throw e;
+            }
+        }
     }
 }

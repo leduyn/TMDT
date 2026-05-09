@@ -1,17 +1,13 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "agency_rankings", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"agency_id", "month", "year"})
 })
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgencyRanking {
@@ -33,8 +29,25 @@ public class AgencyRanking {
     private Double averageRating = 0.0;
 
     @Column(name = "rank_level")
-    private String rankLevel; // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+    private String rankLevel; 
 
     private Integer month;
     private Integer year;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public Double getTotalRevenue() { return totalRevenue; }
+    public void setTotalRevenue(Double totalRevenue) { this.totalRevenue = totalRevenue; }
+    public Integer getTotalOrders() { return totalOrders; }
+    public void setTotalOrders(Integer totalOrders) { this.totalOrders = totalOrders; }
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+    public String getRankLevel() { return rankLevel; }
+    public void setRankLevel(String rankLevel) { this.rankLevel = rankLevel; }
+    public Integer getMonth() { return month; }
+    public void setMonth(Integer month) { this.month = month; }
+    public Integer getYear() { return year; }
+    public void setYear(Integer year) { this.year = year; }
 }

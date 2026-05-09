@@ -12,8 +12,6 @@ import com.anhtin.tmdt.backend.credit.repository.OverdueDebtRepository;
 import com.anhtin.tmdt.backend.credit.service.CreditService;
 import com.anhtin.tmdt.backend.credit.service.InterestScheduler;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
@@ -12,8 +10,6 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "price_assignment_vouchers")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PriceAssignmentVoucher {
@@ -33,30 +29,17 @@ public class PriceAssignmentVoucher {
     @Column(name = "assignment_type", nullable = false)
     private PriceListConditionType assignmentType;
 
-    /**
-     * Dùng cho assignmentType = AGENCY_RANK
-     */
     @Column(name = "rank_level")
     private String rankLevel;
 
-    /**
-     * Dùng cho assignmentType = DIRECT_AGENCY (Tương ứng với gán trực tiếp cho 1 Agency)
-     * Lưu ý: Ta thêm DIRECT_AGENCY vào PriceListConditionType hoặc xử lý riêng.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_id")
     private Agency agency;
 
-    /**
-     * Dùng cho assignmentType = CUSTOMER_GROUP
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_group_id")
     private CustomerGroup customerGroup;
 
-    /**
-     * Dùng cho assignmentType = DIRECT_CUSTOMER
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private User customer;
@@ -73,4 +56,29 @@ public class PriceAssignmentVoucher {
 
     @Column(name = "applied_at")
     private LocalDateTime appliedAt;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public PriceList getPriceList() { return priceList; }
+    public void setPriceList(PriceList priceList) { this.priceList = priceList; }
+    public PriceListConditionType getAssignmentType() { return assignmentType; }
+    public void setAssignmentType(PriceListConditionType assignmentType) { this.assignmentType = assignmentType; }
+    public String getRankLevel() { return rankLevel; }
+    public void setRankLevel(String rankLevel) { this.rankLevel = rankLevel; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public CustomerGroup getCustomerGroup() { return customerGroup; }
+    public void setCustomerGroup(CustomerGroup customerGroup) { this.customerGroup = customerGroup; }
+    public User getCustomer() { return customer; }
+    public void setCustomer(User customer) { this.customer = customer; }
+    public LocalDateTime getScheduledAt() { return scheduledAt; }
+    public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
+    public VoucherStatus getStatus() { return status; }
+    public void setStatus(VoucherStatus status) { this.status = status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getAppliedAt() { return appliedAt; }
+    public void setAppliedAt(LocalDateTime appliedAt) { this.appliedAt = appliedAt; }
 }

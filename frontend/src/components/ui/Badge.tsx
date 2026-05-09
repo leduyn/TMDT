@@ -8,9 +8,10 @@ interface BadgeProps {
   label: string;
   type?: BadgeType;
   icon?: keyof typeof LucideIcons;
+  style?: React.CSSProperties;
 }
 
-export default function Badge({ label, type = 'info', icon }: BadgeProps) {
+export default function Badge({ label, type = 'info', icon, style }: BadgeProps) {
   const IconComponent = icon ? (LucideIcons[icon] as LucideIcon) : null;
 
   const getTypeClass = () => {
@@ -24,7 +25,7 @@ export default function Badge({ label, type = 'info', icon }: BadgeProps) {
   };
 
   return (
-    <span className={`badge ${getTypeClass()}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px' }}>
+    <span className={`badge ${getTypeClass()}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', ...style }}>
       {IconComponent && <IconComponent size={12} strokeWidth={3} />}
       {label}
     </span>
