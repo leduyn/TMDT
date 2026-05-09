@@ -2,16 +2,12 @@ package com.anhtin.tmdt.backend.credit.entity;
 
 import com.anhtin.tmdt.backend.entity.Agency;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "agent_credit")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentCredit {
@@ -46,4 +42,21 @@ public class AgentCredit {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public Double getCreditLimit() { return creditLimit; }
+    public void setCreditLimit(Double creditLimit) { this.creditLimit = creditLimit; }
+    public Double getTotalDebt() { return totalDebt; }
+    public void setTotalDebt(Double totalDebt) { this.totalDebt = totalDebt; }
+    public Double getVtcAvailable() { return vtcAvailable; }
+    public void setVtcAvailable(Double vtcAvailable) { this.vtcAvailable = vtcAvailable; }
+    public Double getVtcHold() { return vtcHold; }
+    public void setVtcHold(Double vtcHold) { this.vtcHold = vtcHold; }
+    public Integer getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

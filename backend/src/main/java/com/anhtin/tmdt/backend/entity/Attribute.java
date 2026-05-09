@@ -1,14 +1,13 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Entity
 @Table(name = "attributes")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Attribute {
@@ -17,18 +16,12 @@ public class Attribute {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Tên kỹ thuật, ví dụ: "ram", "cpu" */
     @Column(nullable = false, unique = true)
     private String name;
 
-    /** Tên hiển thị, ví dụ: "Dung lượng RAM", "Bộ vi xử lý" */
     @Column(name = "display_name", nullable = false)
     private String displayName;
 
-    /**
-     * Gắn attribute vào một danh mục cụ thể (tuỳ chọn).
-     * Nếu null → attribute áp dụng cho mọi sản phẩm.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
@@ -38,4 +31,17 @@ public class Attribute {
 
     @Column(name = "is_variant")
     private Boolean isVariant = false;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public Category getCategory() { return category; }
+    public void setCategory(Category category) { this.category = category; }
+    public List<AttributeValue> getValues() { return values; }
+    public void setValues(List<AttributeValue> values) { this.values = values; }
+    public Boolean getIsVariant() { return isVariant; }
+    public void setIsVariant(Boolean isVariant) { this.isVariant = isVariant; }
 }

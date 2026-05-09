@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
@@ -16,8 +14,6 @@ import java.time.LocalDateTime;
 @Table(name = "agency_store_price_lists", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"agency_id"})
 })
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgencyStorePriceList {
@@ -36,4 +32,13 @@ public class AgencyStorePriceList {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public PriceList getPriceList() { return priceList; }
+    public void setPriceList(PriceList priceList) { this.priceList = priceList; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

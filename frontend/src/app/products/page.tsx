@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import { productApi, ProductDTO } from '@/lib/api';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { resolveImageUrl } from '@/lib/utils';
 
 // UI Components
@@ -33,6 +34,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const { user } = useAuth();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     // Load preference from localStorage
@@ -162,6 +164,17 @@ export default function ProductsPage() {
           <Link href={`/products/${p.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
             <Eye size={16} />
           </Link>
+          <button 
+            onClick={() => {
+              addToCart(p, 1);
+              alert('Đã thêm vào giỏ hàng!');
+            }} 
+            className="btn-outline" 
+            style={{ padding: '8px', borderRadius: 8, color: 'var(--accent-light)' }}
+            title="Thêm vào giỏ hàng"
+          >
+            <ShoppingCart size={16} />
+          </button>
           {isAuthorized && (
             <>
               <Link href={`/products/${p.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
@@ -346,9 +359,21 @@ export default function ProductsPage() {
                             </button>
                           </>
                         ) : (
-                          <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px 16px', borderRadius: 8, textDecoration: 'none', fontSize: '0.85rem' }}>
-                            <Eye size={16} style={{ marginRight: 6 }} /> Chi tiết
-                          </Link>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <Link href={`/products/${product.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8, display: 'flex', alignItems: 'center' }}>
+                              <Eye size={16} />
+                            </Link>
+                            <button 
+                              onClick={() => {
+                                addToCart(product, 1);
+                                alert('Đã thêm vào giỏ hàng!');
+                              }} 
+                              className="btn-primary" 
+                              style={{ padding: '8px 12px', borderRadius: 8, fontSize: '0.85rem' }}
+                            >
+                              <ShoppingCart size={16} style={{ marginRight: 6 }} /> Thêm
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

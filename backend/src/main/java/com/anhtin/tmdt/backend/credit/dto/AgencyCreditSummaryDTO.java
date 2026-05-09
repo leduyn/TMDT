@@ -1,16 +1,13 @@
 package com.anhtin.tmdt.backend.credit.dto;
 
 import com.anhtin.tmdt.backend.credit.entity.AgentCredit;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
  * Summary of one agency's credit terms — used in the credit management list page.
  */
-@Data
 public class AgencyCreditSummaryDTO {
-
     private Long   agencyId;
     private String agencyName;
     private String agencyPhone;
@@ -20,12 +17,39 @@ public class AgencyCreditSummaryDTO {
     private double  totalDebt;
     private double  vtcAvailable;
     private double  vtcHold;
-    private double  hmkd;            // creditLimit - totalDebt + vtcAvailable
-    private int     debtTermDays;    // kỳ hạn nợ (ngày)
+    private double  hmkd;            
+    private int     debtTermDays;    
     private int     activeOverdueCount;
 
     private LocalDateTime updatedAt;
-    private boolean creditInitialized;  // false = chưa có tài khoản tín dụng
+    private boolean creditInitialized;  
+
+    public Long getAgencyId() { return agencyId; }
+    public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
+    public String getAgencyName() { return agencyName; }
+    public void setAgencyName(String agencyName) { this.agencyName = agencyName; }
+    public String getAgencyPhone() { return agencyPhone; }
+    public void setAgencyPhone(String agencyPhone) { this.agencyPhone = agencyPhone; }
+    public String getAgencyAddress() { return agencyAddress; }
+    public void setAgencyAddress(String agencyAddress) { this.agencyAddress = agencyAddress; }
+    public double getCreditLimit() { return creditLimit; }
+    public void setCreditLimit(double creditLimit) { this.creditLimit = creditLimit; }
+    public double getTotalDebt() { return totalDebt; }
+    public void setTotalDebt(double totalDebt) { this.totalDebt = totalDebt; }
+    public double getVtcAvailable() { return vtcAvailable; }
+    public void setVtcAvailable(double vtcAvailable) { this.vtcAvailable = vtcAvailable; }
+    public double getVtcHold() { return vtcHold; }
+    public void setVtcHold(double vtcHold) { this.vtcHold = vtcHold; }
+    public double getHmkd() { return hmkd; }
+    public void setHmkd(double hmkd) { this.hmkd = hmkd; }
+    public int getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(int debtTermDays) { this.debtTermDays = debtTermDays; }
+    public int getActiveOverdueCount() { return activeOverdueCount; }
+    public void setActiveOverdueCount(int activeOverdueCount) { this.activeOverdueCount = activeOverdueCount; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public boolean isCreditInitialized() { return creditInitialized; }
+    public void setCreditInitialized(boolean creditInitialized) { this.creditInitialized = creditInitialized; }
 
     // ── Static factories ────────────────────────────────────────────────────
 

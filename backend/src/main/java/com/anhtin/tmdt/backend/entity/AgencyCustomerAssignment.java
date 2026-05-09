@@ -1,16 +1,12 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "agency_customer_assignments")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgencyCustomerAssignment {
@@ -41,4 +37,23 @@ public class AgencyCustomerAssignment {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public User getCustomer() { return customer; }
+    public void setCustomer(User customer) { this.customer = customer; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public String getCustomName() { return customName; }
+    public void setCustomName(String customName) { this.customName = customName; }
+    public String getCustomShippingAddress() { return customShippingAddress; }
+    public void setCustomShippingAddress(String customShippingAddress) { this.customShippingAddress = customShippingAddress; }
+    public String getCustomPhone() { return customPhone; }
+    public void setCustomPhone(String customPhone) { this.customPhone = customPhone; }
+    public boolean isApproved() { return approved; }
+    public void setApproved(boolean approved) { this.approved = approved; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
