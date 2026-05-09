@@ -1,8 +1,6 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -10,8 +8,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "orders")
-@Getter
-@Setter
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,23 +23,20 @@ public class Order {
 
     private Double totalAmount;
     
-    private String status; // PENDING, PROCESSING, COMPLETED, CANCELLED
+    private String status; 
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_type")
-    private OrderType orderType; // DROPSHIP hoặc MARKETPLACE
+    private OrderType orderType; 
 
     private String shippingAddress;
 
-    // Mã giảm giá đã áp dụng (nếu có)
     @Column(name = "promotion_code")
     private String promotionCode;
 
-    // Số điểm loyalty đã đối trừ (nếu có)
     @Column(name = "points_redeemed")
     private Integer pointsRedeemed = 0;
 
-    // Số tiền được giảm từ promotion/points
     @Column(name = "discount_amount")
     private Double discountAmount = 0.0;
     
@@ -54,4 +47,52 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
+
+    @Column(name = "price_list_id")
+    private Long priceListId;
+
+    @Column(name = "receiver_type")
+    private String receiverType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_id")
+    private User createdBy;
+
+    @Column(name = "updated_date")
+    private LocalDateTime updatedDate = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public User getCustomer() { return customer; }
+    public void setCustomer(User customer) { this.customer = customer; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public OrderType getOrderType() { return orderType; }
+    public void setOrderType(OrderType orderType) { this.orderType = orderType; }
+    public String getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
+    public String getPromotionCode() { return promotionCode; }
+    public void setPromotionCode(String promotionCode) { this.promotionCode = promotionCode; }
+    public Integer getPointsRedeemed() { return pointsRedeemed; }
+    public void setPointsRedeemed(Integer pointsRedeemed) { this.pointsRedeemed = pointsRedeemed; }
+    public Double getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
+    public LocalDateTime getDueDate() { return dueDate; }
+    public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
+    public LocalDateTime getOrderDate() { return orderDate; }
+    public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
+    public List<OrderItem> getItems() { return items; }
+    public void setItems(List<OrderItem> items) { this.items = items; }
+    public Long getPriceListId() { return priceListId; }
+    public void setPriceListId(Long priceListId) { this.priceListId = priceListId; }
+    public String getReceiverType() { return receiverType; }
+    public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    public LocalDateTime getUpdatedDate() { return updatedDate; }
+    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }

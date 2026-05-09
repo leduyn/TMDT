@@ -29,12 +29,12 @@ public class LoyaltyService {
     // 1 điểm = bao nhiêu tiền khi đối trừ
     private static final double POINT_VALUE = 1000.0;
 
-    public LoyaltyPointDTO getBalance(@NonNull Long customerId) {
+    public LoyaltyPointDTO getBalance(Long customerId) {
         LoyaltyPoint lp = getOrCreateLoyaltyPoint(customerId);
         return new LoyaltyPointDTO(customerId, lp.getPointsBalance(), lp.getTotalEarned());
     }
 
-    public Page<PointTransaction> getHistory(@NonNull Long customerId, Pageable pageable) {
+    public Page<PointTransaction> getHistory(Long customerId, Pageable pageable) {
         return pointTransactionRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, pageable);
     }
 
@@ -42,7 +42,7 @@ public class LoyaltyService {
      * Tích điểm sau khi đơn hàng hoàn thành.
      */
     @Transactional
-    public void earnPoints(@NonNull Long customerId, Order order) {
+    public void earnPoints(Long customerId, Order order) {
         int pointsEarned = (int) (order.getTotalAmount() * POINTS_PER_UNIT);
         if (pointsEarned <= 0) return;
 
@@ -66,7 +66,7 @@ public class LoyaltyService {
      * @return Số tiền được giảm từ điểm
      */
     @Transactional
-    public double redeemPoints(@NonNull Long customerId, int pointsToRedeem, Order order) {
+    public double redeemPoints(Long customerId, int pointsToRedeem, Order order) {
         LoyaltyPoint lp = getOrCreateLoyaltyPoint(customerId);
 
         if (lp.getPointsBalance() < pointsToRedeem) {

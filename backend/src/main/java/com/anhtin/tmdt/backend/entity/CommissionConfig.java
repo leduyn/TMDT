@@ -1,10 +1,8 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
@@ -14,8 +12,6 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "commission_configs")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommissionConfig {
@@ -27,24 +23,19 @@ public class CommissionConfig {
     @JoinColumn(name = "agency_id", nullable = false)
     private Agency agency;
 
-    // Cấu hình theo category (nullable - nếu null thì áp dụng chung cho agency)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
 
-    // Phí sàn (%) mà Công ty thu từ Đại lý khi Đại lý tự bán (Marketplace)
     @Column(name = "platform_fee_rate", nullable = false)
     private Double platformFeeRate;
 
-    // Chiết khấu (%) mà Đại lý được hưởng khi bán hàng Dropship của Công ty
     @Column(name = "dropship_commission_rate", nullable = false)
     private Double dropshipCommissionRate;
 
-    // Ngày hiệu lực
     @Column(name = "effective_from")
     private LocalDateTime effectiveFrom;
 
-    // Ngày hết hiệu lực (nullable = vô thời hạn)
     @Column(name = "effective_to")
     private LocalDateTime effectiveTo;
 
@@ -52,4 +43,23 @@ public class CommissionConfig {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Agency getAgency() { return agency; }
+    public void setAgency(Agency agency) { this.agency = agency; }
+    public Category getCategory() { return category; }
+    public void setCategory(Category category) { this.category = category; }
+    public Double getPlatformFeeRate() { return platformFeeRate; }
+    public void setPlatformFeeRate(Double platformFeeRate) { this.platformFeeRate = platformFeeRate; }
+    public Double getDropshipCommissionRate() { return dropshipCommissionRate; }
+    public void setDropshipCommissionRate(Double dropshipCommissionRate) { this.dropshipCommissionRate = dropshipCommissionRate; }
+    public LocalDateTime getEffectiveFrom() { return effectiveFrom; }
+    public void setEffectiveFrom(LocalDateTime effectiveFrom) { this.effectiveFrom = effectiveFrom; }
+    public LocalDateTime getEffectiveTo() { return effectiveTo; }
+    public void setEffectiveTo(LocalDateTime effectiveTo) { this.effectiveTo = effectiveTo; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

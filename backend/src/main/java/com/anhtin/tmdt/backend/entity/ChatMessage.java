@@ -1,16 +1,12 @@
 package com.anhtin.tmdt.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chat_messages")
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessage {
@@ -38,4 +34,19 @@ public class ChatMessage {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public ChatRoom getRoom() { return room; }
+    public void setRoom(ChatRoom room) { this.room = room; }
+    public User getSender() { return sender; }
+    public void setSender(User sender) { this.sender = sender; }
+    public SenderType getSenderType() { return senderType; }
+    public void setSenderType(SenderType senderType) { this.senderType = senderType; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public boolean isRead() { return isRead; }
+    public void setRead(boolean isRead) { this.isRead = isRead; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

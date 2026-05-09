@@ -2,7 +2,6 @@ package com.anhtin.tmdt.backend.security.services;
 
 import com.anhtin.tmdt.backend.entity.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,7 +9,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 
-@Getter
 public class UserDetailsImpl implements UserDetails {
     private static final long serialVersionUID = 1L;
 
@@ -20,20 +18,24 @@ public class UserDetailsImpl implements UserDetails {
     @JsonIgnore
     private String password;
     private boolean enabled;
+    private Long agencyId;
+    private String shippingAddress;
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id, String username, String email, String password,
-                           boolean enabled,
+                           boolean enabled, Long agencyId, String shippingAddress,
                            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
         this.enabled = enabled;
+        this.agencyId = agencyId;
+        this.shippingAddress = shippingAddress;
         this.authorities = authorities;
     }
 
-    public static UserDetailsImpl build(User user) {
+    public static UserDetailsImpl build(User user, Long agencyId) {
         GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
         return new UserDetailsImpl(
@@ -42,6 +44,8 @@ public class UserDetailsImpl implements UserDetails {
                 user.getEmail(),
                 user.getPassword(),
                 user.isActive(),
+                agencyId,
+                user.getShippingAddress(),
                 Collections.singletonList(authority));
     }
 
@@ -61,6 +65,13 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() { return enabled; }
+
+    public Long getId() { return id; }
+    @Override public String getUsername() { return username; }
+    public String getEmail() { return email; }
+    @Override public String getPassword() { return password; }
+    public Long getAgencyId() { return agencyId; }
+    public String getShippingAddress() { return shippingAddress; }
 
     @Override
     public boolean equals(Object o) {
