@@ -234,14 +234,19 @@ function CreditManagementContent() {
             {/* Stats grid */}
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
               <StatCard label="Hạn mức khả dụng (HMKD)" value={fmt(detail.hmkd)}
-                sub="= Hạn mức − Nợ + Ký quỹ" color="#38bdf8" />
+                sub="= Hạn mức − (Nợ + Nợ bảo lãnh) + Ký quỹ" color="#38bdf8" />
               <StatCard label="Hạn mức tín dụng" value={fmt(detail.creditLimit)} color="#818cf8" />
-              <StatCard label="Tổng dư nợ" value={fmt(detail.totalDebt)}
+              <StatCard label="Dư nợ (Đại lý)" value={fmt(detail.totalDebt)}
                 sub={detail.overdueDebts.length > 0 ? `${detail.overdueDebts.length} khoản quá hạn` : 'Không có nợ quá hạn'}
                 color={detail.totalDebt > 0 ? '#ef4444' : '#22c55e'} />
-              <StatCard label="Ví ký quỹ (VTC)" value={fmt(detail.vtcAvailable)}
-                sub={detail.vtcHold > 0 ? `Đang giữ: ${fmt(detail.vtcHold)}` : undefined}
+              <StatCard label="Nợ bảo lãnh (Khách hàng)" value={fmt(detail.guaranteeDebt)}
+                color={detail.guaranteeDebt > 0 ? '#f43f5e' : '#10b981'} />
+              <StatCard label="Ví ký quỹ khả dụng" value={fmt(detail.vtcAvailable)}
+                sub="Giá trị còn lại của ví ký quỹ sau khi trừ khoản bị tạm giữ do nợ quá hạn"
                 color="#f59e0b" />
+              <StatCard label="Ví ký quỹ tạm giữ" value={fmt(detail.vtcHold)}
+                sub="Tạm giữ khi đơn hàng liên quan đến đại lý bị nợ quá hạn chưa được thanh toán"
+                color="#a78bfa" />
             </div>
 
             {/* Action buttons (company only) */}
@@ -450,9 +455,9 @@ function CreditManagementContent() {
             placeholder="Bỏ trống để trả nợ cũ nhất trước"
             style={inputStyle}
           />
-          {detail && detail.totalDebt > 0 && (
+          {detail && (detail.totalDebt > 0 || detail.guaranteeDebt > 0) && (
             <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 6 }}>
-              Tổng nợ: {fmt(detail.totalDebt)}
+              Dư nợ: {fmt(detail.totalDebt)} | Nợ bảo lãnh: {fmt(detail.guaranteeDebt)}
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>

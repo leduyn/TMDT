@@ -90,41 +90,57 @@ export default function CustomerDetailPage() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div style={{ 
-          display: 'flex', gap: 8, marginBottom: 32, 
-          padding: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 16,
-          width: 'fit-content'
-        }}>
-          <button 
-            onClick={() => setActiveTab('info')}
-            style={{ 
-              padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: activeTab === 'info' ? 'var(--accent)' : 'transparent',
-              color: activeTab === 'info' ? 'white' : 'var(--text-muted)',
-              fontWeight: 600, transition: 'all 0.3s ease'
-            }}
-          >
-            Thông tin chung
-          </button>
-          <button 
-            onClick={() => setActiveTab('orders')}
-            style={{ 
-              padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: activeTab === 'orders' ? 'var(--accent)' : 'transparent',
-              color: activeTab === 'orders' ? 'white' : 'var(--text-muted)',
-              fontWeight: 600, transition: 'all 0.3s ease',
-              display: 'flex', alignItems: 'center', gap: 8
-            }}
-          >
-            Đơn hàng
-            <span style={{ 
-              fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8,
-              background: activeTab === 'orders' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'
+        {/* Tab Navigation & Nợ Info */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+          <div style={{ 
+            display: 'flex', gap: 8, 
+            padding: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 16,
+            width: 'fit-content'
+          }}>
+            <button 
+              onClick={() => setActiveTab('info')}
+              style={{ 
+                padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                background: activeTab === 'info' ? 'var(--accent)' : 'transparent',
+                color: activeTab === 'info' ? 'white' : 'var(--text-muted)',
+                fontWeight: 600, transition: 'all 0.3s ease'
+              }}
+            >
+              Thông tin chung
+            </button>
+            <button 
+              onClick={() => setActiveTab('orders')}
+              style={{ 
+                padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                background: activeTab === 'orders' ? 'var(--accent)' : 'transparent',
+                color: activeTab === 'orders' ? 'white' : 'var(--text-muted)',
+                fontWeight: 600, transition: 'all 0.3s ease',
+                display: 'flex', alignItems: 'center', gap: 8
+              }}
+            >
+              Đơn hàng
+              <span style={{ 
+                fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8,
+                background: activeTab === 'orders' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'
+              }}>
+                {orders.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Thông tin Công nợ */}
+          {customer.totalDebt !== undefined && customer.totalDebt > 0 && (
+            <div style={{ 
+              display: 'flex', alignItems: 'center', gap: 12, 
+              background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', 
+              padding: '10px 24px', borderRadius: 16 
             }}>
-              {orders.length}
-            </span>
-          </button>
+              <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.95rem' }}>Công nợ chưa thanh toán:</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>
+                {customer.totalDebt.toLocaleString('vi-VN')}đ
+              </span>
+            </div>
+          )}
         </div>
 
         {activeTab === 'info' ? (

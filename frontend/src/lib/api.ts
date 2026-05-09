@@ -66,6 +66,7 @@ export interface UserDTO {
   customName?: string;
   customShippingAddress?: string;
   customPhone?: string;
+  totalDebt?: number;
 }
 
 // ─── Category ──────────────────────────────────────────────────────────────
