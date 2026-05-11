@@ -37,7 +37,12 @@ public class AgencyDebtService {
         AgentCredit credit = agentCreditRepository.findByAgencyId(order.getAgency().getId())
                 .orElse(null);
         
-        int termDays = (credit != null && credit.getDebtTermDays() != null) ? credit.getDebtTermDays() : 30;
+        int termDays = 30;
+        if (order.getDebtTermDays() != null) {
+            termDays = order.getDebtTermDays();
+        } else if (credit != null && credit.getDebtTermDays() != null) {
+            termDays = credit.getDebtTermDays();
+        }
         
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime dueDate = now.plusDays(termDays);

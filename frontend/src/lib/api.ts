@@ -567,6 +567,8 @@ export const priceUpdateVoucherApi = {
 export interface OverdueDebtInfo {
   id: number;
   orderId: number;
+  customerId?: number;
+  customerName?: string;
   principalAmount: number;
   interestAccrued: number;
   status: 'ACTIVE' | 'CLOSED';
@@ -619,6 +621,7 @@ export interface CreditDetail {
   vtcAvailable: number;
   vtcHold: number;
   hmkd: number;
+  debtTermDays: number;
   updatedAt: string;
   overdueDebts: OverdueDebtInfo[];
   ledgerHistory: LedgerEntry[];

@@ -12,6 +12,7 @@ public class OrderRequest {
     private String promotionCode;
     private Integer pointsToRedeem;
     private Double deliveryFee;
+    private Integer debtTermDays;
 
     public static class NewCustomerInfo {
         private String name;
@@ -53,4 +54,6 @@ public class OrderRequest {
     public void setPointsToRedeem(Integer pointsToRedeem) { this.pointsToRedeem = pointsToRedeem; }
     public Double getDeliveryFee() { return deliveryFee; }
     public void setDeliveryFee(Double deliveryFee) { this.deliveryFee = deliveryFee; }
+    public Integer getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
 }

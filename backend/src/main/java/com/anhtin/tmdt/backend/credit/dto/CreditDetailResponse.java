@@ -17,6 +17,7 @@ public class CreditDetailResponse {
     private double vtcAvailable;
     private double vtcHold;
     private double hmkd;           // Hạn mức khả dụng = creditLimit - (totalDebt + guaranteeDebt) + vtcAvailable
+    private int debtTermDays;
     private LocalDateTime updatedAt;
 
     private List<OverdueDebtInfo> overdueDebts;
@@ -37,6 +38,8 @@ public class CreditDetailResponse {
     public void setVtcHold(double vtcHold) { this.vtcHold = vtcHold; }
     public double getHmkd() { return hmkd; }
     public void setHmkd(double hmkd) { this.hmkd = hmkd; }
+    public int getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(int debtTermDays) { this.debtTermDays = debtTermDays; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public List<OverdueDebtInfo> getOverdueDebts() { return overdueDebts; }
@@ -71,6 +74,8 @@ public class CreditDetailResponse {
     public static class OverdueDebtInfo {
         private Long   id;
         private Long   orderId;
+        private Long   customerId;
+        private String customerName;
         private double principalAmount;
         private double interestAccrued;
         private String status;
@@ -81,6 +86,10 @@ public class CreditDetailResponse {
         public void setId(Long id) { this.id = id; }
         public Long getOrderId() { return orderId; }
         public void setOrderId(Long orderId) { this.orderId = orderId; }
+        public Long getCustomerId() { return customerId; }
+        public void setCustomerId(Long customerId) { this.customerId = customerId; }
+        public String getCustomerName() { return customerName; }
+        public void setCustomerName(String customerName) { this.customerName = customerName; }
         public double getPrincipalAmount() { return principalAmount; }
         public void setPrincipalAmount(double principalAmount) { this.principalAmount = principalAmount; }
         public double getInterestAccrued() { return interestAccrued; }
@@ -96,6 +105,11 @@ public class CreditDetailResponse {
             OverdueDebtInfo info = new OverdueDebtInfo();
             info.setId(d.getId());
             info.setOrderId(d.getOrder().getId());
+            if (d.getOrder().getCustomer() != null) {
+                info.setCustomerId(d.getOrder().getCustomer().getId());
+                info.setCustomerName(d.getOrder().getCustomer().getOrganizationName() != null ? 
+                    d.getOrder().getCustomer().getOrganizationName() : d.getOrder().getCustomer().getUsername());
+            }
             info.setPrincipalAmount(d.getPrincipalAmount());
             info.setInterestAccrued(d.getInterestAccrued());
             info.setStatus(d.getStatus().name());
@@ -151,6 +165,7 @@ public class CreditDetailResponse {
         r.setVtcAvailable(credit.getVtcAvailable());
         r.setVtcHold(credit.getVtcHold());
         r.setHmkd(credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable());
+        r.setDebtTermDays(credit.getDebtTermDays() != null ? credit.getDebtTermDays() : 30);
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
         r.setCustomerDebts(assignments.stream().map(CustomerDebtInfo::from).toList());
@@ -176,6 +191,7 @@ public class CreditDetailResponse {
         r.setVtcAvailable(0.0);
         r.setVtcHold(0.0);
         r.setHmkd(0.0);
+        r.setDebtTermDays(30);
         r.setOverdueDebts(List.of());
         r.setLedgerHistory(List.of());
         r.setCustomerDebts(List.of());

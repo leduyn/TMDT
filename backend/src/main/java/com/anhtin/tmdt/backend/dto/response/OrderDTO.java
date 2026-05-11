@@ -22,6 +22,7 @@ public class OrderDTO {
     private Long priceListId;
     private String receiverType;
     private String createdByName;
+    private Integer debtTermDays;
     private LocalDateTime updatedDate;
 
     public Long getId() { return id; }
@@ -60,6 +61,8 @@ public class OrderDTO {
     public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
     public String getCreatedByName() { return createdByName; }
     public void setCreatedByName(String createdByName) { this.createdByName = createdByName; }
+    public Integer getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }

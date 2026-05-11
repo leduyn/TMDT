@@ -112,6 +112,7 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
+        order.setDebtTermDays(request.getDebtTermDays());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -225,6 +226,7 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
+        order.setDebtTermDays(request.getDebtTermDays());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -346,6 +348,7 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
+        order.setDebtTermDays(request.getDebtTermDays());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -521,6 +524,7 @@ public class OrderService {
         dto.setOrderDate(order.getOrderDate());
         dto.setPriceListId(order.getPriceListId());
         dto.setReceiverType(order.getReceiverType());
+        dto.setDebtTermDays(order.getDebtTermDays());
         
         if (order.getCreatedBy() != null) {
             dto.setCreatedByName(order.getCreatedBy().getOrganizationName() != null ? 

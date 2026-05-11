@@ -46,6 +46,9 @@ public class Order {
     @Column(name = "due_date")
     private LocalDateTime dueDate;
 
+    @Column(name = "debt_term_days")
+    private Integer debtTermDays;
+
     private LocalDateTime orderDate = LocalDateTime.now();
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -88,6 +91,8 @@ public class Order {
     public void setDeliveryFee(Double deliveryFee) { this.deliveryFee = deliveryFee; }
     public LocalDateTime getDueDate() { return dueDate; }
     public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
+    public Integer getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
     public List<OrderItem> getItems() { return items; }
