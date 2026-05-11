@@ -5,6 +5,8 @@ import com.anhtin.tmdt.backend.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.credit.entity.OverdueDebt;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class CreditDetailResponse {
 
@@ -83,6 +85,7 @@ public class CreditDetailResponse {
         private String type;
         private double amount;
         private String referenceId;
+        private String receiverType; // AGENCY or CUSTOMER
         private LocalDateTime createdAt;
 
         public Long getId() { return id; }
@@ -93,15 +96,18 @@ public class CreditDetailResponse {
         public void setAmount(double amount) { this.amount = amount; }
         public String getReferenceId() { return referenceId; }
         public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
+        public String getReceiverType() { return receiverType; }
+        public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
         public LocalDateTime getCreatedAt() { return createdAt; }
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-        public static LedgerEntry from(CreditLedger l) {
+        public static LedgerEntry from(CreditLedger l, String receiverType) {
             LedgerEntry e = new LedgerEntry();
             e.setId(l.getId());
             e.setType(l.getType().name());
             e.setAmount(l.getAmount());
             e.setReferenceId(l.getReferenceId());
+            e.setReceiverType(receiverType);
             e.setCreatedAt(l.getCreatedAt());
             return e;
         }
@@ -109,7 +115,8 @@ public class CreditDetailResponse {
 
     public static CreditDetailResponse from(AgentCredit credit,
                                             List<OverdueDebt> debts,
-                                            List<CreditLedger> ledger) {
+                                            List<CreditLedger> ledger,
+                                            Map<Long, String> orderReceiverTypes) {
         CreditDetailResponse r = new CreditDetailResponse();
         r.setAgencyId(credit.getAgency().getId());
         r.setCreditLimit(credit.getCreditLimit());
@@ -120,7 +127,16 @@ public class CreditDetailResponse {
         r.setHmkd(credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable());
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
-        r.setLedgerHistory(ledger.stream().map(LedgerEntry::from).toList());
+        
+        r.setLedgerHistory(ledger.stream().map(l -> {
+            String ref = l.getReferenceId();
+            String receiverType = "AGENCY";
+            if (ref != null && ref.matches("\\d+")) {
+                receiverType = orderReceiverTypes.getOrDefault(Long.parseLong(ref), "AGENCY");
+            }
+            return LedgerEntry.from(l, receiverType);
+        }).toList());
+        
         return r;
     }
 

@@ -16,7 +16,8 @@ import {
   MapPin, 
   User, 
   Phone,
-  FileText
+  FileText,
+  CreditCard
 } from 'lucide-react';
 
 export default function OrderDetailPage() {
@@ -211,7 +212,7 @@ export default function OrderDetailPage() {
                 </div>
               </div>
 
-              {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
+              {(order.status !== 'PENDING' && order.status !== 'NEW') && order.status !== 'CANCELLED' && (
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
@@ -251,6 +252,10 @@ export default function OrderDetailPage() {
               )}
             </div>
           </GlassCard>
+
+          {order.status === 'COMPLETED' && (
+            <OrderDebtsSection orderId={order.id} />
+          )}
         </div>
 
         {/* Sidebar Info */}
@@ -307,5 +312,141 @@ export default function OrderDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function OrderDebtsSection({ orderId }: { orderId: number }) {
+  const [debts, setDebts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [payModal, setPayModal] = useState<any | null>(null);
+  const [amount, setAmount] = useState('');
+  const { user } = useAuth();
+  const isAdmin = user?.roles.some(r => ['ROLE_ADMIN', 'ROLE_COMPANY', 'ROLE_ACCOUNTANT'].includes(r));
+
+  const load = async () => {
+    try {
+      const { agencyDebtApi } = await import('@/lib/api');
+      const data = await agencyDebtApi.getByOrderId(orderId);
+      setDebts(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [orderId]);
+
+  const handlePay = async () => {
+    if (!payModal) return;
+    try {
+      const { agencyDebtApi } = await import('@/lib/api');
+      await agencyDebtApi.payDebt(payModal.id, parseFloat(amount));
+      setPayModal(null);
+      load();
+    } catch (e) {
+      alert('Thanh toán thất bại');
+    }
+  };
+
+  if (loading) return <GlassCard title="Đang tải thông tin công nợ..." icon={<Clock size={20} />} />;
+  if (debts.length === 0) return null;
+
+  return (
+    <>
+      <GlassCard title="Thông tin công nợ" icon={<CreditCard size={20} />}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', fontSize: '0.9rem', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '10px', textAlign: 'left' }}>Mã công nợ</th>
+                <th style={{ padding: '10px', textAlign: 'left' }}>Hạng mục</th>
+                <th style={{ padding: '10px', textAlign: 'center' }}>Kỳ hạn</th>
+                <th style={{ padding: '10px', textAlign: 'right' }}>Giá trị nợ</th>
+                <th style={{ padding: '10px', textAlign: 'right' }}>Còn lại</th>
+                <th style={{ padding: '10px', textAlign: 'center' }}>Ngày tới hạn</th>
+                {isAdmin && <th style={{ padding: '10px', textAlign: 'right' }}>Thao tác</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {debts.map(debt => (
+                <tr key={debt.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px 10px' }}><code>{debt.debtCode}</code></td>
+                  <td style={{ padding: '12px 10px' }}>{debt.jobCategory}</td>
+                  <td style={{ padding: '12px 10px', textAlign: 'center' }}>{debt.debtTermDays} ngày</td>
+                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>{debt.value.toLocaleString()}đ</td>
+                  <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 600, color: debt.remainingToCollect > 0 ? 'var(--error)' : 'inherit' }}>
+                    {debt.remainingToCollect.toLocaleString()}đ
+                  </td>
+                  <td style={{ padding: '12px 10px', textAlign: 'center' }}>{new Date(debt.dueDate).toLocaleDateString('vi-VN')}</td>
+                  {isAdmin && (
+                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                      {debt.remainingToCollect > 0 && (
+                        <button 
+                          className="btn-pay-sm"
+                          onClick={() => { setPayModal(debt); setAmount(debt.remainingToCollect.toString()); }}
+                        >
+                          Thanh toán
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
+
+      {payModal && (
+        <div className="modal-overlay">
+          <GlassCard style={{ maxWidth: 400, width: '100%', padding: 24 }}>
+            <h3 style={{ marginBottom: 16 }}>Thanh toán nợ</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+              Thanh toán cho khoản nợ: <strong>{payModal.debtCode}</strong>
+            </p>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: 6 }}>Số tiền (đ)</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                value={amount} 
+                onChange={e => setAmount(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setPayModal(null)}>Hủy</button>
+              <button 
+                style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer' }} 
+                onClick={handlePay}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      <style jsx>{`
+        .btn-pay-sm {
+          background: var(--primary);
+          color: white;
+          border: none;
+          padding: 4px 10px;
+          border-radius: 4px;
+          font-size: 11px;
+          cursor: pointer;
+        }
+        .modal-overlay {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.6); display: flex; align-items: center;
+          justify-content: center; z-index: 1000; padding: 20px;
+        }
+        .form-input {
+          width: 100%; padding: 10px; background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border); border-radius: 8px; color: white;
+        }
+      `}</style>
+    </>
   );
 }

@@ -47,6 +47,9 @@ function AgencyDebtsContent() {
   // Payment modal
   const [paymentModal, setPaymentModal] = useState<{ debt: AgencyDebtDTO; amount: string } | null>(null);
   const [paying, setPaying] = useState(false);
+  
+  // Order details modal
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem('user');
@@ -202,7 +205,18 @@ function AgencyDebtsContent() {
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{debt.customerCode} • {debt.customerLevel}</div>
                     </td>
                     <td><code style={{ fontSize: 11 }}>{debt.debtCode}</code></td>
-                    <td>#{debt.orderId}</td>
+                    <td>
+                      <button 
+                        onClick={() => setSelectedOrderId(debt.orderId)}
+                        style={{ 
+                          background: 'none', border: 'none', color: 'var(--primary)', 
+                          cursor: 'pointer', padding: 0, textDecoration: 'underline',
+                          fontWeight: 500
+                        }}
+                      >
+                        #{debt.orderId}
+                      </button>
+                    </td>
                     <td>{getDebtTypeBadge(debt.debtType)}</td>
                     <td style={{ fontSize: 12, maxWidth: 150 }}>{debt.jobCategory}</td>
                     <td style={{ textAlign: 'center' }}>{debt.debtTermDays} ngày</td>
@@ -283,6 +297,14 @@ function AgencyDebtsContent() {
         </div>
       )}
 
+      {selectedOrderId && (
+        <OrderDebtsModal 
+          orderId={selectedOrderId} 
+          onClose={() => setSelectedOrderId(null)} 
+          onPay={(debt) => setPaymentModal({ debt, amount: debt.remainingToCollect.toString() })}
+        />
+      )}
+
       <style jsx>{`
         .debt-table {
           width: 100%;
@@ -357,6 +379,69 @@ function AgencyDebtsContent() {
           padding: 20px;
         }
       `}</style>
+    </div>
+  );
+}
+
+function OrderDebtsModal({ orderId, onClose, onPay }: { orderId: number; onClose: () => void; onPay: (debt: AgencyDebtDTO) => void }) {
+  const [debts, setDebts] = useState<AgencyDebtDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    agencyDebtApi.getByOrderId(orderId)
+      .then(setDebts)
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  return (
+    <div className="modal-overlay">
+      <GlassCard className="modal-content" style={{ maxWidth: 800, width: '100%', padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3>Công nợ Đơn hàng #{orderId}</h3>
+          <button onClick={onClose} className="btn-secondary" style={{ padding: '4px 12px' }}>Đóng</button>
+        </div>
+        
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center' }}>Đang tải...</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="debt-table">
+              <thead>
+                <tr>
+                  <th>Mã công nợ</th>
+                  <th>Hạng mục</th>
+                  <th style={{ textAlign: 'center' }}>Kỳ hạn</th>
+                  <th style={{ textAlign: 'right' }}>Giá trị</th>
+                  <th style={{ textAlign: 'right' }}>Còn lại</th>
+                  <th>Ngày tới hạn</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {debts.map(debt => (
+                  <tr key={debt.id}>
+                    <td><code>{debt.debtCode}</code></td>
+                    <td>{debt.jobCategory}</td>
+                    <td style={{ textAlign: 'center' }}>{debt.debtTermDays} ngày</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(debt.value)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: debt.remainingToCollect > 0 ? 'var(--error)' : 'inherit' }}>
+                      {fmt(debt.remainingToCollect)}
+                    </td>
+                    <td>{fmtDate(debt.dueDate)}</td>
+                    <td>
+                      {debt.remainingToCollect > 0 && (
+                        <button className="btn-sm-primary" onClick={() => { onClose(); onPay(debt); }}>
+                          Thanh toán
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </GlassCard>
     </div>
   );
 }

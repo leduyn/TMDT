@@ -579,6 +579,7 @@ export interface LedgerEntry {
   type: 'DEBT' | 'PAYMENT' | 'INTEREST' | 'HOLD' | 'REFUND';
   amount: number;
   referenceId?: string;
+  receiverType?: string;
   createdAt: string;
 }
 
@@ -608,6 +609,7 @@ export interface CreditDetail {
   agencyId: number;
   creditLimit: number;
   totalDebt: number;
+  guaranteeDebt: number;
   vtcAvailable: number;
   vtcHold: number;
   hmkd: number;
@@ -659,6 +661,8 @@ export const creditApi = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
+  recalculate: (agencyId: number) =>
+    fetchJSON<{ message: string }>(`/api/credit/admin/recalculate/${agencyId}`, { method: 'POST' }),
 
   payDebt: (agentId: number, amount: number, orderId?: number) =>
     fetchJSON<{ message: string }>('/api/credit/payments', {
@@ -673,6 +677,8 @@ export const creditApi = {
 export const agencyDebtApi = {
   getByAgencyId: (agencyId: number) =>
     fetchJSON<AgencyDebtDTO[]>(`/api/agency-debts/agency/${agencyId}`),
+  getByOrderId: (orderId: number) =>
+    fetchJSON<AgencyDebtDTO[]>(`/api/agency-debts/order/${orderId}`),
   payDebt: (debtId: number, amount: number) =>
     fetchJSON<AgencyDebtDTO>(`/api/agency-debts/${debtId}/pay?amount=${amount}`, {
       method: 'POST'

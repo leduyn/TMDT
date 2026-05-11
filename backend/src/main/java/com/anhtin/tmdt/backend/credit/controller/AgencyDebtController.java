@@ -40,6 +40,16 @@ public class AgencyDebtController {
         return ResponseEntity.ok(dtos);
     }
 
+    @GetMapping("/order/{orderId}")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
+    public ResponseEntity<List<AgencyDebtDTO>> getDebtsByOrder(@PathVariable Long orderId) {
+        List<AgencyDebt> debts = agencyDebtService.getDebtsByOrder(orderId);
+        List<AgencyDebtDTO> dtos = debts.stream()
+                .map(AgencyDebtDTO::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
     @PostMapping("/{debtId}/pay")
     @PreAuthorize("hasRole('COMPANY')")
     public ResponseEntity<AgencyDebtDTO> payDebt(@PathVariable Long debtId, @RequestParam Double amount) {
