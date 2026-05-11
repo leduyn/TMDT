@@ -104,6 +104,22 @@ function AgencyDebtsContent() {
     }
   }, [isAdmin, myAgencyId, selectedAgencyId, loadDebts]);
 
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredDebts = debts.filter(d => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      d.customerName?.toLowerCase().includes(term) ||
+      d.customerCode?.toLowerCase().includes(term) ||
+      d.agencyName?.toLowerCase().includes(term) ||
+      d.agencyCode?.toLowerCase().includes(term) ||
+      d.debtCode?.toLowerCase().includes(term) ||
+      d.orderId?.toString().includes(term) ||
+      d.jobCategory?.toLowerCase().includes(term)
+    );
+  });
+
   const handlePay = async () => {
     if (!paymentModal) return;
     const amount = parseFloat(paymentModal.amount);
@@ -116,7 +132,7 @@ function AgencyDebtsContent() {
     try {
       await agencyDebtApi.payDebt(paymentModal.debt.id, amount);
       setPaymentModal(null);
-      if (selectedAgencyId) loadDebts(selectedAgencyId);
+      loadDebts(selectedAgencyId);
     } catch (e: any) {
       alert(e.message || 'Thanh toán thất bại');
     } finally {
@@ -139,18 +155,33 @@ function AgencyDebtsContent() {
   return (
     <div className="container">
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ marginBottom: 8 }}>Quản lý Công nợ Đại lý</h1>
+        <h1 style={{ marginBottom: 8 }}>Quản lý Công nợ Khách hàng</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Theo dõi chi tiết công nợ theo từng đơn hàng và phí vận chuyển</p>
       </div>
 
-      {isAdmin && (
-        <div style={{ marginBottom: 24, display: 'flex', gap: 16, alignItems: 'flex-end' }}>
-          <div style={{ flex: 1, maxWidth: 300 }}>
-            <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Chọn Đại lý</label>
+      <div style={{ marginBottom: 24, display: 'flex', gap: 16, alignItems: 'flex-end' }}>
+        <div style={{ flex: 1, maxWidth: 500, position: 'relative' }}>
+          <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Tìm kiếm nhanh</label>
+          <div style={{ position: 'relative' }}>
+            <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              className="form-input"
+              placeholder="Tìm theo tên KH, Đại lý, Mã đơn hàng, Mã công nợ..."
+              style={{ paddingLeft: 40 }}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        {isAdmin && (
+          <div style={{ maxWidth: 200 }}>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Lọc theo Đại lý</label>
             <select 
               className="form-input"
               value={selectedAgencyId || ''}
-              onChange={e => setSelectedAgencyId(Number(e.target.value))}
+              onChange={e => setSelectedAgencyId(e.target.value ? Number(e.target.value) : null)}
             >
               <option value="">-- Tất cả đại lý --</option>
               {agencies.map(a => (
@@ -158,12 +189,8 @@ function AgencyDebtsContent() {
               ))}
             </select>
           </div>
-          <button className="btn-primary" onClick={() => selectedAgencyId && loadDebts(selectedAgencyId)}>
-            <Search size={18} style={{ marginRight: 8 }} />
-            Lọc dữ liệu
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {error && (
         <div style={{ padding: 16, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: 8, color: '#ef4444', marginBottom: 24 }}>
@@ -197,13 +224,13 @@ function AgencyDebtsContent() {
                 <tr>
                   <td colSpan={isAdmin && !selectedAgencyId ? 14 : 13} style={{ textAlign: 'center', padding: 48 }}>Đang tải...</td>
                 </tr>
-              ) : debts.length === 0 ? (
+              ) : filteredDebts.length === 0 ? (
                 <tr>
                   <td colSpan={isAdmin && !selectedAgencyId ? 14 : 13} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-                    Không có dữ liệu công nợ
+                    Không có kết quả tìm kiếm phù hợp
                   </td>
                 </tr>
-              ) : debts.map(debt => {
+              ) : filteredDebts.map(debt => {
                 const isOverdue = new Date(debt.dueDate) < new Date() && debt.remainingToCollect > 0;
                 return (
                   <tr key={debt.id} style={{ borderBottom: '1px solid var(--border)' }}>
