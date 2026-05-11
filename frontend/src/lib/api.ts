@@ -582,6 +582,28 @@ export interface LedgerEntry {
   createdAt: string;
 }
 
+export interface AgencyDebtDTO {
+  id: number;
+  agencyId: number;
+  orderId: number;
+  agencyCode?: string;
+  agencyName?: string;
+  customerCode?: string;
+  customerName?: string;
+  customerLevel?: string;
+  debtCode: string;
+  debtType: string;
+  jobCategory?: string;
+  debtTermDays: number;
+  value: number;
+  paidValue: number;
+  paymentDate?: string;
+  recordingDate: string;
+  dueDate: string;
+  remainingToCollect: number;
+  aCoin: number;
+}
+
 export interface CreditDetail {
   agencyId: number;
   creditLimit: number;
@@ -648,6 +670,15 @@ export const creditApi = {
     fetchJSON<{ message: string }>('/api/credit/admin/trigger-interest', { method: 'POST' }),
 };
 
+export const agencyDebtApi = {
+  getByAgencyId: (agencyId: number) =>
+    fetchJSON<AgencyDebtDTO[]>(`/api/agency-debts/agency/${agencyId}`),
+  payDebt: (debtId: number, amount: number) =>
+    fetchJSON<AgencyDebtDTO>(`/api/agency-debts/${debtId}/pay?amount=${amount}`, {
+      method: 'POST'
+    }),
+};
+
 // ─── Order API ───────────────────────────────────────────────────────────────
 export interface OrderItemDTO {
   id: number;
@@ -666,6 +697,7 @@ export interface OrderDTO {
   agencyName?: string;
   totalAmount: number;
   discountAmount: number;
+  deliveryFee: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
   orderType?: string;
   shippingAddress?: string;
@@ -695,6 +727,7 @@ export interface OrderRequest {
   orderType?: 'DROPSHIP' | 'MARKETPLACE';
   promotionCode?: string;
   pointsToRedeem?: number;
+  deliveryFee?: number;
 }
 
 export const orderApi = {

@@ -40,6 +40,9 @@ public class Order {
     @Column(name = "discount_amount")
     private Double discountAmount = 0.0;
     
+    @Column(name = "delivery_fee")
+    private Double deliveryFee = 0.0;
+    
     @Column(name = "due_date")
     private LocalDateTime dueDate;
 
@@ -81,6 +84,8 @@ public class Order {
     public void setPointsRedeemed(Integer pointsRedeemed) { this.pointsRedeemed = pointsRedeemed; }
     public Double getDiscountAmount() { return discountAmount; }
     public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
+    public Double getDeliveryFee() { return deliveryFee; }
+    public void setDeliveryFee(Double deliveryFee) { this.deliveryFee = deliveryFee; }
     public LocalDateTime getDueDate() { return dueDate; }
     public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
     public LocalDateTime getOrderDate() { return orderDate; }

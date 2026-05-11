@@ -28,6 +28,7 @@ export default function CreateOrderPage() {
   const [selectedAgency, setSelectedAgency] = useState<AgencyDTO | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
   const [shippingAddress, setShippingAddress] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [creditInfo, setCreditInfo] = useState<{ hmkd: number } | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
@@ -158,7 +159,8 @@ export default function CreateOrderPage() {
           productId: item.productId,
           quantity: item.quantity
         })),
-        shippingAddress
+        shippingAddress,
+        deliveryFee
       };
 
       if (selectedCustomer) {
@@ -476,21 +478,41 @@ export default function CreateOrderPage() {
                   <span>{(item.price * item.quantity).toLocaleString()}đ</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', fontWeight: 600, fontSize: 18 }}>
-                <span>Tổng tiền:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', marginTop: 8, borderTop: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                <span>Tạm tính:</span>
                 <span>{getTotalAmount().toLocaleString()}đ</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: 'var(--text-secondary)' }}>
+                <span>Phí giao hàng:</span>
+                <span>{deliveryFee.toLocaleString()}đ</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', fontWeight: 600, fontSize: 18 }}>
+                <span>Tổng cộng:</span>
+                <span>{(getTotalAmount() + deliveryFee).toLocaleString()}đ</span>
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Địa chỉ giao hàng</label>
-              <input 
-                type="text" 
-                className="form-input"
-                value={shippingAddress}
-                onChange={e => setShippingAddress(e.target.value)}
-                placeholder="Nhập địa chỉ giao hàng..."
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label className="form-label">Địa chỉ giao hàng</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  value={shippingAddress}
+                  onChange={e => setShippingAddress(e.target.value)}
+                  placeholder="Nhập địa chỉ giao hàng..."
+                />
+              </div>
+              <div>
+                <label className="form-label">Phí giao hàng (đ)</label>
+                <input 
+                  type="number" 
+                  className="form-input"
+                  value={deliveryFee}
+                  onChange={e => setDeliveryFee(Number(e.target.value))}
+                  min="0"
+                />
+              </div>
             </div>
 
             <button 

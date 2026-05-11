@@ -62,6 +62,7 @@ export default function OrderDetailPage() {
     let label = status;
 
     switch (status) {
+      case 'NEW':
       case 'PENDING': type = 'warning'; label = 'Chờ xử lý'; break;
       case 'PROCESSING': type = 'primary'; label = 'Đang xử lý'; break;
       case 'COMPLETED': type = 'success'; label = 'Hoàn thành'; break;
@@ -104,13 +105,13 @@ export default function OrderDetailPage() {
 
         {canUpdateStatus && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
           <div style={{ display: 'flex', gap: 12 }}>
-            {order.status === 'PENDING' && (
+            {(order.status === 'PENDING' || order.status === 'NEW') && (
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleUpdateStatus('PROCESSING')}
                 disabled={updating}
               >
-                Xác nhận & Xử lý
+                Xác nhận đơn hàng
               </button>
             )}
             {order.status === 'PROCESSING' && (
@@ -174,8 +175,8 @@ export default function OrderDetailPage() {
 
             <div style={{ padding: '24px 12px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
               <div style={{ display: 'flex', gap: 40, color: 'var(--text-secondary)' }}>
-                <span>Tạm tính:</span>
-                <span style={{ minWidth: 100, textAlign: 'right' }}>{(order.totalAmount + order.discountAmount).toLocaleString()}đ</span>
+                <span>Tạm tính (hàng):</span>
+                <span style={{ minWidth: 100, textAlign: 'right' }}>{(order.totalAmount - order.deliveryFee + order.discountAmount).toLocaleString()}đ</span>
               </div>
               {order.discountAmount > 0 && (
                 <div style={{ display: 'flex', gap: 40, color: 'var(--error)' }}>
@@ -183,6 +184,10 @@ export default function OrderDetailPage() {
                   <span style={{ minWidth: 100, textAlign: 'right' }}>-{order.discountAmount.toLocaleString()}đ</span>
                 </div>
               )}
+              <div style={{ display: 'flex', gap: 40, color: 'var(--text-secondary)' }}>
+                <span>Phí giao hàng:</span>
+                <span style={{ minWidth: 100, textAlign: 'right' }}>{order.deliveryFee.toLocaleString()}đ</span>
+              </div>
               <div style={{ display: 'flex', gap: 40, fontSize: '1.25rem', fontWeight: 800, marginTop: 8 }}>
                 <span>Tổng cộng:</span>
                 <span className="gradient-text" style={{ minWidth: 100, textAlign: 'right' }}>{order.totalAmount.toLocaleString()}đ</span>

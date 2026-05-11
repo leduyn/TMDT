@@ -11,6 +11,7 @@ public class OrderDTO {
     private String agencyName;
     private Double totalAmount;
     private Double discountAmount;
+    private Double deliveryFee;
     private String status;
     private String orderType;
     private String shippingAddress;
@@ -37,6 +38,8 @@ public class OrderDTO {
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
     public Double getDiscountAmount() { return discountAmount; }
     public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
+    public Double getDeliveryFee() { return deliveryFee; }
+    public void setDeliveryFee(Double deliveryFee) { this.deliveryFee = deliveryFee; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getOrderType() { return orderType; }
