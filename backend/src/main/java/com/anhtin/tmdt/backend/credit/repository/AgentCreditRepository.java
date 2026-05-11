@@ -15,10 +15,19 @@ public interface AgentCreditRepository extends JpaRepository<AgentCredit, Long> 
 
     @Modifying
     @Query("UPDATE AgentCredit ac SET ac.totalDebt = ac.totalDebt + :amount " +
-           "WHERE ac.agency.id = :agencyId AND (ac.creditLimit - ac.totalDebt + ac.vtcAvailable) >= :amount")
-    int consumeCredit(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+           "WHERE ac.agency.id = :agencyId AND (ac.creditLimit - (ac.totalDebt + ac.guaranteeDebt) + ac.vtcAvailable) >= :amount")
+    int consumeAgencyCredit(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+
+    @Modifying
+    @Query("UPDATE AgentCredit ac SET ac.guaranteeDebt = ac.guaranteeDebt + :amount " +
+           "WHERE ac.agency.id = :agencyId AND (ac.creditLimit - (ac.totalDebt + ac.guaranteeDebt) + ac.vtcAvailable) >= :amount")
+    int consumeGuaranteeCredit(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
 
     @Modifying
     @Query("UPDATE AgentCredit ac SET ac.totalDebt = ac.totalDebt - :amount WHERE ac.agency.id = :agencyId")
-    int decreaseDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+    int decreaseAgencyDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+
+    @Modifying
+    @Query("UPDATE AgentCredit ac SET ac.guaranteeDebt = ac.guaranteeDebt - :amount WHERE ac.agency.id = :agencyId")
+    int decreaseGuaranteeDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
 }

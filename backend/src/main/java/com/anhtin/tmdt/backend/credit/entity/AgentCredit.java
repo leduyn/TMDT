@@ -25,6 +25,9 @@ public class AgentCredit {
     @Column(name = "total_debt", nullable = false)
     private Double totalDebt = 0.0;
 
+    @Column(name = "guarantee_debt", nullable = false)
+    private Double guaranteeDebt = 0.0;
+
     @Column(name = "vtc_available", nullable = false)
     private Double vtcAvailable = 0.0;
 
@@ -51,6 +54,8 @@ public class AgentCredit {
     public void setCreditLimit(Double creditLimit) { this.creditLimit = creditLimit; }
     public Double getTotalDebt() { return totalDebt; }
     public void setTotalDebt(Double totalDebt) { this.totalDebt = totalDebt; }
+    public Double getGuaranteeDebt() { return guaranteeDebt; }
+    public void setGuaranteeDebt(Double guaranteeDebt) { this.guaranteeDebt = guaranteeDebt; }
     public Double getVtcAvailable() { return vtcAvailable; }
     public void setVtcAvailable(Double vtcAvailable) { this.vtcAvailable = vtcAvailable; }
     public Double getVtcHold() { return vtcHold; }

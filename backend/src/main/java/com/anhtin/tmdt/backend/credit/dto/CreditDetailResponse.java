@@ -11,9 +11,10 @@ public class CreditDetailResponse {
     private Long agencyId;
     private double creditLimit;
     private double totalDebt;
+    private double guaranteeDebt;
     private double vtcAvailable;
     private double vtcHold;
-    private double hmkd;           // Hạn mức khả dụng = creditLimit - totalDebt + vtcAvailable
+    private double hmkd;           // Hạn mức khả dụng = creditLimit - (totalDebt + guaranteeDebt) + vtcAvailable
     private LocalDateTime updatedAt;
 
     private List<OverdueDebtInfo> overdueDebts;
@@ -25,6 +26,8 @@ public class CreditDetailResponse {
     public void setCreditLimit(double creditLimit) { this.creditLimit = creditLimit; }
     public double getTotalDebt() { return totalDebt; }
     public void setTotalDebt(double totalDebt) { this.totalDebt = totalDebt; }
+    public double getGuaranteeDebt() { return guaranteeDebt; }
+    public void setGuaranteeDebt(double guaranteeDebt) { this.guaranteeDebt = guaranteeDebt; }
     public double getVtcAvailable() { return vtcAvailable; }
     public void setVtcAvailable(double vtcAvailable) { this.vtcAvailable = vtcAvailable; }
     public double getVtcHold() { return vtcHold; }
@@ -111,9 +114,10 @@ public class CreditDetailResponse {
         r.setAgencyId(credit.getAgency().getId());
         r.setCreditLimit(credit.getCreditLimit());
         r.setTotalDebt(credit.getTotalDebt());
+        r.setGuaranteeDebt(credit.getGuaranteeDebt());
         r.setVtcAvailable(credit.getVtcAvailable());
         r.setVtcHold(credit.getVtcHold());
-        r.setHmkd(credit.getCreditLimit() - credit.getTotalDebt() + credit.getVtcAvailable());
+        r.setHmkd(credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable());
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
         r.setLedgerHistory(ledger.stream().map(LedgerEntry::from).toList());
@@ -125,6 +129,7 @@ public class CreditDetailResponse {
         r.setAgencyId(agencyId);
         r.setCreditLimit(0.0);
         r.setTotalDebt(0.0);
+        r.setGuaranteeDebt(0.0);
         r.setVtcAvailable(0.0);
         r.setVtcHold(0.0);
         r.setHmkd(0.0);
