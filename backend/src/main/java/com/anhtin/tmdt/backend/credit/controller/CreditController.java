@@ -58,6 +58,8 @@ public class CreditController {
 
     private final com.anhtin.tmdt.backend.repository.OrderRepository orderRepository;
 
+    private final com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
+
     // ── Lấy toàn bộ chi tiết tài khoản tín dụng ───────────────────────────
     @GetMapping("/agents/{agencyId}/detail")
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
@@ -86,7 +88,11 @@ public class CreditController {
                 orderRepository.findById(id).ifPresent(o -> orderReceiverTypes.put(id, o.getReceiverType()));
             });
 
-        return ResponseEntity.ok(CreditDetailResponse.from(credit, debts, ledger, orderReceiverTypes));
+        // Lấy danh sách nợ của từng khách hàng
+        List<com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment> assignments = 
+            agencyCustomerAssignmentRepository.findByAgencyId(agencyId);
+
+        return ResponseEntity.ok(CreditDetailResponse.from(credit, debts, ledger, orderReceiverTypes, assignments));
     }
 
     // ── Cập nhật hạn mức tín dụng (chỉ COMPANY) ────────────────────────────

@@ -605,6 +605,12 @@ export interface AgencyDebtDTO {
   aCoin: number;
 }
 
+export interface CustomerDebtInfo {
+  customerId: number;
+  customerName: string;
+  totalDebt: number;
+}
+
 export interface CreditDetail {
   agencyId: number;
   creditLimit: number;
@@ -616,6 +622,7 @@ export interface CreditDetail {
   updatedAt: string;
   overdueDebts: OverdueDebtInfo[];
   ledgerHistory: LedgerEntry[];
+  customerDebts: CustomerDebtInfo[];
 }
 
 export interface AgencyCreditSummary {
@@ -675,6 +682,8 @@ export const creditApi = {
 };
 
 export const agencyDebtApi = {
+  getAll: () =>
+    fetchJSON<AgencyDebtDTO[]>('/api/agency-debts'),
   getByAgencyId: (agencyId: number) =>
     fetchJSON<AgencyDebtDTO[]>(`/api/agency-debts/agency/${agencyId}`),
   getByOrderId: (orderId: number) =>

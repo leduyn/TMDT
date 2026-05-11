@@ -100,7 +100,7 @@ export default function OrderDetailPage() {
             {getStatusBadge(order.status)}
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>
-            Đặt lúc: {new Date(order.orderDate).toLocaleString('vi-VN')}
+            Đặt lúc: {order.orderDate ? new Date(order.orderDate).toLocaleString('vi-VN') : '—'}
           </p>
         </div>
 
@@ -167,8 +167,8 @@ export default function OrderDetailPage() {
                       </div>
                     </td>
                     <td style={{ padding: '16px 12px', textAlign: 'center' }}>x{item.quantity}</td>
-                    <td style={{ padding: '16px 12px', textAlign: 'right' }}>{item.price.toLocaleString()}đ</td>
-                    <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 600 }}>{(item.price * item.quantity).toLocaleString()}đ</td>
+                    <td style={{ padding: '16px 12px', textAlign: 'right' }}>{(item.price ?? 0).toLocaleString()}đ</td>
+                    <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 600 }}>{((item.price ?? 0) * (item.quantity ?? 0)).toLocaleString()}đ</td>
                   </tr>
                 ))}
               </tbody>
@@ -177,21 +177,21 @@ export default function OrderDetailPage() {
             <div style={{ padding: '24px 12px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
               <div style={{ display: 'flex', gap: 40, color: 'var(--text-secondary)' }}>
                 <span>Tạm tính (hàng):</span>
-                <span style={{ minWidth: 100, textAlign: 'right' }}>{(order.totalAmount - order.deliveryFee + order.discountAmount).toLocaleString()}đ</span>
+                <span style={{ minWidth: 100, textAlign: 'right' }}>{((order.totalAmount ?? 0) - (order.deliveryFee ?? 0) + (order.discountAmount ?? 0)).toLocaleString()}đ</span>
               </div>
-              {order.discountAmount > 0 && (
+              {(order.discountAmount ?? 0) > 0 && (
                 <div style={{ display: 'flex', gap: 40, color: 'var(--error)' }}>
                   <span>Giảm giá ({order.promotionCode || 'Loyalty'}):</span>
-                  <span style={{ minWidth: 100, textAlign: 'right' }}>-{order.discountAmount.toLocaleString()}đ</span>
+                  <span style={{ minWidth: 100, textAlign: 'right' }}>-{(order.discountAmount ?? 0).toLocaleString()}đ</span>
                 </div>
               )}
               <div style={{ display: 'flex', gap: 40, color: 'var(--text-secondary)' }}>
                 <span>Phí giao hàng:</span>
-                <span style={{ minWidth: 100, textAlign: 'right' }}>{order.deliveryFee.toLocaleString()}đ</span>
+                <span style={{ minWidth: 100, textAlign: 'right' }}>{(order.deliveryFee ?? 0).toLocaleString()}đ</span>
               </div>
               <div style={{ display: 'flex', gap: 40, fontSize: '1.25rem', fontWeight: 800, marginTop: 8 }}>
                 <span>Tổng cộng:</span>
-                <span className="gradient-text" style={{ minWidth: 100, textAlign: 'right' }}>{order.totalAmount.toLocaleString()}đ</span>
+                <span className="gradient-text" style={{ minWidth: 100, textAlign: 'right' }}>{(order.totalAmount ?? 0).toLocaleString()}đ</span>
               </div>
             </div>
           </GlassCard>
@@ -208,7 +208,7 @@ export default function OrderDetailPage() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 600 }}>Đã đặt hàng</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(order.orderDate).toLocaleString('vi-VN')}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{order.orderDate ? new Date(order.orderDate).toLocaleString('vi-VN') : '—'}</div>
                 </div>
               </div>
 
@@ -374,11 +374,11 @@ function OrderDebtsSection({ orderId }: { orderId: number }) {
                   <td style={{ padding: '12px 10px' }}><code>{debt.debtCode}</code></td>
                   <td style={{ padding: '12px 10px' }}>{debt.jobCategory}</td>
                   <td style={{ padding: '12px 10px', textAlign: 'center' }}>{debt.debtTermDays} ngày</td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>{debt.value.toLocaleString()}đ</td>
-                  <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 600, color: debt.remainingToCollect > 0 ? 'var(--error)' : 'inherit' }}>
-                    {debt.remainingToCollect.toLocaleString()}đ
+                  <td style={{ padding: '12px 10px', textAlign: 'right' }}>{(debt.value ?? 0).toLocaleString()}đ</td>
+                  <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 600, color: (debt.remainingToCollect ?? 0) > 0 ? 'var(--error)' : 'inherit' }}>
+                    {(debt.remainingToCollect ?? 0).toLocaleString()}đ
                   </td>
-                  <td style={{ padding: '12px 10px', textAlign: 'center' }}>{new Date(debt.dueDate).toLocaleDateString('vi-VN')}</td>
+                  <td style={{ padding: '12px 10px', textAlign: 'center' }}>{debt.dueDate ? new Date(debt.dueDate).toLocaleDateString('vi-VN') : '—'}</td>
                   {isAdmin && (
                     <td style={{ padding: '12px 10px', textAlign: 'right' }}>
                       {debt.remainingToCollect > 0 && (

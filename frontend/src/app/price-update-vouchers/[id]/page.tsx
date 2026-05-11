@@ -149,7 +149,7 @@ export default function PriceUpdateVoucherDetailPage() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ID: {it.productId}</div>
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right', fontWeight: 700, color: 'var(--accent-light)', fontSize: '1.1rem' }}>
-                    {it.newPrice.toLocaleString('vi-VN')} đ
+                    {(it.newPrice ?? 0).toLocaleString('vi-VN')} đ
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                     <span className={`badge ${it.isVisible ? 'badge-success' : 'badge-error'}`}>

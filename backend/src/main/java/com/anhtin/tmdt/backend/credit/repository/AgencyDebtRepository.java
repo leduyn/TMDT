@@ -10,4 +10,5 @@ import java.util.List;
 public interface AgencyDebtRepository extends JpaRepository<AgencyDebt, Long> {
     List<AgencyDebt> findByAgencyIdOrderByRecordingDateDesc(Long agencyId);
     List<AgencyDebt> findByOrderId(Long orderId);
+    List<AgencyDebt> findAllByOrderByRecordingDateDesc();
 }

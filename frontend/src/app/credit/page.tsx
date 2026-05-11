@@ -6,8 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { creditApi, agencyApi, agencyDebtApi, CreditDetail, AgencyDTO } from '@/lib/api';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+const fmt = (n: number | null | undefined) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n ?? 0);
 
 const fmtDate = (s?: string) =>
   s ? new Date(s).toLocaleString('vi-VN') : '—';
@@ -420,6 +420,41 @@ function CreditManagementContent() {
                           </td>
                           <td style={{ padding: '10px 12px', color: new Date(d.dueDate) < new Date() && d.remainingToCollect > 0 ? '#ef4444' : '#94a3b8' }}>
                             {fmtDate(d.dueDate)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Customer debt list */}
+            <div style={{
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16, padding: 24, marginBottom: 24,
+            }}>
+              <h2 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 16, marginTop: 0, marginBottom: 16 }}>
+                👥 Dư nợ theo khách hàng
+              </h2>
+              {!detail.customerDebts || detail.customerDebts.length === 0 ? (
+                <div style={{ color: '#64748b', textAlign: 'center', padding: 32 }}>Không có dữ liệu khách hàng</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ color: '#94a3b8' }}>
+                        {['Khách hàng', 'Dư nợ hiện tại'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.customerDebts.map((c, i) => (
+                        <tr key={c.customerId} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: 500, color: '#f1f5f9' }}>{c.customerName}</td>
+                          <td style={{ padding: '10px 12px', fontWeight: 600, color: c.totalDebt > 0 ? '#f59e0b' : '#22c55e' }}>
+                            {fmt(c.totalDebt)}
                           </td>
                         </tr>
                       ))}

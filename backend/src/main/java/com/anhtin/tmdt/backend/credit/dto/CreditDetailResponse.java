@@ -21,6 +21,7 @@ public class CreditDetailResponse {
 
     private List<OverdueDebtInfo> overdueDebts;
     private List<LedgerEntry>     ledgerHistory;
+    private List<CustomerDebtInfo> customerDebts;
 
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
@@ -42,6 +43,30 @@ public class CreditDetailResponse {
     public void setOverdueDebts(List<OverdueDebtInfo> overdueDebts) { this.overdueDebts = overdueDebts; }
     public List<LedgerEntry> getLedgerHistory() { return ledgerHistory; }
     public void setLedgerHistory(List<LedgerEntry> ledgerHistory) { this.ledgerHistory = ledgerHistory; }
+    public List<CustomerDebtInfo> getCustomerDebts() { return customerDebts; }
+    public void setCustomerDebts(List<CustomerDebtInfo> customerDebts) { this.customerDebts = customerDebts; }
+
+    public static class CustomerDebtInfo {
+        private Long   customerId;
+        private String customerName;
+        private double totalDebt;
+
+        public Long getCustomerId() { return customerId; }
+        public void setCustomerId(Long customerId) { this.customerId = customerId; }
+        public String getCustomerName() { return customerName; }
+        public void setCustomerName(String customerName) { this.customerName = customerName; }
+        public double getTotalDebt() { return totalDebt; }
+        public void setTotalDebt(double totalDebt) { this.totalDebt = totalDebt; }
+
+        public static CustomerDebtInfo from(com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment a) {
+            CustomerDebtInfo info = new CustomerDebtInfo();
+            info.setCustomerId(a.getCustomer().getId());
+            info.setCustomerName(a.getCustomer().getOrganizationName() != null ? 
+                a.getCustomer().getOrganizationName() : a.getCustomer().getUsername());
+            info.setTotalDebt(a.getTotalDebt());
+            return info;
+        }
+    }
 
     public static class OverdueDebtInfo {
         private Long   id;
@@ -116,7 +141,8 @@ public class CreditDetailResponse {
     public static CreditDetailResponse from(AgentCredit credit,
                                             List<OverdueDebt> debts,
                                             List<CreditLedger> ledger,
-                                            Map<Long, String> orderReceiverTypes) {
+                                            Map<Long, String> orderReceiverTypes,
+                                            List<com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment> assignments) {
         CreditDetailResponse r = new CreditDetailResponse();
         r.setAgencyId(credit.getAgency().getId());
         r.setCreditLimit(credit.getCreditLimit());
@@ -127,6 +153,7 @@ public class CreditDetailResponse {
         r.setHmkd(credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable());
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
+        r.setCustomerDebts(assignments.stream().map(CustomerDebtInfo::from).toList());
         
         r.setLedgerHistory(ledger.stream().map(l -> {
             String ref = l.getReferenceId();
@@ -151,6 +178,7 @@ public class CreditDetailResponse {
         r.setHmkd(0.0);
         r.setOverdueDebts(List.of());
         r.setLedgerHistory(List.of());
+        r.setCustomerDebts(List.of());
         return r;
     }
 }

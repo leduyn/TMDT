@@ -250,4 +250,7 @@ public class AgencyDebtService {
             agencyCustomerAssignmentRepository.save(assignment);
         }
     }
+    public List<AgencyDebt> getAllDebts() {
+        return agencyDebtRepository.findAllByOrderByRecordingDateDesc();
+    }
 }

@@ -78,11 +78,13 @@ function AgencyDebtsContent() {
     }
   }, [isAdmin, myAgencyId, searchParams]);
 
-  const loadDebts = useCallback(async (agencyId: number) => {
+  const loadDebts = useCallback(async (agencyId: number | null) => {
     setLoading(true);
     setError('');
     try {
-      const data = await agencyDebtApi.getByAgencyId(agencyId);
+      const data = agencyId 
+        ? await agencyDebtApi.getByAgencyId(agencyId)
+        : await agencyDebtApi.getAll();
       setDebts(data);
     } catch (e: any) {
       setError(e.message || 'Không thể tải danh sách công nợ');
@@ -92,10 +94,15 @@ function AgencyDebtsContent() {
   }, []);
 
   useEffect(() => {
-    if (selectedAgencyId) {
+    // If not admin, always filter by myAgencyId
+    if (!isAdmin && myAgencyId) {
+      loadDebts(myAgencyId);
+    } 
+    // If admin, load based on selection (null means all)
+    else if (isAdmin) {
       loadDebts(selectedAgencyId);
     }
-  }, [selectedAgencyId, loadDebts]);
+  }, [isAdmin, myAgencyId, selectedAgencyId, loadDebts]);
 
   const handlePay = async () => {
     if (!paymentModal) return;
@@ -170,6 +177,7 @@ function AgencyDebtsContent() {
             <thead>
               <tr>
                 <th>Ngày ghi nhận</th>
+                {isAdmin && !selectedAgencyId && <th>Đại lý</th>}
                 <th>Khách hàng</th>
                 <th>Mã công nợ</th>
                 <th>Mã ĐH</th>
@@ -187,11 +195,11 @@ function AgencyDebtsContent() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={13} style={{ textAlign: 'center', padding: 48 }}>Đang tải...</td>
+                  <td colSpan={isAdmin && !selectedAgencyId ? 14 : 13} style={{ textAlign: 'center', padding: 48 }}>Đang tải...</td>
                 </tr>
               ) : debts.length === 0 ? (
                 <tr>
-                  <td colSpan={13} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
+                  <td colSpan={isAdmin && !selectedAgencyId ? 14 : 13} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
                     Không có dữ liệu công nợ
                   </td>
                 </tr>
@@ -200,6 +208,12 @@ function AgencyDebtsContent() {
                 return (
                   <tr key={debt.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td>{fmtDate(debt.recordingDate)}</td>
+                    {isAdmin && !selectedAgencyId && (
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--accent-light)' }}>{debt.agencyName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{debt.agencyCode}</div>
+                      </td>
+                    )}
                     <td>
                       <div style={{ fontWeight: 500 }}>{debt.customerName}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{debt.customerCode} • {debt.customerLevel}</div>

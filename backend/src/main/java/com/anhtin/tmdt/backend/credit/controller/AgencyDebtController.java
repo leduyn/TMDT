@@ -18,6 +18,16 @@ public class AgencyDebtController {
 
     @Autowired
     private AgencyDebtService agencyDebtService;
+    
+    @GetMapping
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<List<AgencyDebtDTO>> getAllDebts() {
+        List<AgencyDebt> debts = agencyDebtService.getAllDebts();
+        List<AgencyDebtDTO> dtos = debts.stream()
+                .map(AgencyDebtDTO::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
 
     @GetMapping("/agency/{agencyId}")
     @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
