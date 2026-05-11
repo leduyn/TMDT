@@ -8,6 +8,7 @@ import com.anhtin.tmdt.backend.credit.repository.CreditLedgerRepository;
 import com.anhtin.tmdt.backend.credit.repository.OverdueDebtRepository;
 import com.anhtin.tmdt.backend.entity.Order;
 import com.anhtin.tmdt.backend.repository.OrderRepository;
+import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,8 @@ public class CreditService {
     private CreditLedgerRepository creditLedgerRepository;
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    private AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
     @Autowired
     private com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
 
@@ -57,6 +60,7 @@ public class CreditService {
             newCredit.setTotalDebt(0.0);
             newCredit.setVtcAvailable(request.getInitialVtc() != null ? request.getInitialVtc() : 0.0);
             newCredit.setVtcHold(0.0);
+            newCredit.setGuaranteeDebt(0.0);
             return newCredit;
         });
 
@@ -81,24 +85,32 @@ public class CreditService {
         credit.setVtcAvailable(0.0);
         credit.setTotalDebt(0.0);
         credit.setVtcHold(0.0);
+        credit.setGuaranteeDebt(0.0);
         agentCreditRepository.save(credit);
     }
 
     public double calculateHMKD(Long agencyId) {
         AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
                 .orElseThrow(() -> new RuntimeException("Credit account not found"));
-        return credit.getCreditLimit() - credit.getTotalDebt() + credit.getVtcAvailable();
+        return credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable();
     }
 
     @Transactional
     public void createCreditOrder(Long agencyId, Long orderId, Double amount) {
-        int updated = agentCreditRepository.consumeCredit(agencyId, amount);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        int updated = 0;
+        if ("CUSTOMER".equals(order.getReceiverType())) {
+            updated = agentCreditRepository.consumeGuaranteeCredit(agencyId, amount);
+        } else {
+            updated = agentCreditRepository.consumeAgencyCredit(agencyId, amount);
+        }
+
         if (updated == 0) {
             throw new RuntimeException("Hạn mức tín dụng không đủ");
         }
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setStatus("NEW");
         orderRepository.save(order);
 
@@ -167,9 +179,9 @@ public class CreditService {
             }
         }
 
-        // Nếu còn dư sau khi trả hết nợ quá hạn, giảm total_debt chung
+        // Nếu còn dư sau khi trả hết nợ quá hạn, ưu tiên giảm Dư nợ (totalDebt)
         if (remainingAmount > 0) {
-            agentCreditRepository.decreaseDebt(agencyId, remainingAmount);
+            agentCreditRepository.decreaseAgencyDebt(agencyId, remainingAmount);
         }
     }
 
@@ -180,7 +192,20 @@ public class CreditService {
         double principalToPay = Math.min(remaining, debt.getPrincipalAmount());
         debt.setPrincipalAmount(debt.getPrincipalAmount() - principalToPay);
         remaining -= principalToPay;
-        agentCreditRepository.decreaseDebt(credit.getAgency().getId(), principalToPay);
+        
+        if ("CUSTOMER".equals(debt.getOrder().getReceiverType())) {
+            agentCreditRepository.decreaseGuaranteeDebt(credit.getAgency().getId(), principalToPay);
+            if (debt.getOrder().getCustomer() != null && debt.getOrder().getAgency() != null) {
+                agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
+                        debt.getOrder().getAgency().getId(), debt.getOrder().getCustomer().getId())
+                    .ifPresent(assignment -> {
+                        assignment.setTotalDebt(Math.max(0, assignment.getTotalDebt() - principalToPay));
+                        agencyCustomerAssignmentRepository.save(assignment);
+                    });
+            }
+        } else {
+            agentCreditRepository.decreaseAgencyDebt(credit.getAgency().getId(), principalToPay);
+        }
 
         // 2. Trả lãi sau
         double interestToPay = Math.min(remaining, debt.getInterestAccrued());

@@ -23,6 +23,7 @@ public class UserDTO {
     private String customName;
     private String customShippingAddress;
     private String customPhone;
+    private Double totalDebt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -62,6 +63,8 @@ public class UserDTO {
     public void setCustomShippingAddress(String customShippingAddress) { this.customShippingAddress = customShippingAddress; }
     public String getCustomPhone() { return customPhone; }
     public void setCustomPhone(String customPhone) { this.customPhone = customPhone; }
+    public Double getTotalDebt() { return totalDebt; }
+    public void setTotalDebt(Double totalDebt) { this.totalDebt = totalDebt; }
 
     public UserDTO(User user) {
         this.id = user.getId();
@@ -91,6 +94,7 @@ public class UserDTO {
             this.customName = first.getCustomName();
             this.customShippingAddress = first.getCustomShippingAddress();
             this.customPhone = first.getCustomPhone();
+            this.totalDebt = first.getTotalDebt();
         } else {
             this.agencyIds = new java.util.ArrayList<>();
             this.agencyNames = new java.util.ArrayList<>();
