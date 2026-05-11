@@ -200,8 +200,15 @@ async function fetchJSON<T>(
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || 'Lỗi kết nối API');
+    let err: any = {};
+    try {
+      const text = await res.text();
+      err = text ? JSON.parse(text) : { message: res.statusText };
+    } catch (e) {
+      err = { message: res.statusText };
+    }
+    const errorMessage = err.message || err.error || `Lỗi kết nối API (Status: ${res.status})`;
+    throw new Error(errorMessage);
   }
   return res.json();
 }
