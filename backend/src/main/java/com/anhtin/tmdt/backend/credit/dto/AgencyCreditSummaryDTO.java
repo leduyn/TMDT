@@ -15,6 +15,7 @@ public class AgencyCreditSummaryDTO {
 
     private double  creditLimit;
     private double  totalDebt;
+    private double  guaranteeDebt;
     private double  vtcAvailable;
     private double  vtcHold;
     private double  hmkd;            
@@ -36,6 +37,8 @@ public class AgencyCreditSummaryDTO {
     public void setCreditLimit(double creditLimit) { this.creditLimit = creditLimit; }
     public double getTotalDebt() { return totalDebt; }
     public void setTotalDebt(double totalDebt) { this.totalDebt = totalDebt; }
+    public double getGuaranteeDebt() { return guaranteeDebt; }
+    public void setGuaranteeDebt(double guaranteeDebt) { this.guaranteeDebt = guaranteeDebt; }
     public double getVtcAvailable() { return vtcAvailable; }
     public void setVtcAvailable(double vtcAvailable) { this.vtcAvailable = vtcAvailable; }
     public double getVtcHold() { return vtcHold; }
@@ -62,9 +65,10 @@ public class AgencyCreditSummaryDTO {
         d.setAgencyAddress(ac.getAgency().getAddress());
         d.setCreditLimit(ac.getCreditLimit());
         d.setTotalDebt(ac.getTotalDebt());
+        d.setGuaranteeDebt(ac.getGuaranteeDebt());
         d.setVtcAvailable(ac.getVtcAvailable());
         d.setVtcHold(ac.getVtcHold());
-        d.setHmkd(ac.getCreditLimit() - ac.getTotalDebt() + ac.getVtcAvailable());
+        d.setHmkd(ac.getCreditLimit() - (ac.getTotalDebt() + ac.getGuaranteeDebt()) + ac.getVtcAvailable());
         d.setDebtTermDays(ac.getDebtTermDays() != null ? ac.getDebtTermDays() : 30);
         d.setActiveOverdueCount(overdueCount);
         d.setUpdatedAt(ac.getUpdatedAt());

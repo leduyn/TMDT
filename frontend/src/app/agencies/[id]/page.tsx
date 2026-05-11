@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { agencyApi, AgencyDTO, UserDTO, orderApi, OrderDTO } from '@/lib/api';
+import { agencyApi, AgencyDTO, UserDTO, orderApi, OrderDTO, creditApi, CreditDetail } from '@/lib/api';
 import Link from 'next/link';
 
 // UI Components
@@ -21,6 +21,7 @@ export default function AgencyDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const [agency, setAgency] = useState<AgencyDTO | null>(null);
+  const [credit, setCredit] = useState<CreditDetail | null>(null);
   const [customers, setCustomers] = useState<UserDTO[]>([]);
   const [orders, setOrders] = useState<OrderDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,12 +42,14 @@ export default function AgencyDetailPage() {
     setIsLoading(true);
     try {
       const agencyId = parseInt(id as string);
-      const [agencyData, customersData] = await Promise.all([
+      const [agencyData, customersData, creditData] = await Promise.all([
         agencyApi.getById(agencyId),
-        agencyApi.getCustomers(agencyId)
+        agencyApi.getCustomers(agencyId),
+        creditApi.getDetail(agencyId).catch(() => null) // Nếu đại lý chưa có tín dụng thì trả về null
       ]);
       setAgency(agencyData);
       setCustomers(customersData);
+      setCredit(creditData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -247,6 +250,49 @@ export default function AgencyDetailPage() {
                   </div>
                 </div>
               </GlassCard>
+
+              {/* Thông tin Tín dụng */}
+              {credit && (
+                <GlassCard style={{ padding: 24, border: '1px solid rgba(56, 189, 248, 0.3)', background: 'rgba(56, 189, 248, 0.02)' }}>
+                  <h3 style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 10, color: '#38bdf8' }}>
+                    <CreditCard size={20} /> Quản lý Công nợ & Tín dụng
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <small style={{ color: 'var(--text-muted)' }}>Hạn mức khả dụng</small>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#38bdf8' }}>{credit.hmkd.toLocaleString('vi-VN')}đ</div>
+                    </div>
+                    <div>
+                      <small style={{ color: 'var(--text-muted)' }}>Hạn mức tín dụng</small>
+                      <div style={{ fontSize: '1rem', fontWeight: 600 }}>{credit.creditLimit.toLocaleString('vi-VN')}đ</div>
+                    </div>
+                    <div>
+                      <small style={{ color: 'var(--text-muted)' }}>Dư nợ (Đại lý)</small>
+                      <div style={{ fontSize: '1rem', fontWeight: 600, color: credit.totalDebt > 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                        {credit.totalDebt.toLocaleString('vi-VN')}đ
+                      </div>
+                    </div>
+                    <div>
+                      <small style={{ color: 'var(--text-muted)' }}>Nợ bảo lãnh (Khách hàng)</small>
+                      <div style={{ fontSize: '1rem', fontWeight: 600, color: credit.guaranteeDebt > 0 ? '#f43f5e' : 'var(--text-primary)' }}>
+                        {credit.guaranteeDebt.toLocaleString('vi-VN')}đ
+                      </div>
+                    </div>
+                    <div>
+                      <small style={{ color: 'var(--text-muted)' }}>Ký quỹ khả dụng</small>
+                      <div style={{ fontSize: '1rem', fontWeight: 600, color: '#f59e0b' }}>
+                        {credit.vtcAvailable.toLocaleString('vi-VN')}đ
+                      </div>
+                    </div>
+                    <div>
+                      <small style={{ color: 'var(--text-muted)' }}>Ký quỹ tạm giữ</small>
+                      <div style={{ fontSize: '1rem', fontWeight: 600, color: '#a78bfa' }}>
+                        {credit.vtcHold.toLocaleString('vi-VN')}đ
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+              )}
             </div>
 
             {/* Cột phải: Thông tin hóa đơn & Danh sách khách hàng */}

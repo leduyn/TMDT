@@ -27,6 +27,9 @@ public class AgencyCustomerAssignment {
     private String customPhone;
     private boolean approved = false;
 
+    @Column(name = "total_debt", nullable = false)
+    private Double totalDebt = 0.0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -52,6 +55,8 @@ public class AgencyCustomerAssignment {
     public void setCustomPhone(String customPhone) { this.customPhone = customPhone; }
     public boolean isApproved() { return approved; }
     public void setApproved(boolean approved) { this.approved = approved; }
+    public Double getTotalDebt() { return totalDebt; }
+    public void setTotalDebt(Double totalDebt) { this.totalDebt = totalDebt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

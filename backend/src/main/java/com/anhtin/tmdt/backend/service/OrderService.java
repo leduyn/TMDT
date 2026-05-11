@@ -166,6 +166,13 @@ public class OrderService {
 
         commissionService.createTransaction(savedOrder);
 
+        // Trừ hạn mức tín dụng của đại lý
+        try {
+            creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
+        } catch (Exception e) {
+            throw new RuntimeException("Hạn mức tín dụng không đủ: " + e.getMessage());
+        }
+
         return savedOrder;
     }
 
@@ -267,11 +274,16 @@ public class OrderService {
         order.setDiscountAmount(discountAmount);
         order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
 
-        checkAndConsumeCredit(agencyId, order.getTotalAmount());
-
         Order savedOrder = orderRepository.save(order);
 
         commissionService.createTransaction(savedOrder);
+
+        // Trừ hạn mức tín dụng của đại lý
+        try {
+            creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
+        } catch (Exception e) {
+            throw new RuntimeException("Hạn mức tín dụng không đủ: " + e.getMessage());
+        }
 
         return savedOrder;
     }
@@ -382,11 +394,16 @@ public class OrderService {
         order.setDiscountAmount(discountAmount);
         order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
 
-        checkAndConsumeCredit(agencyId, order.getTotalAmount());
-
         Order savedOrder = orderRepository.save(order);
 
         commissionService.createTransaction(savedOrder);
+
+        // Trừ hạn mức tín dụng của đại lý
+        try {
+            creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
+        } catch (Exception e) {
+            throw new RuntimeException("Hạn mức tín dụng không đủ: " + e.getMessage());
+        }
 
         return savedOrder;
     }
@@ -449,9 +466,27 @@ public class OrderService {
     public OrderDTO updateOrderStatus(Long id, String status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        String oldStatus = order.getStatus();
         order.setStatus(status);
         order.setUpdatedDate(LocalDateTime.now());
-        return convertToDTO(orderRepository.save(order));
+        
+        Order savedOrder = orderRepository.save(order);
+        
+        // Khi đơn hàng có trạng thái hoàn thành thì cập nhật dư nợ
+        if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
+            // Cập nhật dư nợ cho khách hàng (nếu có assignment)
+            if (order.getCustomer() != null && order.getAgency() != null) {
+                agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
+                        order.getAgency().getId(), order.getCustomer().getId())
+                    .ifPresent(assignment -> {
+                        assignment.setTotalDebt(assignment.getTotalDebt() + order.getTotalAmount());
+                        agencyCustomerAssignmentRepository.save(assignment);
+                    });
+            }
+        }
+        
+        return convertToDTO(savedOrder);
     }
 
     private OrderDTO convertToDTO(Order order) {
@@ -501,16 +536,4 @@ public class OrderService {
         return dto;
     }
 
-    private void checkAndConsumeCredit(Long agencyId, double amount) {
-        try {
-            double hmkd = creditService.calculateHMKD(agencyId);
-            if (amount > hmkd) {
-                throw new RuntimeException("Hạn mức tín dụng không đủ. Khả dụng: " + String.format("%,.0f", hmkd) + "đ, Cần: " + String.format("%,.0f", amount) + "đ");
-            }
-        } catch (Exception e) {
-            if (e.getMessage() != null && e.getMessage().contains("Hạn mức")) {
-                throw e;
-            }
-        }
-    }
 }
