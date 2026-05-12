@@ -129,18 +129,19 @@ export default function CustomerDetailPage() {
           </div>
 
           {/* Thông tin Công nợ */}
-          {customer.totalDebt !== undefined && customer.totalDebt > 0 && (
-            <div style={{ 
-              display: 'flex', alignItems: 'center', gap: 12, 
-              background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', 
-              padding: '10px 24px', borderRadius: 16 
-            }}>
-              <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.95rem' }}>Công nợ chưa thanh toán:</span>
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>
-                {customer.totalDebt.toLocaleString('vi-VN')}đ
-              </span>
-            </div>
-          )}
+          <div style={{ 
+            display: 'flex', alignItems: 'center', gap: 12, 
+            background: (customer.totalDebt ?? 0) > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', 
+            border: `1px solid ${(customer.totalDebt ?? 0) > 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`, 
+            padding: '10px 24px', borderRadius: 16 
+          }}>
+            <span style={{ color: (customer.totalDebt ?? 0) > 0 ? '#ef4444' : '#22c55e', fontWeight: 600, fontSize: '0.95rem' }}>
+              Dư nợ hiện tại:
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: (customer.totalDebt ?? 0) > 0 ? '#ef4444' : '#22c55e' }}>
+              {(customer.totalDebt ?? 0).toLocaleString('vi-VN')}đ
+            </span>
+          </div>
         </div>
 
         {activeTab === 'info' ? (

@@ -567,6 +567,8 @@ export const priceUpdateVoucherApi = {
 export interface OverdueDebtInfo {
   id: number;
   orderId: number;
+  customerId?: number;
+  customerName?: string;
   principalAmount: number;
   interestAccrued: number;
   status: 'ACTIVE' | 'CLOSED';
@@ -579,19 +581,51 @@ export interface LedgerEntry {
   type: 'DEBT' | 'PAYMENT' | 'INTEREST' | 'HOLD' | 'REFUND';
   amount: number;
   referenceId?: string;
+  receiverType?: string;
   createdAt: string;
+}
+
+export interface AgencyDebtDTO {
+  id: number;
+  agencyId: number;
+  orderId: number;
+  agencyCode?: string;
+  agencyName?: string;
+  customerCode?: string;
+  customerName?: string;
+  customerLevel?: string;
+  debtCode: string;
+  debtType: string;
+  jobCategory?: string;
+  debtTermDays: number;
+  value: number;
+  paidValue: number;
+  paymentDate?: string;
+  recordingDate: string;
+  dueDate: string;
+  remainingToCollect: number;
+  aCoin: number;
+}
+
+export interface CustomerDebtInfo {
+  customerId: number;
+  customerName: string;
+  totalDebt: number;
 }
 
 export interface CreditDetail {
   agencyId: number;
   creditLimit: number;
   totalDebt: number;
+  guaranteeDebt: number;
   vtcAvailable: number;
   vtcHold: number;
   hmkd: number;
+  debtTermDays: number;
   updatedAt: string;
   overdueDebts: OverdueDebtInfo[];
   ledgerHistory: LedgerEntry[];
+  customerDebts: CustomerDebtInfo[];
 }
 
 export interface AgencyCreditSummary {
@@ -637,6 +671,8 @@ export const creditApi = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
+  recalculate: (agencyId: number) =>
+    fetchJSON<{ message: string }>(`/api/credit/admin/recalculate/${agencyId}`, { method: 'POST' }),
 
   payDebt: (agentId: number, amount: number, orderId?: number) =>
     fetchJSON<{ message: string }>('/api/credit/payments', {
@@ -646,6 +682,21 @@ export const creditApi = {
 
   triggerInterest: () =>
     fetchJSON<{ message: string }>('/api/credit/admin/trigger-interest', { method: 'POST' }),
+  triggerOverdue: () =>
+    fetchJSON<{ message: string }>('/api/credit/admin/trigger-overdue', { method: 'POST' }),
+};
+
+export const agencyDebtApi = {
+  getAll: () =>
+    fetchJSON<AgencyDebtDTO[]>('/api/agency-debts'),
+  getByAgencyId: (agencyId: number) =>
+    fetchJSON<AgencyDebtDTO[]>(`/api/agency-debts/agency/${agencyId}`),
+  getByOrderId: (orderId: number) =>
+    fetchJSON<AgencyDebtDTO[]>(`/api/agency-debts/order/${orderId}`),
+  payDebt: (debtId: number, amount: number) =>
+    fetchJSON<AgencyDebtDTO>(`/api/agency-debts/${debtId}/pay?amount=${amount}`, {
+      method: 'POST'
+    }),
 };
 
 // ─── Order API ───────────────────────────────────────────────────────────────
@@ -666,6 +717,7 @@ export interface OrderDTO {
   agencyName?: string;
   totalAmount: number;
   discountAmount: number;
+  deliveryFee: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
   orderType?: string;
   shippingAddress?: string;
@@ -695,6 +747,7 @@ export interface OrderRequest {
   orderType?: 'DROPSHIP' | 'MARKETPLACE';
   promotionCode?: string;
   pointsToRedeem?: number;
+  deliveryFee?: number;
 }
 
 export const orderApi = {

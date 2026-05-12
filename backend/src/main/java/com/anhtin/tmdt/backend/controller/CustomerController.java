@@ -104,6 +104,7 @@ public class CustomerController {
                     dto.setCustomName(a.getCustomName());
                     dto.setCustomShippingAddress(a.getCustomShippingAddress());
                     dto.setCustomPhone(a.getCustomPhone());
+                    dto.setTotalDebt(a.getTotalDebt());
                 });
             }
         }

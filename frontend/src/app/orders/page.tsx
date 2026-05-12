@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge, { BadgeType } from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
-import { Eye, Search, Filter, Plus } from 'lucide-react';
+import { Eye, Search, Filter, Plus, CheckCircle2, Truck } from 'lucide-react';
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -41,6 +41,7 @@ export default function OrdersPage() {
     let label = status;
 
     switch (status) {
+      case 'NEW':
       case 'PENDING':
         type = 'warning';
         label = 'Chờ xử lý';
@@ -85,13 +86,46 @@ export default function OrdersPage() {
       header: 'Thao tác', 
       key: 'actions', 
       align: 'right',
-      render: (o) => (
-        <Link href={`/orders/${o.id}`} className="btn-icon" title="Xem chi tiết">
-          <Eye size={18} />
-        </Link>
-      )
+      render: (o) => {
+        const canUpdate = user?.roles.some(r => ['ROLE_ADMIN', 'ROLE_COMPANY'].includes(r));
+        return (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            {canUpdate && (o.status === 'PENDING' || o.status === 'NEW') && (
+              <button 
+                onClick={() => handleUpdateStatus(o.id, 'PROCESSING')} 
+                className="btn-quick-success" 
+                title="Xác nhận & Xử lý"
+              >
+                <CheckCircle2 size={16} />
+              </button>
+            )}
+            {canUpdate && o.status === 'PROCESSING' && (
+              <button 
+                onClick={() => handleUpdateStatus(o.id, 'COMPLETED')} 
+                className="btn-quick-success" 
+                title="Hoàn thành"
+              >
+                <Truck size={16} />
+              </button>
+            )}
+            <Link href={`/orders/${o.id}`} className="btn-icon" title="Xem chi tiết">
+              <Eye size={18} />
+            </Link>
+          </div>
+        );
+      }
     }
   ];
+
+  const handleUpdateStatus = async (id: number, newStatus: string) => {
+    if (!confirm(`Bạn có chắc muốn chuyển trạng thái đơn hàng sang ${newStatus}?`)) return;
+    try {
+      await orderApi.updateStatus(id, newStatus);
+      fetchOrders();
+    } catch (error) {
+      alert('Cập nhật thất bại: ' + error);
+    }
+  };
 
   return (
     <div className="container">
@@ -131,7 +165,7 @@ export default function OrdersPage() {
               onChange={(e) => setFilterStatus(e.target.value)}
             >
               <option value="ALL">Tất cả trạng thái</option>
-              <option value="PENDING">Chờ xử lý</option>
+              <option value="NEW">Mới / Chờ xử lý</option>
               <option value="PROCESSING">Đang xử lý</option>
               <option value="COMPLETED">Hoàn thành</option>
               <option value="CANCELLED">Đã hủy</option>
@@ -178,6 +212,24 @@ export default function OrdersPage() {
           background: var(--primary-light);
           color: white;
           border-color: var(--primary);
+        }
+        .btn-quick-success {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.2);
+          color: #22c55e;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-quick-success:hover {
+          background: #22c55e;
+          color: white;
+          border-color: #22c55e;
         }
       `}</style>
     </div>
