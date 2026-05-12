@@ -148,6 +148,11 @@ function AgencyDebtsContent() {
       case 'DELIVERY_FEE': label = 'Phí giao hàng'; badgeType = 'warning'; break;
       case 'INCREASE': label = 'Tăng công nợ'; badgeType = 'error'; break;
       case 'DECREASE': label = 'Giảm công nợ'; badgeType = 'success'; break;
+      case 'PAYMENT': label = 'Thanh toán'; badgeType = 'success'; break;
+      case 'DEPOSIT': label = 'Nạp ký quỹ'; badgeType = 'success'; break;
+      case 'REFUND': label = 'Hoàn tiền'; badgeType = 'success'; break;
+      case 'HOLD': label = 'Giữ quỹ'; badgeType = 'warning'; break;
+      case 'INTEREST': label = 'Lãi quá hạn'; badgeType = 'error'; break;
     }
     return <Badge label={label} type={badgeType} />;
   };
@@ -247,23 +252,25 @@ function AgencyDebtsContent() {
                     </td>
                     <td><code style={{ fontSize: 11 }}>{debt.debtCode}</code></td>
                     <td>
-                      <button 
-                        onClick={() => setSelectedOrderId(debt.orderId)}
-                        style={{ 
-                          background: 'none', border: 'none', color: 'var(--primary)', 
-                          cursor: 'pointer', padding: 0, textDecoration: 'underline',
-                          fontWeight: 500
-                        }}
-                      >
-                        #{debt.orderId}
-                      </button>
+                      {debt.orderId ? (
+                        <button 
+                          onClick={() => setSelectedOrderId(debt.orderId)}
+                          style={{ 
+                            background: 'none', border: 'none', color: 'var(--primary)', 
+                            cursor: 'pointer', padding: 0, textDecoration: 'underline',
+                            fontWeight: 500
+                          }}
+                        >
+                          #{debt.orderId}
+                        </button>
+                      ) : '-'}
                     </td>
                     <td>{getDebtTypeBadge(debt.debtType)}</td>
                     <td style={{ fontSize: 12, maxWidth: 150 }}>{debt.jobCategory}</td>
                     <td style={{ textAlign: 'center' }}>{debt.debtTermDays} ngày</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(debt.value)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: debt.value < 0 ? 'var(--success)' : 'inherit' }}>{fmt(debt.value)}</td>
                     <td style={{ textAlign: 'right', color: 'var(--success)' }}>{fmt(debt.paidValue)}</td>
-                    <td style={{ textAlign: 'right', color: debt.remainingToCollect > 0 ? 'var(--error)' : 'inherit', fontWeight: 700 }}>
+                    <td style={{ textAlign: 'right', color: debt.remainingToCollect > 0 ? 'var(--error)' : (debt.remainingToCollect < 0 ? 'var(--success)' : 'inherit'), fontWeight: 700 }}>
                       {fmt(debt.remainingToCollect)}
                     </td>
                     <td>

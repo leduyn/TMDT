@@ -682,6 +682,8 @@ export const creditApi = {
 
   triggerInterest: () =>
     fetchJSON<{ message: string }>('/api/credit/admin/trigger-interest', { method: 'POST' }),
+  triggerOverdue: () =>
+    fetchJSON<{ message: string }>('/api/credit/admin/trigger-overdue', { method: 'POST' }),
 };
 
 export const agencyDebtApi = {

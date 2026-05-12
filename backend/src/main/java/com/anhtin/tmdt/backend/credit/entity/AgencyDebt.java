@@ -22,7 +22,7 @@ public class AgencyDebt {
     private Agency agency;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = true)
     private Order order;
 
     // Thông tin đại lý
@@ -128,6 +128,11 @@ public class AgencyDebt {
         ORDER_VALUE,
         DELIVERY_FEE,
         INCREASE,
-        DECREASE
+        DECREASE,
+        PAYMENT,
+        DEPOSIT,
+        REFUND,
+        HOLD,
+        INTEREST
     }
 }

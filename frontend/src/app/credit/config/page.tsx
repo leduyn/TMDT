@@ -74,6 +74,19 @@ export default function CreditConfigPage() {
     }
   };
 
+  const handleTriggerOverdue = async () => {
+    setSubmitting(true);
+    try {
+      const res = await creditApi.triggerOverdue();
+      notify(res.message);
+      loadSummaries();
+    } catch (e: any) {
+      setError(e.message ?? 'Không thể kích hoạt kiểm tra nợ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -83,17 +96,33 @@ export default function CreditConfigPage() {
       fontFamily: "'Inter', sans-serif"
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{
-            fontSize: 28, fontWeight: 800, margin: 0,
-            background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>
-            ⚙️ Cấu hình Công nợ Đại lý
-          </h1>
-          <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
-            Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng đại lý
-          </p>
+        <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{
+              fontSize: 28, fontWeight: 800, margin: 0,
+              background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              ⚙️ Cấu hình Công nợ Đại lý
+            </h1>
+            <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
+              Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng đại lý
+            </p>
+          </div>
+          <button 
+            onClick={handleTriggerOverdue}
+            disabled={submitting}
+            style={{
+              ...actionBtn('rgba(255, 255, 255, 0.05)', '#f1f5f9', '1px solid rgba(255, 255, 255, 0.1)'),
+              padding: '10px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'all 0.2s'
+            }}
+          >
+            🔍 Kiểm tra nợ
+          </button>
         </div>
 
         {/* Alerts */}

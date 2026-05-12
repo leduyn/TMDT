@@ -142,8 +142,8 @@ export default function CreateOrderPage() {
     }
 
     const totalAmount = getTotalAmount();
-    if (creditInfo && totalAmount > creditInfo.hmkd) {
-      setError('Hạn mức tín dụng không đủ. Khả dụng: ' + creditInfo.hmkd.toLocaleString() + 'đ, Cần: ' + totalAmount.toLocaleString() + 'đ');
+    if (creditDetail && totalAmount > creditDetail.hmkd) {
+      setError('Hạn mức tín dụng không đủ. Khả dụng: ' + creditDetail.hmkd.toLocaleString() + 'đ, Cần: ' + totalAmount.toLocaleString() + 'đ');
       return;
     }
     if (cart.length === 0) {

@@ -190,60 +190,33 @@ public class AgencyDebtService {
     }
     @Transactional
     public void recalculateDebts(Long agencyId) {
-        // 1. Lấy nợ từ các bản ghi chi tiết (AgencyDebt) - Đây là nguồn chính xác nhất cho từng đơn hàng
         List<AgencyDebt> allDebts = agencyDebtRepository.findByAgencyIdOrderByRecordingDateDesc(agencyId);
         
-        double orderAgencyDebt = 0.0;
-        double orderCustomerDebt = 0.0;
+        double calculatedAgencyDebt = 0.0;
+        double calculatedGuaranteeDebt = 0.0;
         Map<Long, Double> customerDebtMap = new HashMap<>();
 
         for (AgencyDebt debt : allDebts) {
             double remaining = debt.getRemainingToCollect();
-            if (remaining <= 0) continue;
-
             Order order = debt.getOrder();
-            if (order != null) {
-                if ("CUSTOMER".equals(order.getReceiverType())) {
-                    orderCustomerDebt += remaining;
-                    if (order.getCustomer() != null) {
-                        Long cId = order.getCustomer().getId();
-                        customerDebtMap.put(cId, customerDebtMap.getOrDefault(cId, 0.0) + remaining);
-                    }
-                } else {
-                    orderAgencyDebt += remaining;
-                }
-            }
-        }
-
-        // 2. Tính toán các khoản điều chỉnh từ Sổ cái (Ledger) mà không gắn với đơn hàng cụ thể
-        // Hoặc các khoản Lãi (INTEREST) vì hiện tại Interest chưa được tạo bản ghi AgencyDebt
-        List<com.anhtin.tmdt.backend.credit.entity.CreditLedger> allLedgers = creditLedgerRepository.findByAgencyId(agencyId);
-        double adjustments = 0.0;
-        
-        for (var ledger : allLedgers) {
-            String ref = ledger.getReferenceId();
-            boolean isOrderRelated = (ref != null && ref.matches("\\d+"));
             
-            // Nếu là giao dịch chung (GENERAL) hoặc Lãi (INTEREST) hoặc Hoàn tiền (REFUND) không gắn đơn
-            if (!isOrderRelated || ledger.getType() == com.anhtin.tmdt.backend.credit.entity.CreditLedger.LedgerType.INTEREST) {
-                double amount = ledger.getAmount();
-                boolean isPlus = (ledger.getType() == com.anhtin.tmdt.backend.credit.entity.CreditLedger.LedgerType.DEBT || 
-                                 ledger.getType() == com.anhtin.tmdt.backend.credit.entity.CreditLedger.LedgerType.INTEREST);
-                boolean isMinus = (ledger.getType() == com.anhtin.tmdt.backend.credit.entity.CreditLedger.LedgerType.PAYMENT || 
-                                  ledger.getType() == com.anhtin.tmdt.backend.credit.entity.CreditLedger.LedgerType.REFUND);
-                
-                if (isPlus) adjustments += amount;
-                else if (isMinus) adjustments -= amount;
+            if (order != null && "CUSTOMER".equals(order.getReceiverType())) {
+                calculatedGuaranteeDebt += remaining;
+                if (order.getCustomer() != null) {
+                    Long cId = order.getCustomer().getId();
+                    customerDebtMap.put(cId, customerDebtMap.getOrDefault(cId, 0.0) + remaining);
+                }
+            } else {
+                // If no order (like VTC deposit) or order is not for customer, it's agency debt
+                calculatedAgencyDebt += remaining;
             }
         }
 
         AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
                 .orElseThrow(() -> new RuntimeException("Credit account not found"));
         
-        // Nợ đại lý = Nợ đơn hàng đại lý + Các khoản điều chỉnh/Lãi/Thanh toán chung
-        credit.setTotalDebt(Math.max(-credit.getCreditLimit(), orderAgencyDebt + adjustments)); 
-        // Nợ bảo lãnh = Nợ từ các đơn hàng khách hàng (thường được thanh toán chỉ định nên khớp với AgencyDebt)
-        credit.setGuaranteeDebt(Math.max(0, orderCustomerDebt));
+        credit.setTotalDebt(calculatedAgencyDebt); 
+        credit.setGuaranteeDebt(Math.max(0, calculatedGuaranteeDebt));
         
         agentCreditRepository.save(credit);
         
@@ -251,10 +224,40 @@ public class AgencyDebtService {
         List<com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment> assignments = agencyCustomerAssignmentRepository.findByAgencyId(agencyId);
         for (var assignment : assignments) {
             Double cusDebt = customerDebtMap.getOrDefault(assignment.getCustomer().getId(), 0.0);
-            assignment.setTotalDebt(cusDebt);
+            assignment.setTotalDebt(Math.max(0, cusDebt));
             agencyCustomerAssignmentRepository.save(assignment);
         }
     }
+    @Transactional
+    public void recordTransaction(com.anhtin.tmdt.backend.entity.Agency agency, Order order, String code, AgencyDebt.DebtType type, String category, Double value, Integer termDays) {
+        LocalDateTime now = LocalDateTime.now();
+        AgencyDebt debt = new AgencyDebt();
+        debt.setAgency(agency);
+        debt.setOrder(order);
+        debt.setAgencyCode("AGENCY_" + agency.getId());
+        debt.setAgencyName(agency.getName());
+        
+        if (order != null && order.getCustomer() != null) {
+            User customer = order.getCustomer();
+            debt.setCustomerCode(customer.getUsername());
+            debt.setCustomerName(customer.getOrganizationName() != null ? customer.getOrganizationName() : customer.getUsername());
+            debt.setCustomerLevel(customer.getCustomerGroup() != null ? customer.getCustomerGroup().getName() : "");
+        }
+
+        debt.setDebtCode(code);
+        debt.setDebtType(type);
+        debt.setJobCategory(category);
+        debt.setDebtTermDays(termDays != null ? termDays : 0);
+        debt.setValue(value);
+        debt.setPaidValue(0.0); // For transactions like payment, the whole value is the 'transaction amount'
+        debt.setRecordingDate(now);
+        debt.setDueDate(now.plusDays(debt.getDebtTermDays()));
+        debt.setRemainingToCollect(value);
+        debt.setaCoin(0);
+        
+        agencyDebtRepository.save(debt);
+    }
+
     public List<AgencyDebt> getAllDebts() {
         return agencyDebtRepository.findAllByOrderByRecordingDateDesc();
     }

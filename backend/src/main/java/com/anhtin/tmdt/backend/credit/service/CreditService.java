@@ -9,6 +9,8 @@ import com.anhtin.tmdt.backend.credit.repository.OverdueDebtRepository;
 import com.anhtin.tmdt.backend.entity.Order;
 import com.anhtin.tmdt.backend.repository.OrderRepository;
 import com.anhtin.tmdt.backend.repository.AgencyCustomerAssignmentRepository;
+import com.anhtin.tmdt.backend.credit.service.AgencyDebtService;
+import com.anhtin.tmdt.backend.credit.service.CreditService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class CreditService {
@@ -32,6 +35,8 @@ public class CreditService {
     private AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
     @Autowired
     private com.anhtin.tmdt.backend.repository.AgencyRepository agencyRepository;
+    @Autowired
+    private AgencyDebtService agencyDebtService;
 
     @Value("${app.credit.overdue-interest-rate:0.0004}")
     private double dailyInterestRate;
@@ -118,11 +123,9 @@ public class CreditService {
     }
 
     @Transactional
-    public void processOverdue(Long orderId) {
+    public void processOverdue(Long orderId, Double amount) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        
-        if (!"NEW".equals(order.getStatus())) return;
         
         order.setStatus("OVERDUE");
         orderRepository.save(order);
@@ -130,7 +133,7 @@ public class CreditService {
         AgentCredit credit = agentCreditRepository.findByAgencyId(order.getAgency().getId())
                 .orElseThrow(() -> new RuntimeException("Credit account not found"));
 
-        double overdueAmount = order.getTotalAmount();
+        double overdueAmount = amount != null ? amount : order.getTotalAmount();
         double holdAmount = Math.min(credit.getVtcAvailable(), overdueAmount);
 
         if (holdAmount > 0) {
@@ -147,6 +150,10 @@ public class CreditService {
         debt.setStartDate(LocalDateTime.now());
         debt.setStatus(OverdueDebt.OverdueStatus.ACTIVE);
         overdueDebtRepository.save(debt);
+
+        // Record in AgencyDebt
+        agencyDebtService.recordTransaction(order.getAgency(), order, "HOLD-" + order.getId() + "-" + UUID.randomUUID().toString().substring(0,8), 
+            com.anhtin.tmdt.backend.credit.entity.AgencyDebt.DebtType.HOLD, "Giữ quỹ nợ quá hạn - Đơn " + order.getId(), overdueAmount, 0);
     }
 
     @Transactional
@@ -156,6 +163,13 @@ public class CreditService {
 
         double remainingAmount = amount;
         saveLedger(agencyId, CreditLedger.LedgerType.PAYMENT, amount, targetOrderId != null ? targetOrderId.toString() : "GENERAL");
+        
+        com.anhtin.tmdt.backend.entity.Agency agency = agencyRepository.findById(agencyId).orElse(null);
+        if (agency != null) {
+            Order targetOrder = targetOrderId != null ? orderRepository.findById(targetOrderId).orElse(null) : null;
+            agencyDebtService.recordTransaction(agency, targetOrder, "PAY-" + UUID.randomUUID().toString().substring(0,8), 
+                com.anhtin.tmdt.backend.credit.entity.AgencyDebt.DebtType.PAYMENT, "Thanh toán công nợ", -amount, 0);
+        }
 
         if (targetOrderId != null) {
             // Thanh toán chỉ định cho 1 đơn hàng
@@ -256,5 +270,8 @@ public class CreditService {
         credit.setVtcAvailable(credit.getVtcAvailable() + amount);
         agentCreditRepository.save(credit);
         saveLedger(agencyId, CreditLedger.LedgerType.REFUND, amount, "VTC_DEPOSIT");
+
+        agencyDebtService.recordTransaction(credit.getAgency(), null, "DEP-" + UUID.randomUUID().toString().substring(0,8), 
+            com.anhtin.tmdt.backend.credit.entity.AgencyDebt.DebtType.DEPOSIT, "Nạp tiền vào ví VTC", -amount, 0);
     }
 }

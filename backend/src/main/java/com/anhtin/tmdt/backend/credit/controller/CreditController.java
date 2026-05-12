@@ -30,6 +30,7 @@ public class CreditController {
     private final OverdueDebtRepository   overdueDebtRepository;
     private final CreditLedgerRepository  creditLedgerRepository;
     private final InterestScheduler       interestScheduler;
+    private final com.anhtin.tmdt.backend.credit.scheduler.DebtOverdueScheduler debtOverdueScheduler;
 
     // ── Lấy danh sách tổng quan tín dụng tất cả đại lý (ADMIN/COMPANY) ─────
     @GetMapping("/admin/summaries")
@@ -157,5 +158,13 @@ public class CreditController {
     public ResponseEntity<?> triggerInterest() {
         interestScheduler.calculateDailyInterest();
         return ResponseEntity.ok(Map.of("message", "Đã kích hoạt tính lãi thủ công"));
+    }
+
+    // ── Kích hoạt kiểm tra quá hạn thủ công (dùng để test) ─────────────────
+    @PostMapping("/admin/trigger-overdue")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> triggerOverdue() {
+        debtOverdueScheduler.checkAndProcessOverdueDebts();
+        return ResponseEntity.ok(Map.of("message", "Đã kích hoạt kiểm tra nợ quá hạn"));
     }
 }
