@@ -28,7 +28,9 @@ export default function CreateOrderPage() {
   const [selectedAgency, setSelectedAgency] = useState<AgencyDTO | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
   const [shippingAddress, setShippingAddress] = useState('');
-  const [creditInfo, setCreditInfo] = useState<{ hmkd: number } | null>(null);
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [creditDetail, setCreditDetail] = useState<CreditDetail | null>(null);
+  const [orderDebtTerm, setOrderDebtTerm] = useState(30);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomerInfo, setNewCustomerInfo] = useState({
@@ -80,8 +82,9 @@ export default function CreateOrderPage() {
     setSelectedAgency(agency);
     await loadAgencyCustomers(agency.id);
     try {
-      const credit = await creditApi.getHmkd(agency.id);
-      setCreditInfo(credit);
+      const detail = await creditApi.getDetail(agency.id);
+      setCreditDetail(detail);
+      setOrderDebtTerm(detail.debtTermDays || 30);
     } catch (e) {
       console.error('Failed to load credit info', e);
     }
@@ -139,8 +142,8 @@ export default function CreateOrderPage() {
     }
 
     const totalAmount = getTotalAmount();
-    if (creditInfo && totalAmount > creditInfo.hmkd) {
-      setError('Hạn mức tín dụng không đủ. Khả dụng: ' + creditInfo.hmkd.toLocaleString() + 'đ, Cần: ' + totalAmount.toLocaleString() + 'đ');
+    if (creditDetail && totalAmount > creditDetail.hmkd) {
+      setError('Hạn mức tín dụng không đủ. Khả dụng: ' + creditDetail.hmkd.toLocaleString() + 'đ, Cần: ' + totalAmount.toLocaleString() + 'đ');
       return;
     }
     if (cart.length === 0) {
@@ -158,7 +161,9 @@ export default function CreateOrderPage() {
           productId: item.productId,
           quantity: item.quantity
         })),
-        shippingAddress
+        shippingAddress,
+        deliveryFee,
+        debtTermDays: orderDebtTerm
       };
 
       if (selectedCustomer) {
@@ -196,6 +201,60 @@ export default function CreateOrderPage() {
         <h1 style={{ marginBottom: 4 }}>Tạo đơn hàng mới</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Tạo đơn hàng cho đại lý hoặc khách hàng</p>
       </div>
+
+      {selectedAgency && (
+        <GlassCard style={{ padding: '16px 20px', marginBottom: 24, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <div style={{ borderRight: '1px solid var(--border)', paddingRight: 24 }}>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Đại lý</div>
+              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedAgency.name}</div>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <div style={{ fontSize: 13 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>HM khả dụng: </span>
+                  <strong style={{ color: (creditDetail?.hmkd || 0) > 0 ? '#10b981' : '#ef4444' }}>{(creditDetail?.hmkd || 0).toLocaleString()}đ</strong>
+                </div>
+                {creditDetail && creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').length > 0 && (
+                  <div style={{ fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nợ quá hạn: </span>
+                    <strong style={{ color: '#ef4444' }}>
+                      {creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ
+                    </strong>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Khách hàng</div>
+              {selectedCustomer ? (
+                <>
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer.displayName || selectedCustomer.username}</div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ fontSize: 13 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Dư nợ KH: </span>
+                      <strong style={{ color: (creditDetail?.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0) > 0 ? '#ef4444' : 'inherit' }}>
+                        {(creditDetail?.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0).toLocaleString()}đ
+                      </strong>
+                    </div>
+                    {creditDetail && creditDetail.overdueDebts.filter(d => d.customerId === selectedCustomer.id && d.status === 'ACTIVE').length > 0 && (
+                      <div style={{ fontSize: 13 }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Nợ quá hạn: </span>
+                        <strong style={{ color: '#ef4444' }}>
+                          {creditDetail.overdueDebts.filter(d => d.customerId === selectedCustomer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 14 }}>
+                  Chưa chọn khách hàng
+                </div>
+              )}
+            </div>
+          </div>
+        </GlassCard>
+      )}
 
       <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
         {[1, 2, 3, 4].map(s => (
@@ -263,19 +322,22 @@ export default function CreateOrderPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3>Chọn Khách hàng</h3>
-              {creditInfo && (
-                <div style={{ 
-                  padding: '8px 12px', 
-                  background: getTotalAmount() > creditInfo.hmkd ? '#fee2e2' : '#dcfce7',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  color: getTotalAmount() > creditInfo.hmkd ? '#dc2626' : '#16a34a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}>
-                  <AlertTriangle size={14} />
-                  Hạn mức: {creditInfo.hmkd.toLocaleString()}đ
+              {creditDetail && (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ 
+                    padding: '8px 12px', 
+                    background: getTotalAmount() > creditDetail.hmkd ? '#fee2e2' : '#dcfce7',
+                    borderRadius: 6, fontSize: 12, color: getTotalAmount() > creditDetail.hmkd ? '#dc2626' : '#16a34a',
+                    border: '1px solid currentColor'
+                  }}>
+                    Đại lý HMKD: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
+                  </div>
+                  <div style={{ 
+                    padding: '8px 12px', background: '#fff7ed', borderRadius: 6, fontSize: 12, color: '#c2410c',
+                    border: '1px solid currentColor'
+                  }}>
+                    Đại lý NQH: <strong>{creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ</strong>
+                  </div>
                 </div>
               )}
             </div>
@@ -295,23 +357,32 @@ export default function CreateOrderPage() {
                   <div style={{ fontWeight: 600 }}>{selectedAgency?.name}</div>
                   <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Đại lý nhận hàng</div>
                 </div>
-                {agencyCustomers.map(customer => (
-                  <div 
-                    key={customer.id}
-                    onClick={() => handleSelectCustomer(customer)}
-                    style={{
-                      padding: 16,
-                      border: selectedCustomer?.id === customer.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      background: selectedCustomer?.id === customer.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent'
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{customer.displayName || customer.username}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{customer.phone}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{customer.shippingAddress}</div>
-                  </div>
-                ))}
+                {agencyCustomers.map(customer => {
+                  const debtInfo = creditDetail?.customerDebts.find(d => d.customerId === customer.id);
+                  const overdueDebt = creditDetail?.overdueDebts.filter(d => d.customerId === customer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0) || 0;
+                  
+                  return (
+                    <div 
+                      key={customer.id}
+                      onClick={() => handleSelectCustomer(customer)}
+                      style={{
+                        padding: 16,
+                        border: selectedCustomer?.id === customer.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        background: selectedCustomer?.id === customer.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{customer.displayName || customer.username}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Dư nợ: <span style={{ color: (debtInfo?.totalDebt || 0) > 0 ? '#ef4444' : 'inherit' }}>{(debtInfo?.totalDebt || 0).toLocaleString()}đ</span></div>
+                      {overdueDebt > 0 && (
+                        <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>Nợ quá hạn: {overdueDebt.toLocaleString()}đ</div>
+                      )}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{customer.phone}</div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -462,10 +533,27 @@ export default function CreateOrderPage() {
             <h3 style={{ marginBottom: 16 }}>Xác nhận đơn hàng</h3>
             
             <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Thông tin đơn</div>
-              <div>Đại lý: <strong>{selectedAgency?.name}</strong></div>
-              <div>Người nhận: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || selectedAgency?.name}</strong></div>
-              <div>Địa chỉ giao: <strong>{shippingAddress || selectedAgency?.address}</strong></div>
+              <div style={{ fontWeight: 600, marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Thông tin đơn</span>
+                <span style={{ fontSize: 12, color: 'var(--primary)' }}>Kỳ hạn: {orderDebtTerm} ngày</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+                <div>Đại lý: <strong>{selectedAgency?.name}</strong></div>
+                <div>Khách hàng: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || 'Đại lý'}</strong></div>
+                {creditDetail && (
+                  <>
+                    <div style={{ color: creditDetail.hmkd < getTotalAmount() ? '#ef4444' : 'inherit' }}>
+                      HMKD Đại lý: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
+                    </div>
+                    {selectedCustomer && (
+                      <div>
+                        Nợ KH: <strong>{(creditDetail.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0).toLocaleString()}đ</strong>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div style={{ gridColumn: '1 / -1' }}>Địa chỉ giao: <strong>{shippingAddress || selectedAgency?.address}</strong></div>
+              </div>
             </div>
 
             <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
@@ -476,21 +564,51 @@ export default function CreateOrderPage() {
                   <span>{(item.price * item.quantity).toLocaleString()}đ</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', fontWeight: 600, fontSize: 18 }}>
-                <span>Tổng tiền:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', marginTop: 8, borderTop: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                <span>Tạm tính:</span>
                 <span>{getTotalAmount().toLocaleString()}đ</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: 'var(--text-secondary)' }}>
+                <span>Phí giao hàng:</span>
+                <span>{deliveryFee.toLocaleString()}đ</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', fontWeight: 600, fontSize: 18 }}>
+                <span>Tổng cộng:</span>
+                <span>{(getTotalAmount() + deliveryFee).toLocaleString()}đ</span>
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label">Địa chỉ giao hàng</label>
-              <input 
-                type="text" 
-                className="form-input"
-                value={shippingAddress}
-                onChange={e => setShippingAddress(e.target.value)}
-                placeholder="Nhập địa chỉ giao hàng..."
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label className="form-label">Kỳ hạn nợ (ngày)</label>
+                <input 
+                  type="number" 
+                  className="form-input"
+                  value={orderDebtTerm}
+                  onChange={e => setOrderDebtTerm(Number(e.target.value))}
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="form-label">Phí giao hàng (đ)</label>
+                <input 
+                  type="number" 
+                  className="form-input"
+                  value={deliveryFee}
+                  onChange={e => setDeliveryFee(Number(e.target.value))}
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="form-label">Địa chỉ giao hàng</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  value={shippingAddress}
+                  onChange={e => setShippingAddress(e.target.value)}
+                  placeholder="Nhập địa chỉ giao hàng..."
+                />
+              </div>
             </div>
 
             <button 

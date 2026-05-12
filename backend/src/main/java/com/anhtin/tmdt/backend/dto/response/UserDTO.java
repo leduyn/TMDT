@@ -87,14 +87,18 @@ public class UserDTO {
             this.agencyIds = user.getAssignments().stream().map(a -> a.getAgency().getId()).collect(java.util.stream.Collectors.toList());
             this.agencyNames = user.getAssignments().stream().map(a -> a.getAgency().getName()).collect(java.util.stream.Collectors.toList());
             
-            // Lấy thông tin từ assignment đầu tiên làm mặc định
+            // Lấy thông tin từ assignment đầu tiên làm mặc định cho các trường custom
             com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment first = user.getAssignments().get(0);
             this.approved = first.isApproved();
             this.displayName = first.getCustomName();
             this.customName = first.getCustomName();
             this.customShippingAddress = first.getCustomShippingAddress();
             this.customPhone = first.getCustomPhone();
-            this.totalDebt = first.getTotalDebt();
+            
+            // Tổng nợ = tổng các assignment
+            this.totalDebt = user.getAssignments().stream()
+                    .mapToDouble(com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment::getTotalDebt)
+                    .sum();
         } else {
             this.agencyIds = new java.util.ArrayList<>();
             this.agencyNames = new java.util.ArrayList<>();

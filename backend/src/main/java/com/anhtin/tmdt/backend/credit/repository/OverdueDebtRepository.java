@@ -10,4 +10,5 @@ import java.util.List;
 public interface OverdueDebtRepository extends JpaRepository<OverdueDebt, Long> {
     List<OverdueDebt> findByAgencyIdAndStatus(Long agencyId, OverdueDebt.OverdueStatus status);
     List<OverdueDebt> findByStatus(OverdueDebt.OverdueStatus status);
+    List<OverdueDebt> findByOrderId(Long orderId);
 }

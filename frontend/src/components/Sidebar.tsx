@@ -55,6 +55,7 @@ export default function Sidebar() {
     { label: 'Khách hàng', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Khách của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
     { label: 'Tín dụng', href: '/credit', icon: CreditCard, roles: ['ROLE_COMPANY', 'ROLE_AGENCY'] },
+    { label: 'Công nợ', href: '/credit/debts', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ACCOUNTANT'] },
   ];
 
   const filteredNavItems = navItems.filter(item => 

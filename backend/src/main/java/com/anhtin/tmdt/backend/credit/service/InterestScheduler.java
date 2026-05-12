@@ -21,10 +21,12 @@ public class InterestScheduler {
 
     private final OverdueDebtRepository overdueDebtRepository;
     private final CreditLedgerRepository creditLedgerRepository;
+    private final AgencyDebtService agencyDebtService;
 
-    public InterestScheduler(OverdueDebtRepository overdueDebtRepository, CreditLedgerRepository creditLedgerRepository) {
+    public InterestScheduler(OverdueDebtRepository overdueDebtRepository, CreditLedgerRepository creditLedgerRepository, AgencyDebtService agencyDebtService) {
         this.overdueDebtRepository = overdueDebtRepository;
         this.creditLedgerRepository = creditLedgerRepository;
+        this.agencyDebtService = agencyDebtService;
     }
 
     @Value("${app.credit.overdue-interest-rate:0.0004}")
@@ -48,6 +50,9 @@ public class InterestScheduler {
             ledger.setAmount(dailyInterest);
             ledger.setReferenceId(debt.getOrder().getId().toString());
             creditLedgerRepository.save(ledger);
+
+            agencyDebtService.recordTransaction(debt.getAgency(), debt.getOrder(), "INT-" + debt.getOrder().getId() + "-" + java.util.UUID.randomUUID().toString().substring(0,8), 
+                com.anhtin.tmdt.backend.credit.entity.AgencyDebt.DebtType.INTEREST, "Lãi quá hạn - Đơn " + debt.getOrder().getId(), dailyInterest, 0);
         }
         log.info("Daily interest calculation completed for {} debts", activeDebts.size());
     }

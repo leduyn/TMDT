@@ -7,6 +7,7 @@ import com.anhtin.tmdt.backend.dto.response.OrderItemDTO;
 import com.anhtin.tmdt.backend.entity.*;
 import com.anhtin.tmdt.backend.repository.*;
 import com.anhtin.tmdt.backend.credit.service.CreditService;
+import com.anhtin.tmdt.backend.credit.service.AgencyDebtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,9 @@ public class OrderService {
 
     @Autowired
     private CreditService creditService;
+
+    @Autowired
+    private AgencyDebtService agencyDebtService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -108,6 +112,7 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
+        order.setDebtTermDays(request.getDebtTermDays());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -160,7 +165,8 @@ public class OrderService {
         }
 
         order.setDiscountAmount(discountAmount);
-        order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
+        order.setDeliveryFee(request.getDeliveryFee() != null ? request.getDeliveryFee() : 0.0);
+        order.setTotalAmount(Math.max(0, totalAmount - discountAmount) + order.getDeliveryFee());
 
         Order savedOrder = orderRepository.save(order);
 
@@ -220,6 +226,7 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
+        order.setDebtTermDays(request.getDebtTermDays());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -272,7 +279,8 @@ public class OrderService {
         }
 
         order.setDiscountAmount(discountAmount);
-        order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
+        order.setDeliveryFee(request.getDeliveryFee() != null ? request.getDeliveryFee() : 0.0);
+        order.setTotalAmount(Math.max(0, totalAmount - discountAmount) + order.getDeliveryFee());
 
         Order savedOrder = orderRepository.save(order);
 
@@ -340,6 +348,7 @@ public class OrderService {
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
+        order.setDebtTermDays(request.getDebtTermDays());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -392,7 +401,8 @@ public class OrderService {
         }
 
         order.setDiscountAmount(discountAmount);
-        order.setTotalAmount(Math.max(0, totalAmount - discountAmount));
+        order.setDeliveryFee(request.getDeliveryFee() != null ? request.getDeliveryFee() : 0.0);
+        order.setTotalAmount(Math.max(0, totalAmount - discountAmount) + order.getDeliveryFee());
 
         Order savedOrder = orderRepository.save(order);
 
@@ -484,6 +494,8 @@ public class OrderService {
                         agencyCustomerAssignmentRepository.save(assignment);
                     });
             }
+            // Sinh 2 dòng công nợ Đại lý
+            agencyDebtService.createDebtsForOrder(savedOrder);
         }
         
         return convertToDTO(savedOrder);
@@ -503,6 +515,7 @@ public class OrderService {
         
         dto.setTotalAmount(order.getTotalAmount());
         dto.setDiscountAmount(order.getDiscountAmount());
+        dto.setDeliveryFee(order.getDeliveryFee());
         dto.setStatus(order.getStatus());
         dto.setOrderType(order.getOrderType() != null ? order.getOrderType().name() : null);
         dto.setShippingAddress(order.getShippingAddress());
@@ -511,6 +524,7 @@ public class OrderService {
         dto.setOrderDate(order.getOrderDate());
         dto.setPriceListId(order.getPriceListId());
         dto.setReceiverType(order.getReceiverType());
+        dto.setDebtTermDays(order.getDebtTermDays());
         
         if (order.getCreatedBy() != null) {
             dto.setCreatedByName(order.getCreatedBy().getOrganizationName() != null ? 

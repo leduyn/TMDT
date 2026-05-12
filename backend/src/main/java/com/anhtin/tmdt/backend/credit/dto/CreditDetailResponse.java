@@ -5,6 +5,8 @@ import com.anhtin.tmdt.backend.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.credit.entity.OverdueDebt;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class CreditDetailResponse {
 
@@ -15,10 +17,12 @@ public class CreditDetailResponse {
     private double vtcAvailable;
     private double vtcHold;
     private double hmkd;           // Hạn mức khả dụng = creditLimit - (totalDebt + guaranteeDebt) + vtcAvailable
+    private int debtTermDays;
     private LocalDateTime updatedAt;
 
     private List<OverdueDebtInfo> overdueDebts;
     private List<LedgerEntry>     ledgerHistory;
+    private List<CustomerDebtInfo> customerDebts;
 
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
@@ -34,16 +38,44 @@ public class CreditDetailResponse {
     public void setVtcHold(double vtcHold) { this.vtcHold = vtcHold; }
     public double getHmkd() { return hmkd; }
     public void setHmkd(double hmkd) { this.hmkd = hmkd; }
+    public int getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(int debtTermDays) { this.debtTermDays = debtTermDays; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public List<OverdueDebtInfo> getOverdueDebts() { return overdueDebts; }
     public void setOverdueDebts(List<OverdueDebtInfo> overdueDebts) { this.overdueDebts = overdueDebts; }
     public List<LedgerEntry> getLedgerHistory() { return ledgerHistory; }
     public void setLedgerHistory(List<LedgerEntry> ledgerHistory) { this.ledgerHistory = ledgerHistory; }
+    public List<CustomerDebtInfo> getCustomerDebts() { return customerDebts; }
+    public void setCustomerDebts(List<CustomerDebtInfo> customerDebts) { this.customerDebts = customerDebts; }
+
+    public static class CustomerDebtInfo {
+        private Long   customerId;
+        private String customerName;
+        private double totalDebt;
+
+        public Long getCustomerId() { return customerId; }
+        public void setCustomerId(Long customerId) { this.customerId = customerId; }
+        public String getCustomerName() { return customerName; }
+        public void setCustomerName(String customerName) { this.customerName = customerName; }
+        public double getTotalDebt() { return totalDebt; }
+        public void setTotalDebt(double totalDebt) { this.totalDebt = totalDebt; }
+
+        public static CustomerDebtInfo from(com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment a) {
+            CustomerDebtInfo info = new CustomerDebtInfo();
+            info.setCustomerId(a.getCustomer().getId());
+            info.setCustomerName(a.getCustomer().getOrganizationName() != null ? 
+                a.getCustomer().getOrganizationName() : a.getCustomer().getUsername());
+            info.setTotalDebt(a.getTotalDebt());
+            return info;
+        }
+    }
 
     public static class OverdueDebtInfo {
         private Long   id;
         private Long   orderId;
+        private Long   customerId;
+        private String customerName;
         private double principalAmount;
         private double interestAccrued;
         private String status;
@@ -54,6 +86,10 @@ public class CreditDetailResponse {
         public void setId(Long id) { this.id = id; }
         public Long getOrderId() { return orderId; }
         public void setOrderId(Long orderId) { this.orderId = orderId; }
+        public Long getCustomerId() { return customerId; }
+        public void setCustomerId(Long customerId) { this.customerId = customerId; }
+        public String getCustomerName() { return customerName; }
+        public void setCustomerName(String customerName) { this.customerName = customerName; }
         public double getPrincipalAmount() { return principalAmount; }
         public void setPrincipalAmount(double principalAmount) { this.principalAmount = principalAmount; }
         public double getInterestAccrued() { return interestAccrued; }
@@ -69,6 +105,11 @@ public class CreditDetailResponse {
             OverdueDebtInfo info = new OverdueDebtInfo();
             info.setId(d.getId());
             info.setOrderId(d.getOrder().getId());
+            if (d.getOrder().getCustomer() != null) {
+                info.setCustomerId(d.getOrder().getCustomer().getId());
+                info.setCustomerName(d.getOrder().getCustomer().getOrganizationName() != null ? 
+                    d.getOrder().getCustomer().getOrganizationName() : d.getOrder().getCustomer().getUsername());
+            }
             info.setPrincipalAmount(d.getPrincipalAmount());
             info.setInterestAccrued(d.getInterestAccrued());
             info.setStatus(d.getStatus().name());
@@ -83,6 +124,7 @@ public class CreditDetailResponse {
         private String type;
         private double amount;
         private String referenceId;
+        private String receiverType; // AGENCY or CUSTOMER
         private LocalDateTime createdAt;
 
         public Long getId() { return id; }
@@ -93,15 +135,18 @@ public class CreditDetailResponse {
         public void setAmount(double amount) { this.amount = amount; }
         public String getReferenceId() { return referenceId; }
         public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
+        public String getReceiverType() { return receiverType; }
+        public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
         public LocalDateTime getCreatedAt() { return createdAt; }
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-        public static LedgerEntry from(CreditLedger l) {
+        public static LedgerEntry from(CreditLedger l, String receiverType) {
             LedgerEntry e = new LedgerEntry();
             e.setId(l.getId());
             e.setType(l.getType().name());
             e.setAmount(l.getAmount());
             e.setReferenceId(l.getReferenceId());
+            e.setReceiverType(receiverType);
             e.setCreatedAt(l.getCreatedAt());
             return e;
         }
@@ -109,7 +154,9 @@ public class CreditDetailResponse {
 
     public static CreditDetailResponse from(AgentCredit credit,
                                             List<OverdueDebt> debts,
-                                            List<CreditLedger> ledger) {
+                                            List<CreditLedger> ledger,
+                                            Map<Long, String> orderReceiverTypes,
+                                            List<com.anhtin.tmdt.backend.entity.AgencyCustomerAssignment> assignments) {
         CreditDetailResponse r = new CreditDetailResponse();
         r.setAgencyId(credit.getAgency().getId());
         r.setCreditLimit(credit.getCreditLimit());
@@ -118,9 +165,20 @@ public class CreditDetailResponse {
         r.setVtcAvailable(credit.getVtcAvailable());
         r.setVtcHold(credit.getVtcHold());
         r.setHmkd(credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable());
+        r.setDebtTermDays(credit.getDebtTermDays() != null ? credit.getDebtTermDays() : 30);
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
-        r.setLedgerHistory(ledger.stream().map(LedgerEntry::from).toList());
+        r.setCustomerDebts(assignments.stream().map(CustomerDebtInfo::from).toList());
+        
+        r.setLedgerHistory(ledger.stream().map(l -> {
+            String ref = l.getReferenceId();
+            String receiverType = "AGENCY";
+            if (ref != null && ref.matches("\\d+")) {
+                receiverType = orderReceiverTypes.getOrDefault(Long.parseLong(ref), "AGENCY");
+            }
+            return LedgerEntry.from(l, receiverType);
+        }).toList());
+        
         return r;
     }
 
@@ -133,8 +191,10 @@ public class CreditDetailResponse {
         r.setVtcAvailable(0.0);
         r.setVtcHold(0.0);
         r.setHmkd(0.0);
+        r.setDebtTermDays(30);
         r.setOverdueDebts(List.of());
         r.setLedgerHistory(List.of());
+        r.setCustomerDebts(List.of());
         return r;
     }
 }

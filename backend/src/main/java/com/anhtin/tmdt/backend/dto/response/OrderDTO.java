@@ -11,6 +11,7 @@ public class OrderDTO {
     private String agencyName;
     private Double totalAmount;
     private Double discountAmount;
+    private Double deliveryFee;
     private String status;
     private String orderType;
     private String shippingAddress;
@@ -21,6 +22,7 @@ public class OrderDTO {
     private Long priceListId;
     private String receiverType;
     private String createdByName;
+    private Integer debtTermDays;
     private LocalDateTime updatedDate;
 
     public Long getId() { return id; }
@@ -37,6 +39,8 @@ public class OrderDTO {
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
     public Double getDiscountAmount() { return discountAmount; }
     public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
+    public Double getDeliveryFee() { return deliveryFee; }
+    public void setDeliveryFee(Double deliveryFee) { this.deliveryFee = deliveryFee; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getOrderType() { return orderType; }
@@ -57,6 +61,8 @@ public class OrderDTO {
     public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
     public String getCreatedByName() { return createdByName; }
     public void setCreatedByName(String createdByName) { this.createdByName = createdByName; }
+    public Integer getDebtTermDays() { return debtTermDays; }
+    public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }
