@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -7,8 +7,8 @@ import { authApi } from '@/lib/api';
 import NotificationModal from '@/components/NotificationModal';
 
 const ROLES = [
-  { value: 'CUSTOMER', label: '👤 Khách hàng', desc: 'Mua sắm sản phẩm từ sàn' },
-  { value: 'AGENCY', label: '🏪 Đại lý', desc: 'Bán & dropship sản phẩm' },
+  { value: 'CUSTOMER', label: '👤 Người mua', desc: 'Mua sắm sản phẩm từ sàn' },
+  { value: 'AGENCY', label: '🏪 Khách hàng', desc: 'Bán & dropship sản phẩm' },
 ];
 
 export default function RegisterPage() {
@@ -169,3 +169,4 @@ export default function RegisterPage() {
     </main>
   );
 }
+

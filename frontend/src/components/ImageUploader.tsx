@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useState, useCallback } from 'react';
 import { uploadApi } from '@/lib/api';
@@ -158,3 +158,4 @@ export default function ImageUploader({ value, onChange, label = 'Hình ảnh', 
     </div>
   );
 }
+

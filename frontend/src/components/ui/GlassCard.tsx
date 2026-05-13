@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -60,3 +60,4 @@ export default function GlassCard({
     </div>
   );
 }
+

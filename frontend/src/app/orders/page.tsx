@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -72,8 +72,8 @@ export default function OrdersPage() {
   const columns: Column<OrderDTO>[] = [
     { header: 'Mã đơn', key: 'id', render: (o) => <strong>#{o.id}</strong> },
     { header: 'Ngày đặt', key: 'orderDate', render: (o) => new Date(o.orderDate).toLocaleDateString('vi-VN') },
-    { header: 'Khách hàng', key: 'customerName' },
-    { header: 'Đại lý xử lý', key: 'agencyName', render: (o) => o.agencyName || <span style={{ color: 'var(--text-muted)' }}>Trực tiếp</span> },
+    { header: 'Người mua', key: 'customerName' },
+    { header: 'Khách hàng xử lý', key: 'agencyName', render: (o) => o.agencyName || <span style={{ color: 'var(--text-muted)' }}>Trực tiếp</span> },
     { header: 'Người tạo', key: 'createdByName', render: (o) => o.createdByName || 'N/A' },
     { header: 'Tổng tiền', key: 'totalAmount', align: 'right', render: (o) => <span style={{ fontWeight: 600 }}>{o.totalAmount?.toLocaleString()}đ</span> },
     { header: 'Trạng thái', key: 'status', align: 'center', render: (o) => getStatusBadge(o.status) },
@@ -148,7 +148,7 @@ export default function OrdersPage() {
             <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
-              placeholder="Tìm theo mã đơn, khách hàng..." 
+              placeholder="Tìm theo mã đơn, Người mua..." 
               className="form-input"
               style={{ paddingLeft: 40 }}
               value={searchTerm}
@@ -235,3 +235,4 @@ export default function OrdersPage() {
     </div>
   );
 }
+

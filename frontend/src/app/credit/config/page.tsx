@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -103,10 +103,10 @@ export default function CreditConfigPage() {
               background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
-              ⚙️ Cấu hình Công nợ Đại lý
+              ⚙️ Cấu hình Công nợ Người mua
             </h1>
             <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
-              Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng đại lý
+              Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng Người mua
             </p>
           </div>
           <button 
@@ -155,7 +155,7 @@ export default function CreditConfigPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
-                  <th style={thStyle}>Đại lý</th>
+                  <th style={thStyle}>Người mua</th>
                   <th style={thStyle}>Hạn mức tín dụng</th>
                   <th style={thStyle}>Kỳ hạn nợ (ngày)</th>
                   <th style={thStyle}>HMKD Hiện tại</th>
@@ -271,3 +271,4 @@ const actionBtn = (bg: string, color = '#fff', border = 'none'): React.CSSProper
   fontWeight: 600,
   cursor: 'pointer'
 });
+

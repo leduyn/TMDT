@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
@@ -196,7 +196,7 @@ export default function ProductsPage() {
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
           title="Danh sách sản phẩm" 
-          subtitle="Khám phá hàng nghìn sản phẩm từ các đối tác và đại lý uy tín"
+          subtitle="Khám phá hàng nghìn sản phẩm từ các đối tác và Người mua uy tín"
           icon="ShoppingBag"
         />
 
@@ -393,3 +393,4 @@ export default function ProductsPage() {
     </>
   );
 }
+

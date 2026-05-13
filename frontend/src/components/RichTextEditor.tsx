@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -150,3 +150,4 @@ export default function RichTextEditor({ value, onChange, label, placeholder }: 
     </div>
   );
 }
+

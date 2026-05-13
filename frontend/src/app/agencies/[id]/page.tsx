@@ -45,7 +45,7 @@ export default function AgencyDetailPage() {
       const [agencyData, customersData, creditData] = await Promise.all([
         agencyApi.getById(agencyId),
         agencyApi.getCustomers(agencyId),
-        creditApi.getDetail(agencyId).catch(() => null) // Nếu đại lý chưa có tín dụng thì trả về null
+        creditApi.getDetail(agencyId).catch(() => null) // Nếu khách hàng chưa có tín dụng thì trả về null
       ]);
       setAgency(agencyData);
       setCustomers(customersData);
@@ -107,7 +107,7 @@ export default function AgencyDetailPage() {
       <>
         <Navbar />
         <div style={{ padding: 40, textAlign: 'center' }}>
-          <h2>Không tìm thấy đại lý</h2>
+          <h2>Không tìm thấy khách hàng</h2>
           <button className="btn-outline" onClick={() => router.back()} style={{ marginTop: 20 }}>
             <ArrowLeft size={16} style={{ marginRight: 8 }} /> Quay lại
           </button>
@@ -118,7 +118,7 @@ export default function AgencyDetailPage() {
 
   const customerColumns: Column<UserDTO>[] = [
     { 
-      header: 'Khách hàng', 
+      header: 'Người mua', 
       key: 'username',
       render: (u) => (
         <div>
@@ -163,7 +163,7 @@ export default function AgencyDetailPage() {
 
         <PageHeader 
           title={agency.name} 
-          subtitle={`Chi tiết thông tin đại lý ID: ${agency.id}`}
+          subtitle={`Chi tiết thông tin khách hàng ID: ${agency.id}`}
           icon="Building2"
           actions={
             <div style={{ display: 'flex', gap: 12 }}>
@@ -267,13 +267,13 @@ export default function AgencyDetailPage() {
                       <div style={{ fontSize: '1rem', fontWeight: 600 }}>{credit.creditLimit.toLocaleString('vi-VN')}đ</div>
                     </div>
                     <div>
-                      <small style={{ color: 'var(--text-muted)' }}>Dư nợ (Đại lý)</small>
+                      <small style={{ color: 'var(--text-muted)' }}>Dư nợ (Khách hàng)</small>
                       <div style={{ fontSize: '1rem', fontWeight: 600, color: credit.totalDebt > 0 ? '#ef4444' : 'var(--text-primary)' }}>
                         {credit.totalDebt.toLocaleString('vi-VN')}đ
                       </div>
                     </div>
                     <div>
-                      <small style={{ color: 'var(--text-muted)' }}>Nợ bảo lãnh (Khách hàng)</small>
+                      <small style={{ color: 'var(--text-muted)' }}>Nợ bảo lãnh (Người mua)</small>
                       <div style={{ fontSize: '1rem', fontWeight: 600, color: credit.guaranteeDebt > 0 ? '#f43f5e' : 'var(--text-primary)' }}>
                         {credit.guaranteeDebt.toLocaleString('vi-VN')}đ
                       </div>
@@ -295,7 +295,7 @@ export default function AgencyDetailPage() {
               )}
             </div>
 
-            {/* Cột phải: Thông tin hóa đơn & Danh sách khách hàng */}
+            {/* Cột phải: Thông tin hóa đơn & Danh sách người mua */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <GlassCard style={{ padding: 24 }}>
                 <h3 style={{ margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-light)' }}>
@@ -311,14 +311,14 @@ export default function AgencyDetailPage() {
               <GlassCard style={{ padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                   <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-light)' }}>
-                    <Users size={20} /> Khách hàng thuộc đại lý
+                    <Users size={20} /> Người mua thuộc khách hàng
                   </h3>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tổng số: {customers.length}</span>
                 </div>
                 <DataTable 
                   data={customers}
                   columns={customerColumns}
-                  emptyMessage="Đại lý này chưa có khách hàng nào"
+                  emptyMessage="Người mua này chưa có người mua nào"
                 />
               </GlassCard>
             </div>
@@ -328,7 +328,7 @@ export default function AgencyDetailPage() {
             <GlassCard style={{ padding: 32 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-light)' }}>
-                  <ShoppingCart size={20} /> Lịch sử đơn hàng của đại lý
+                  <ShoppingCart size={20} /> Lịch sử đơn hàng của khách hàng
                 </h3>
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{orders.length} đơn hàng</span>
               </div>
@@ -343,7 +343,7 @@ export default function AgencyDetailPage() {
                     <thead>
                       <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                         <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Mã đơn</th>
-                        <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Khách hàng</th>
+                        <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Người mua</th>
                         <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Ngày đặt</th>
                         <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Tổng tiền</th>
                         <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Trạng thái</th>

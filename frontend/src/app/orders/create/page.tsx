@@ -137,7 +137,7 @@ export default function CreateOrderPage() {
 
   const handleSubmitOrder = async () => {
     if (!selectedAgency) {
-      setError('Vui lòng chọn đại lý');
+      setError('Vui lòng chọn Khách hàng');
       return;
     }
 
@@ -199,14 +199,14 @@ export default function CreateOrderPage() {
     <div className="container">
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ marginBottom: 4 }}>Tạo đơn hàng mới</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Tạo đơn hàng cho đại lý hoặc khách hàng</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Tạo đơn hàng cho Khách hàng hoặc Người mua</p>
       </div>
 
       {selectedAgency && (
         <GlassCard style={{ padding: '16px 20px', marginBottom: 24, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div style={{ borderRight: '1px solid var(--border)', paddingRight: 24 }}>
-              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Đại lý</div>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Khách hàng</div>
               <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedAgency.name}</div>
               <div style={{ display: 'flex', gap: 16 }}>
                 <div style={{ fontSize: 13 }}>
@@ -225,7 +225,7 @@ export default function CreateOrderPage() {
             </div>
             
             <div>
-              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Khách hàng</div>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Người mua</div>
               {selectedCustomer ? (
                 <>
                   <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer.displayName || selectedCustomer.username}</div>
@@ -248,7 +248,7 @@ export default function CreateOrderPage() {
                 </>
               ) : (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 14 }}>
-                  Chưa chọn khách hàng
+                  Chưa chọn Người mua
                 </div>
               )}
             </div>
@@ -278,7 +278,7 @@ export default function CreateOrderPage() {
               {step > s ? <Check size={16} /> : s}
             </div>
             <span style={{ marginLeft: 8, fontSize: 14 }}>
-              {s === 1 ? 'Chọn Đại lý' : s === 2 ? 'Chọn Khách hàng' : s === 3 ? 'Chọn Sản phẩm' : 'Xác nhận'}
+              {s === 1 ? 'Chọn Khách hàng' : s === 2 ? 'Chọn Người mua' : s === 3 ? 'Chọn Sản phẩm' : 'Xác nhận'}
             </span>
             {s < 4 && <ChevronRight size={16} style={{ marginLeft: 8, color: 'var(--text-muted)' }} />}
           </div>
@@ -294,7 +294,7 @@ export default function CreateOrderPage() {
       <GlassCard style={{ padding: 24 }}>
         {step === 1 && (
           <div>
-            <h3 style={{ marginBottom: 16 }}>Chọn Đại lý</h3>
+            <h3 style={{ marginBottom: 16 }}>Chọn Khách hàng</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
               {agencies.map(agency => (
                 <div 
@@ -321,7 +321,7 @@ export default function CreateOrderPage() {
         {step === 2 && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3>Chọn Khách hàng</h3>
+              <h3>Chọn Người mua</h3>
               {creditDetail && (
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ 
@@ -330,13 +330,13 @@ export default function CreateOrderPage() {
                     borderRadius: 6, fontSize: 12, color: getTotalAmount() > creditDetail.hmkd ? '#dc2626' : '#16a34a',
                     border: '1px solid currentColor'
                   }}>
-                    Đại lý HMKD: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
+                    Khách hàng HMKD: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
                   </div>
                   <div style={{ 
                     padding: '8px 12px', background: '#fff7ed', borderRadius: 6, fontSize: 12, color: '#c2410c',
                     border: '1px solid currentColor'
                   }}>
-                    Đại lý NQH: <strong>{creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ</strong>
+                    Khách hàng NQH: <strong>{creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ</strong>
                   </div>
                 </div>
               )}
@@ -355,7 +355,7 @@ export default function CreateOrderPage() {
                   }}
                 >
                   <div style={{ fontWeight: 600 }}>{selectedAgency?.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Đại lý nhận hàng</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Người mua nhận hàng</div>
                 </div>
                 {agencyCustomers.map(customer => {
                   const debtInfo = creditDetail?.customerDebts.find(d => d.customerId === customer.id);
@@ -396,7 +396,7 @@ export default function CreateOrderPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="form-label">Tên khách hàng</label>
+                  <label className="form-label">Tên Người mua</label>
                   <input 
                     type="text" 
                     className="form-input"
@@ -538,12 +538,12 @@ export default function CreateOrderPage() {
                 <span style={{ fontSize: 12, color: 'var(--primary)' }}>Kỳ hạn: {orderDebtTerm} ngày</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
-                <div>Đại lý: <strong>{selectedAgency?.name}</strong></div>
-                <div>Khách hàng: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || 'Đại lý'}</strong></div>
+                <div>Khách hàng: <strong>{selectedAgency?.name}</strong></div>
+                <div>Người mua: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || 'Người mua'}</strong></div>
                 {creditDetail && (
                   <>
                     <div style={{ color: creditDetail.hmkd < getTotalAmount() ? '#ef4444' : 'inherit' }}>
-                      HMKD Đại lý: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
+                      HMKD Khách hàng: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
                     </div>
                     {selectedCustomer && (
                       <div>

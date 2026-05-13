@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
@@ -658,3 +658,4 @@ export default function FacetedSearchPage() {
     </>
   );
 }
+

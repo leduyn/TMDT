@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,8 +31,8 @@ export default function DashboardPage() {
 
   const getRoleName = () => {
     if (isCompany) return 'Công ty';
-    if (isAgency) return 'Đại lý';
-    return 'Khách hàng';
+    if (isAgency) return 'Khách hàng';
+    return 'Người mua';
   };
 
   const getRoleEmoji = () => {
@@ -44,7 +44,7 @@ export default function DashboardPage() {
   const statsCards = [
     { label: 'Tổng đơn hàng', value: '—', icon: '📦', color: '#6366f1', desc: 'Chưa có dữ liệu' },
     { label: 'Điểm tích lũy', value: '—', icon: '⭐', color: '#f59e0b', desc: 'Xem tại /api/loyalty/balance' },
-    { label: 'Doanh thu', value: '—', icon: '💰', color: '#10b981', desc: isAgency ? 'Dành cho đại lý' : 'N/A' },
+    { label: 'Doanh thu', value: '—', icon: '💰', color: '#10b981', desc: isAgency ? 'Dành cho Khách hàng' : 'N/A' },
     { label: 'Đánh giá', value: '—', icon: '⭐', color: '#ec4899', desc: 'Xem tại /api/reviews' },
   ];
 
@@ -60,7 +60,7 @@ export default function DashboardPage() {
       { href: '/price-lists', label: 'Bảng giá', icon: '🏷️', desc: 'Quản lý bảng giá' },
       { href: '/price-vouchers', label: 'Hẹn giờ áp dụng', icon: '📅', desc: 'Lên lịch áp dụng bảng giá' },
       { href: '/price-update-vouchers', label: 'Cập nhật giá', icon: '⏰', desc: 'Hẹn giờ cập nhật giá' },
-      { href: '/customer-groups', label: 'Nhóm khách hàng', icon: '👥', desc: 'Quản lý nhóm KH' }
+      { href: '/customer-groups', label: 'Nhóm Người mua', icon: '👥', desc: 'Quản lý nhóm KH' }
     ] : []),
     ...(isAgency ? [{ href: '/price-lists/my-store', label: 'Bảng giá shop', icon: '🏪', desc: 'Thiết lập giá shop' }] : []),
     ...(isAgency || isCompany ? [{ href: '#', label: 'Quản lý đơn', icon: '📊', desc: 'Xử lý đơn hàng' }] : []),
@@ -157,3 +157,4 @@ export default function DashboardPage() {
     </>
   );
 }
+

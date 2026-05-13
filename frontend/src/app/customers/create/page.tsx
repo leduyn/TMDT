@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
@@ -40,7 +40,7 @@ export default function CreateCustomerPage() {
       setAgencies(agenciesData);
       setGroups(groupsData);
       
-      // Nếu là đại lý, tự động gán agencyId của chính họ
+      // Nếu là Khách hàng, tự động gán agencyId của chính họ
       if (isAgency && user?.agencyId) {
         setFormData(prev => ({ ...prev, agencyIds: [user.agencyId!] }));
       }
@@ -60,7 +60,7 @@ export default function CreateCustomerPage() {
       });
       router.push('/customers');
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tạo khách hàng');
+      setError(err.message || 'Lỗi khi tạo Người mua');
       setLoading(false);
     }
   };
@@ -70,8 +70,8 @@ export default function CreateCustomerPage() {
       <Navbar />
       <main style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Thêm Khách hàng</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Tạo tài khoản khách hàng mới và gán quản lý</p>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Thêm Người mua</h1>
+          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Tạo tài khoản Người mua mới và gán quản lý</p>
         </div>
 
         {error && (
@@ -174,10 +174,10 @@ export default function CreateCustomerPage() {
 
             {isAgency && (
               <div style={{ background: 'rgba(52, 152, 219, 0.1)', padding: 24, borderRadius: 16, border: '1px solid rgba(52, 152, 219, 0.2)' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1rem', color: '#3498db' }}>Thông tin riêng của đại lý</h3>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1rem', color: '#3498db' }}>Thông tin riêng của Người mua</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Tên gợi nhớ (Chỉ đại lý thấy)</label>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Tên gợi nhớ (Chỉ Người mua thấy)</label>
                     <input
                       type="text"
                       className="input-field"
@@ -203,7 +203,7 @@ export default function CreateCustomerPage() {
                       rows={2}
                       value={formData.customShippingAddress}
                       onChange={e => setFormData({ ...formData, customShippingAddress: e.target.value })}
-                      placeholder="Địa chỉ cụ thể cho đại lý này..."
+                      placeholder="Địa chỉ cụ thể cho Người mua này..."
                     />
                   </div>
                 </div>
@@ -212,7 +212,7 @@ export default function CreateCustomerPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Nhóm khách hàng</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Nhóm Người mua</label>
                 <select
                   className="input-field"
                   value={formData.customerGroupId}
@@ -227,7 +227,7 @@ export default function CreateCustomerPage() {
               
               {!isAgency && (
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', marginBottom: 12, fontWeight: 500 }}>Đại lý quản lý (Có thể chọn nhiều)</label>
+                  <label style={{ display: 'block', marginBottom: 12, fontWeight: 500 }}>Người mua quản lý (Có thể chọn nhiều)</label>
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
@@ -284,7 +284,7 @@ export default function CreateCustomerPage() {
                 style={{ flex: 2 }}
                 disabled={loading}
               >
-                {loading ? 'Đang lưu...' : 'Lưu khách hàng'}
+                {loading ? 'Đang lưu...' : 'Lưu Người mua'}
               </button>
             </div>
           </form>
@@ -293,3 +293,4 @@ export default function CreateCustomerPage() {
     </>
   );
 }
+

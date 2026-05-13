@@ -156,10 +156,10 @@ export default function PriceVouchersPage() {
       width: '20%',
       render: (v) => (
         <div style={{ fontSize: '0.9rem' }}>
-          {v.assignmentType === 'ALL_AGENCY' && 'Tất cả đại lý'}
+          {v.assignmentType === 'ALL_AGENCY' && 'Tất cả Khách hàng'}
           {v.assignmentType === 'AGENCY_RANK' && `Hạng ${v.rankLevel}`}
-          {v.assignmentType === 'DIRECT_AGENCY' && `Đại lý: ${v.agencyName}`}
-          {v.assignmentType === 'DIRECT_CUSTOMER' && `Khách hàng: ${v.customerName}`}
+          {v.assignmentType === 'DIRECT_AGENCY' && `Khách hàng: ${v.agencyName}`}
+          {v.assignmentType === 'DIRECT_CUSTOMER' && `Người mua: ${v.customerName}`}
         </div>
       )
     },
@@ -222,7 +222,7 @@ export default function PriceVouchersPage() {
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
           title="Hẹn giờ áp dụng bảng giá" 
-          subtitle="Tự động hóa việc gán bảng giá cho đại lý và khách hàng lẻ theo lịch trình"
+          subtitle="Tự động hóa việc gán bảng giá cho Khách hàng và Người mua lẻ theo lịch trình"
           icon="Clock"
         />
 
@@ -262,7 +262,7 @@ export default function PriceVouchersPage() {
                     className="input-field" 
                     value={name} 
                     onChange={e => setName(e.target.value)} 
-                    placeholder="Ví dụ: Áp dụng bảng giá Tết cho Đại lý Vàng"
+                    placeholder="Ví dụ: Áp dụng bảng giá Tết cho Khách hàng Vàng"
                   />
                 </div>
 
@@ -284,10 +284,10 @@ export default function PriceVouchersPage() {
                     value={type} 
                     onChange={e => setType(e.target.value)}
                   >
-                    <option value="ALL_AGENCY">Tất cả đại lý</option>
-                    <option value="AGENCY_RANK">Theo hạng đại lý</option>
-                    <option value="DIRECT_AGENCY">Đại lý cụ thể</option>
-                    <option value="DIRECT_CUSTOMER">Khách hàng cụ thể</option>
+                    <option value="ALL_AGENCY">Tất cả Khách hàng</option>
+                    <option value="AGENCY_RANK">Theo hạng Khách hàng</option>
+                    <option value="DIRECT_AGENCY">Khách hàng cụ thể</option>
+                    <option value="DIRECT_CUSTOMER">Người mua cụ thể</option>
                   </select>
                 </div>
 
@@ -306,7 +306,7 @@ export default function PriceVouchersPage() {
 
                 {type === 'DIRECT_AGENCY' && (
                   <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Chọn Đại lý</label>
+                    <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Chọn Khách hàng</label>
                     <select className="input-field" value={selectedAgencyId} onChange={e => setSelectedAgencyId(Number(e.target.value))}>
                       {agencies.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
@@ -315,7 +315,7 @@ export default function PriceVouchersPage() {
 
                 {type === 'DIRECT_CUSTOMER' && (
                   <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Chọn Khách hàng</label>
+                    <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Chọn Người mua</label>
                     <select className="input-field" value={selectedCustomerId} onChange={e => setSelectedCustomerId(Number(e.target.value))}>
                       {customers.map(c => <option key={c.id} value={c.id}>{c.username} ({c.email})</option>)}
                     </select>
@@ -396,3 +396,4 @@ export default function PriceVouchersPage() {
     </>
   );
 }
+

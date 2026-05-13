@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
@@ -98,9 +98,9 @@ export default function CustomerGroupsPage() {
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>Nhóm <span className="gradient-text">Khách hàng</span></h1>
+            <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>Nhóm <span className="gradient-text">Người mua</span></h1>
             <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)' }}>
-              Phân loại khách hàng để áp dụng các chính sách giá riêng biệt.
+              Phân loại Người mua để áp dụng các chính sách giá riêng biệt.
             </p>
           </div>
           <button className="btn-primary" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => handleOpenModal()}>
@@ -133,7 +133,7 @@ export default function CustomerGroupsPage() {
           ))}
           {groups.length === 0 && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-              Chưa có nhóm khách hàng nào được thiết lập.
+              Chưa có nhóm Người mua nào được thiết lập.
             </div>
           )}
         </div>
@@ -166,3 +166,4 @@ export default function CustomerGroupsPage() {
     </>
   );
 }
+

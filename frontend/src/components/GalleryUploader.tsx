@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useState, useCallback } from 'react';
 import { uploadApi } from '@/lib/api';
@@ -219,3 +219,4 @@ const overlayBtn: React.CSSProperties = {
   fontSize: '0.75rem',
   fontWeight: 700,
 };
+

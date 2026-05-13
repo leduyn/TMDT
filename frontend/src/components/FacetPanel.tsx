@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { FacetGroupDTO } from '@/lib/api';
@@ -280,3 +280,4 @@ export default function FacetPanel({
     </aside>
   );
 }
+
