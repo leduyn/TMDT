@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi } from '@/lib/api';
+import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';

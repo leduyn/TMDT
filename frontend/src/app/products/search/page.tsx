@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
-import FacetPanel from '@/components/FacetPanel';
+import FacetPanel from '@/modules/product/components/FacetPanel';
 import {
   facetedSearchApi,
   categoryApi,

@@ -1,10 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import GalleryUploader from '@/components/GalleryUploader';
-import RichTextEditor from '@/components/RichTextEditor';
+import GalleryUploader from '@/modules/common/components/GalleryUploader';
+import RichTextEditor from '@/modules/common/components/RichTextEditor';
 import { productApi, categoryApi, CategoryDTO, brandApi, BrandDTO, attributeApi, AttributeDTO } from '@/lib/api';
 
 export default function CreateProductPage() {

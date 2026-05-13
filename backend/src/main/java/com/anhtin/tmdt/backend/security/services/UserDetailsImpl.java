@@ -1,6 +1,6 @@
 package com.anhtin.tmdt.backend.security.services;
 
-import com.anhtin.tmdt.backend.entity.User;
+import com.anhtin.tmdt.backend.modules.user.entity.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

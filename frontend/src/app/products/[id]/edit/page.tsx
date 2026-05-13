@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import GalleryUploader from '@/components/GalleryUploader';
-import RichTextEditor from '@/components/RichTextEditor';
+import GalleryUploader from '@/modules/common/components/GalleryUploader';
+import RichTextEditor from '@/modules/common/components/RichTextEditor';
 import { productApi, categoryApi, CategoryDTO, brandApi, BrandDTO, attributeApi, AttributeDTO, facetedSearchApi } from '@/lib/api';
 
 export default function EditProductPage() {

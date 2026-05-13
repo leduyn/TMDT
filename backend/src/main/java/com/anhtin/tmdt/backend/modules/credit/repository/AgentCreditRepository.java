@@ -1,0 +1,34 @@
+package com.anhtin.tmdt.backend.modules.credit.repository;
+
+import com.anhtin.tmdt.backend.modules.credit.entity.AgentCredit;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+
+@Repository
+public interface AgentCreditRepository extends JpaRepository<AgentCredit, Long> {
+    Optional<AgentCredit> findByAgencyId(Long agencyId);
+
+    @Modifying
+    @Query("UPDATE AgentCredit ac SET ac.totalDebt = ac.totalDebt + :amount " +
+           "WHERE ac.agency.id = :agencyId AND (ac.creditLimit - (ac.totalDebt + ac.guaranteeDebt) + ac.vtcAvailable) >= :amount")
+    int consumeAgencyCredit(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+
+    @Modifying
+    @Query("UPDATE AgentCredit ac SET ac.guaranteeDebt = ac.guaranteeDebt + :amount " +
+           "WHERE ac.agency.id = :agencyId AND (ac.creditLimit - (ac.totalDebt + ac.guaranteeDebt) + ac.vtcAvailable) >= :amount")
+    int consumeGuaranteeCredit(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+
+    @Modifying
+    @Query("UPDATE AgentCredit ac SET ac.totalDebt = ac.totalDebt - :amount WHERE ac.agency.id = :agencyId")
+    int decreaseAgencyDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+
+    @Modifying
+    @Query("UPDATE AgentCredit ac SET ac.guaranteeDebt = ac.guaranteeDebt - :amount WHERE ac.agency.id = :agencyId")
+    int decreaseGuaranteeDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
+}

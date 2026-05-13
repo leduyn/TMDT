@@ -10,7 +10,7 @@ export default function EditCustomerPage() {
   const router = useRouter();
   const { id } = useParams();
   const { user } = useAuth();
-  const isAgency = user?.role === 'AGENCY';
+  const isAgency = user?.roles.includes('ROLE_AGENCY');
   const [formData, setFormData] = useState({
     username: '',
     email: '',

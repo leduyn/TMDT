@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 export default function CreateCustomerPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const isAgency = user?.role === 'AGENCY';
+  const isAgency = user?.roles.includes('ROLE_AGENCY');
   const [formData, setFormData] = useState({
     username: '',
     email: '',

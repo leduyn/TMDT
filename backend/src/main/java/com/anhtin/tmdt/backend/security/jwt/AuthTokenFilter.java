@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import com.anhtin.tmdt.backend.modules.user.entity.User;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
