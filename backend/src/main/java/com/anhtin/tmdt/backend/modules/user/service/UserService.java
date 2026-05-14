@@ -254,4 +254,11 @@ public class UserService {
         user.setActive(true);
         return new UserDTO(userRepository.save(user));
     }
+
+    @Transactional
+    public void deleteUser(Long id) {
+        if (id == null) throw new RuntimeException("ID cannot be null");
+        if (!userRepository.existsById(id)) throw new RuntimeException("User not found");
+        userRepository.deleteById(id);
+    }
 }

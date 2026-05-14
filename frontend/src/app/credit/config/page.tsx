@@ -1,8 +1,17 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 import { creditApi, AgencyCreditSummary } from '@/lib/api';
+import NotificationModal from '@/components/NotificationModal';
+
+// UI Components
+import PageHeader from '@/components/ui/PageHeader';
+import SearchActionHeader from '@/components/ui/SearchActionHeader';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import Badge from '@/components/ui/Badge';
+import { Settings, Search, Check, X, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -11,13 +20,15 @@ const fmt = (n: number) =>
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function CreditConfigPage() {
   const [summaries, setSummaries] = useState<AgencyCreditSummary[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
-  const [success, setSuccess]     = useState('');
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editLimit, setEditLimit] = useState<string>('');
-  const [editTerm, setEditTerm]   = useState<string>('');
+  const [editTerm, setEditTerm] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({
+    isOpen: false, title: '', message: '', type: 'info'
+  });
 
   useEffect(() => {
     loadSummaries();
@@ -29,15 +40,10 @@ export default function CreditConfigPage() {
       const data = await creditApi.getAllSummaries();
       setSummaries(data);
     } catch (e: any) {
-      setError(e.message ?? 'Không thể tải danh sách tín dụng');
+      setModal({ isOpen: true, title: 'Lỗi', message: e.message ?? 'Không thể tải danh sách tín dụng', type: 'error' });
     } finally {
       setLoading(false);
     }
-  };
-
-  const notify = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(''), 4000);
   };
 
   const startEdit = (s: AgencyCreditSummary) => {
@@ -64,11 +70,11 @@ export default function CreditConfigPage() {
         creditLimit: limit,
         debtTermDays: term
       });
-      notify('Cập nhật thông tin công nợ thành công');
+      setModal({ isOpen: true, title: 'Thành công', message: 'Cập nhật thông tin công nợ thành công', type: 'success' });
       cancelEdit();
       loadSummaries();
     } catch (e: any) {
-      setError(e.message ?? 'Cập nhật thất bại');
+      setModal({ isOpen: true, title: 'Lỗi cập nhật', message: e.message ?? 'Cập nhật thất bại', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -78,197 +84,188 @@ export default function CreditConfigPage() {
     setSubmitting(true);
     try {
       const res = await creditApi.triggerOverdue();
-      notify(res.message);
+      setModal({ isOpen: true, title: 'Kích hoạt', message: res.message || 'Đã kích hoạt kiểm tra nợ', type: 'success' });
       loadSummaries();
     } catch (e: any) {
-      setError(e.message ?? 'Không thể kích hoạt kiểm tra nợ');
+      setModal({ isOpen: true, title: 'Lỗi', message: e.message ?? 'Không thể kích hoạt kiểm tra nợ', type: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-      padding: '32px 24px',
-      color: '#f1f5f9',
-      fontFamily: "'Inter', sans-serif"
-    }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{
-              fontSize: 28, fontWeight: 800, margin: 0,
-              background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>
-              ⚙️ Cấu hình Công nợ Người mua
-            </h1>
-            <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
-              Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng Người mua
-            </p>
+  const filteredSummaries = summaries.filter(s => 
+    s.agencyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.agencyPhone || '').includes(searchQuery) ||
+    s.agencyId.toString().includes(searchQuery)
+  );
+
+  const columns: Column<any>[] = [
+    { 
+      header: 'Người mua', 
+      key: 'agencyName',
+      render: (s) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{s.agencyName}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            ID: {s.agencyId} • {s.agencyPhone}
           </div>
-          <button 
-            onClick={handleTriggerOverdue}
-            disabled={submitting}
-            style={{
-              ...actionBtn('rgba(255, 255, 255, 0.05)', '#f1f5f9', '1px solid rgba(255, 255, 255, 0.1)'),
-              padding: '10px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'all 0.2s'
-            }}
-          >
-            🔍 Kiểm tra nợ
-          </button>
         </div>
-
-        {/* Alerts */}
-        {error && (
-          <div style={{
-            background: '#450a0a', border: '1px solid #dc2626', borderRadius: 10,
-            padding: '12px 16px', color: '#fca5a5', marginBottom: 20, fontSize: 14,
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
-        {success && (
-          <div style={{
-            background: '#052e16', border: '1px solid #16a34a', borderRadius: 10,
-            padding: '12px 16px', color: '#86efac', marginBottom: 20, fontSize: 14,
-          }}>
-            ✅ {success}
-          </div>
-        )}
-
-        {loading ? (
-          <div style={{ textAlign: 'center', color: '#64748b', padding: 60 }}>
-            Đang tải dữ liệu...
+      )
+    },
+    { 
+      header: 'Hạn mức tín dụng', 
+      key: 'creditLimit',
+      render: (s) => (
+        editingId === s.agencyId ? (
+          <input
+            type="number"
+            className="input-field"
+            value={editLimit}
+            onChange={e => setEditLimit(e.target.value)}
+            style={{ width: 150, margin: 0, padding: '6px 12px' }}
+          />
+        ) : (
+          <span style={{ fontWeight: 600, color: s.creditInitialized ? 'inherit' : 'var(--text-muted)' }}>
+            {s.creditInitialized ? fmt(s.creditLimit) : fmt(0)}
+          </span>
+        )
+      )
+    },
+    { 
+      header: 'Kỳ hạn nợ', 
+      key: 'debtTermDays',
+      render: (s) => (
+        editingId === s.agencyId ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="number"
+              className="input-field"
+              value={editTerm}
+              onChange={e => setEditTerm(e.target.value)}
+              style={{ width: 80, margin: 0, padding: '6px 12px' }}
+            />
+            <span style={{ fontSize: '0.85rem' }}>ngày</span>
           </div>
         ) : (
-          <div style={{
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 16, overflow: 'hidden'
-          }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
-                  <th style={thStyle}>Người mua</th>
-                  <th style={thStyle}>Hạn mức tín dụng</th>
-                  <th style={thStyle}>Kỳ hạn nợ (ngày)</th>
-                  <th style={thStyle}>HMKD Hiện tại</th>
-                  <th style={thStyle}>Dư nợ</th>
-                  <th style={thStyle}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summaries.map(s => (
-                  <tr key={s.agencyId} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={tdStyle}>
-                      <div style={{ fontWeight: 600 }}>{s.agencyName}</div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>ID: {s.agencyId} • {s.agencyPhone}</div>
-                    </td>
-                    <td style={tdStyle}>
-                      {editingId === s.agencyId ? (
-                        <input
-                          type="number"
-                          value={editLimit}
-                          onChange={e => setEditLimit(e.target.value)}
-                          style={inputStyle}
-                        />
-                      ) : (
-                        <span style={{ fontWeight: 600, color: s.creditInitialized ? '#f1f5f9' : '#64748b' }}>
-                          {s.creditInitialized ? fmt(s.creditLimit) : fmt(0)}
-                        </span>
-                      )}
-                    </td>
-                    <td style={tdStyle}>
-                      {editingId === s.agencyId ? (
-                        <input
-                          type="number"
-                          value={editTerm}
-                          onChange={e => setEditTerm(e.target.value)}
-                          style={inputStyle}
-                        />
-                      ) : (
-                        <span>{s.debtTermDays} ngày</span>
-                      )}
-                    </td>
-                    <td style={tdStyle}>{fmt(s.hmkd)}</td>
-                    <td style={tdStyle}>
-                      <div style={{ color: s.totalDebt > 0 ? '#ef4444' : '#22c55e' }}>{fmt(s.totalDebt)}</div>
-                      {s.activeOverdueCount > 0 && (
-                        <div style={{ fontSize: 11, color: '#ef4444' }}>⚠️ {s.activeOverdueCount} khoản quá hạn</div>
-                      )}
-                    </td>
-                    <td style={tdStyle}>
-                      {editingId === s.agencyId ? (
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            onClick={() => handleUpdate(s.agencyId)}
-                            disabled={submitting}
-                            style={actionBtn('#16a34a')}
-                          >
-                            Lưu
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            style={actionBtn('transparent', '#94a3b8', '1px solid #334155')}
-                          >
-                            Huỷ
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            onClick={() => startEdit(s)}
-                            style={actionBtn('#4f46e5')}
-                          >
-                            Chỉnh sửa
-                          </button>
-                          <Link href={`/credit?agencyId=${s.agencyId}`}>
-                            <button style={actionBtn('rgba(255,255,255,0.05)', '#f1f5f9', '1px solid #334155')}>
-                              Chi tiết
-                            </button>
-                          </Link>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <span>{s.debtTermDays} ngày</span>
+        )
+      )
+    },
+    { 
+      header: 'HMKD Hiện tại', 
+      key: 'hmkd',
+      render: (s) => <span style={{ color: 'var(--accent)', fontWeight: 500 }}>{fmt(s.hmkd)}</span>
+    },
+    { 
+      header: 'Dư nợ', 
+      key: 'totalDebt',
+      render: (s) => (
+        <div>
+          <div style={{ color: s.totalDebt > 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>
+            {fmt(s.totalDebt)}
           </div>
-        )}
-      </div>
-    </div>
+          {s.activeOverdueCount > 0 && (
+            <Badge 
+              label={`${s.activeOverdueCount} quá hạn`} 
+              type="error" 
+              icon="AlertCircle"
+              style={{ fontSize: '0.7rem', marginTop: 4 }}
+            />
+          )}
+        </div>
+      )
+    },
+    { 
+      header: 'Thao tác', 
+      key: 'actions', 
+      align: 'right',
+      render: (s) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          {editingId === s.agencyId ? (
+            <>
+              <button
+                onClick={() => handleUpdate(s.agencyId)}
+                disabled={submitting}
+                className="btn-primary"
+                style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--success)' }}
+              >
+                <Check size={14} style={{ marginRight: 4 }} /> Lưu
+              </button>
+              <button
+                onClick={cancelEdit}
+                className="btn-outline"
+                style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                <X size={14} style={{ marginRight: 4 }} /> Huỷ
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => startEdit(s)}
+                className="btn-primary"
+                style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                <RefreshCw size={14} style={{ marginRight: 4 }} /> Chỉnh sửa
+              </button>
+              <Link href={`/credit?agencyId=${s.agencyId}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
+                <ExternalLink size={16} />
+              </Link>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <>
+      <Navbar />
+      <main style={{ padding: '20px 0' }}>
+        <PageHeader 
+          title="Cấu hình Công nợ Người mua" 
+          subtitle="Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng Người mua"
+          icon="Settings"
+          actions={
+            <button 
+              onClick={handleTriggerOverdue}
+              disabled={submitting}
+              className="btn-outline"
+              style={{ 
+                padding: '10px 20px', 
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+            >
+              <Search size={18} />
+              Kiểm tra nợ
+            </button>
+          }
+        />
+
+        <SearchActionHeader 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder="Tìm kiếm Người mua theo tên, ID hoặc số điện thoại..."
+        />
+
+        <DataTable 
+          data={filteredSummaries.map(s => ({ ...s, id: s.agencyId }))}
+          columns={columns}
+          loading={loading}
+          emptyMessage={searchQuery ? 'Không tìm thấy Người mua nào phù hợp' : 'Chưa có thông tin tín dụng nào'}
+        />
+      </main>
+
+      <NotificationModal 
+        isOpen={modal.isOpen} 
+        onClose={() => setModal({ ...modal, isOpen: false })} 
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
+    </>
   );
 }
-
-const thStyle: React.CSSProperties = { textAlign: 'left', padding: '16px 20px', fontWeight: 600, fontSize: 13 };
-const tdStyle: React.CSSProperties = { padding: '16px 20px' };
-
-const inputStyle: React.CSSProperties = {
-  background: '#0f172a',
-  border: '1px solid #334155',
-  borderRadius: 6,
-  color: '#f1f5f9',
-  padding: '6px 10px',
-  width: '120px',
-  outline: 'none',
-  fontSize: 13
-};
-
-const actionBtn = (bg: string, color = '#fff', border = 'none'): React.CSSProperties => ({
-  background: bg,
-  color,
-  border,
-  borderRadius: 6,
-  padding: '6px 12px',
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: 'pointer'
-});
-

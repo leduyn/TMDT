@@ -1,4 +1,4 @@
-package com.anhtin.tmdt.backend.modules.customer.controller;
+package com.anhtin.tmdt.backend.modules.user.controller;
 
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerRequest;
 import com.anhtin.tmdt.backend.modules.user.dto.UserDTO;
@@ -10,14 +10,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
-import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
-public class CustomerController {
+public class UserController {
 
     @Autowired
     private UserService userService;
@@ -46,6 +43,12 @@ public class CustomerController {
         return userService.updateCustomer(userDetails.getId(), request);
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('COMPANY')")
+    public List<UserDTO> getAllUsers() {
+        return userService.getAllUsers();
+    }
+
     @GetMapping("/customers")
     @PreAuthorize("hasRole('COMPANY')")
     public List<UserDTO> getAllCustomers() {
@@ -63,7 +66,6 @@ public class CustomerController {
     public UserDTO getUserById(@PathVariable Long id) {
         UserDTO dto = userService.getUserById(id);
 
-        // Bảo mật: Nếu là AGENCY, chỉ cho thấy thông tin đại lý của chính họ
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
         boolean isAgency = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
@@ -71,13 +73,11 @@ public class CustomerController {
         if (isAgency) {
             com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth
                     .getPrincipal();
-            // Lấy agencyId của user hiện tại
             com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO myAgency = agencyService
                     .getAgencyByUserId(userDetails.getId());
 
             if (myAgency != null) {
                 Long myAgencyId = myAgency.getId();
-                // Lọc danh sách agencyIds và agencyNames trong DTO
                 java.util.List<Long> filteredIds = new java.util.ArrayList<>();
                 java.util.List<String> filteredNames = new java.util.ArrayList<>();
 
@@ -92,7 +92,6 @@ public class CustomerController {
                 dto.setAgencyIds(filteredIds);
                 dto.setAgencyNames(filteredNames);
 
-                // Ghi đè thông tin cá nhân hóa
                 assignmentRepository.findByAgencyIdAndCustomerId(myAgencyId, id).ifPresent(a -> {
                     if (a.getCustomName() != null && !a.getCustomName().isBlank()) {
                         dto.setDisplayName(a.getCustomName());
@@ -131,5 +130,11 @@ public class CustomerController {
     @PreAuthorize("hasRole('COMPANY')")
     public UserDTO activateCustomer(@PathVariable Long id) {
         return userService.activateCustomer(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('COMPANY')")
+    public void deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
     }
 }

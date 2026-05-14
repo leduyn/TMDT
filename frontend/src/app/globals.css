@@ -19,7 +19,7 @@
   --text-muted: #475569;
   --border: rgba(99, 102, 241, 0.2);
   --border-hover: rgba(99, 102, 241, 0.5);
-  --sidebar-bg: rgba(13, 17, 28, 0.45);
+  --sidebar-bg: rgba(7, 37, 121, 0.45);
   --topbar-bg: rgba(13, 17, 28, 0.25);
   --grid-color: rgba(99, 102, 241, 0.05);
 }
@@ -85,8 +85,8 @@ body {
 /* ─── Buttons ─────────────────────────────────────────────────────────────── */
 .btn-primary {
   background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
-  color: white;
-  border: none;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 24px;
   font-weight: 600;
@@ -154,7 +154,7 @@ body {
 /* ─── Inputs ─────────────────────────────────────────────────────────────── */
 .input-field {
   width: 100%;
-  background: rgba(10, 15, 30, 0.6);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 16px;

@@ -14,6 +14,14 @@ export async function fetchJSON<T>(
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (!res.ok) {
+    // If unauthorized, clear session
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Optional: window.location.href = '/login'; 
+      // But better to let the components handle it via AuthContext
+    }
+
     let err: any = {};
     try {
       const text = await res.text();
@@ -21,8 +29,11 @@ export async function fetchJSON<T>(
     } catch (e) {
       err = { message: res.statusText };
     }
+    
     const errorMessage = err.message || err.error || `Lỗi kết nối API (Status: ${res.status})`;
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage) as any;
+    error.status = res.status;
+    throw error;
   }
   return res.json();
 }

@@ -66,4 +66,6 @@ export const authApi = {
 
 export const userApi = {
   getMe: (userId: number) => fetchJSON<UserDTO>(`/api/users/${userId}`),
+  getAll: () => fetchJSON<UserDTO[]>('/api/users/all'),
+  delete: (userId: number) => fetchJSON<void>(`/api/users/${userId}`, { method: 'DELETE' }),
 };

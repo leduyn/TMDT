@@ -24,7 +24,7 @@ export default function CreateOrderPage() {
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
   const [agencyCustomers, setAgencyCustomers] = useState<UserDTO[]>([]);
   const [products, setProducts] = useState<ProductDTO[]>([]);
-  
+
   const [selectedAgency, setSelectedAgency] = useState<AgencyDTO | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
   const [shippingAddress, setShippingAddress] = useState('');
@@ -102,8 +102,8 @@ export default function CreateOrderPage() {
   const handleAddToCart = (product: ProductDTO) => {
     const existing = cart.find(item => item.productId === product.id);
     if (existing) {
-      setCart(cart.map(item => 
-        item.productId === product.id 
+      setCart(cart.map(item =>
+        item.productId === product.id
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
@@ -121,7 +121,7 @@ export default function CreateOrderPage() {
     if (quantity <= 0) {
       setCart(cart.filter(item => item.productId !== productId));
     } else {
-      setCart(cart.map(item => 
+      setCart(cart.map(item =>
         item.productId === productId ? { ...item, quantity } : item
       ));
     }
@@ -223,7 +223,7 @@ export default function CreateOrderPage() {
                 )}
               </div>
             </div>
-            
+
             <div>
               <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Người mua</div>
               {selectedCustomer ? (
@@ -258,8 +258,8 @@ export default function CreateOrderPage() {
 
       <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
         {[1, 2, 3, 4].map(s => (
-          <div key={s} style={{ 
-            display: 'flex', 
+          <div key={s} style={{
+            display: 'flex',
             alignItems: 'center',
             color: step >= s ? 'var(--primary)' : 'var(--text-muted)'
           }}>
@@ -267,20 +267,20 @@ export default function CreateOrderPage() {
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: step >= s ? 'var(--primary)' : 'var(--border)',
+              background: step >= s ? 'var(--success)' : 'var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: step >= s ? 'white' : 'var(--text-muted)',
+              color: step >= s ? 'var(--text-primary)' : 'var(--text-muted)',
               fontWeight: 600,
               fontSize: 14
             }}>
-              {step > s ? <Check size={16} /> : s}
+              {step > s ? <Check size={16} style={{ marginLeft: 8, color: 'var(--primary)' }} /> : s}
             </div>
             <span style={{ marginLeft: 8, fontSize: 14 }}>
               {s === 1 ? 'Chọn Khách hàng' : s === 2 ? 'Chọn Người mua' : s === 3 ? 'Chọn Sản phẩm' : 'Xác nhận'}
             </span>
-            {s < 4 && <ChevronRight size={16} style={{ marginLeft: 8, color: 'var(--text-muted)' }} />}
+            {s < 4 && <ChevronRight size={16} style={{ marginLeft: 8, color: 'var(--primary)' }} />}
           </div>
         ))}
       </div>
@@ -297,7 +297,7 @@ export default function CreateOrderPage() {
             <h3 style={{ marginBottom: 16 }}>Chọn Khách hàng</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
               {agencies.map(agency => (
-                <div 
+                <div
                   key={agency.id}
                   className="agency-card"
                   onClick={() => handleSelectAgency(agency)}
@@ -324,15 +324,15 @@ export default function CreateOrderPage() {
               <h3>Chọn Người mua</h3>
               {creditDetail && (
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ 
-                    padding: '8px 12px', 
+                  <div style={{
+                    padding: '8px 12px',
                     background: getTotalAmount() > creditDetail.hmkd ? '#fee2e2' : '#dcfce7',
                     borderRadius: 6, fontSize: 12, color: getTotalAmount() > creditDetail.hmkd ? '#dc2626' : '#16a34a',
                     border: '1px solid currentColor'
                   }}>
                     Khách hàng HMKD: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
                   </div>
-                  <div style={{ 
+                  <div style={{
                     padding: '8px 12px', background: '#fff7ed', borderRadius: 6, fontSize: 12, color: '#c2410c',
                     border: '1px solid currentColor'
                   }}>
@@ -344,7 +344,7 @@ export default function CreateOrderPage() {
 
             {!showNewCustomerForm ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
-                <div 
+                <div
                   onClick={() => handleSelectCustomer(null)}
                   style={{
                     padding: 16,
@@ -360,9 +360,9 @@ export default function CreateOrderPage() {
                 {agencyCustomers.map(customer => {
                   const debtInfo = creditDetail?.customerDebts.find(d => d.customerId === customer.id);
                   const overdueDebt = creditDetail?.overdueDebts.filter(d => d.customerId === customer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0) || 0;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={customer.id}
                       onClick={() => handleSelectCustomer(customer)}
                       style={{
@@ -387,7 +387,7 @@ export default function CreateOrderPage() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <button 
+                  <button
                     onClick={() => { setShowNewCustomerForm(false); setSelectedCustomer(null); }}
                     className="btn-secondary"
                     style={{ marginBottom: 16 }}
@@ -397,60 +397,60 @@ export default function CreateOrderPage() {
                 </div>
                 <div>
                   <label className="form-label">Tên Người mua</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.name}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, name: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, name: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="form-label">Số điện thoại</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.phone}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, phone: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, phone: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Địa chỉ giao hàng</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.shippingAddress}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, shippingAddress: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, shippingAddress: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="form-label">Tên xuất hóa đơn</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.invoiceName}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, invoiceName: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceName: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="form-label">Mã số thuế</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.invoiceTaxCode}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, invoiceTaxCode: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceTaxCode: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Địa chỉ xuất hóa đơn</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.invoiceAddress}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, invoiceAddress: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceAddress: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1', marginTop: 16 }}>
-                  <button 
+                  <button
                     onClick={() => handleSelectCustomer(null)}
                     disabled={!newCustomerInfo.name || !newCustomerInfo.phone}
                     className="btn-primary"
@@ -467,9 +467,9 @@ export default function CreateOrderPage() {
           <div>
             <h3 style={{ marginBottom: 16 }}>Chọn sản phẩm</h3>
             <div style={{ marginBottom: 24 }}>
-              <input 
-                type="text" 
-                placeholder="Tìm sản phẩm..." 
+              <input
+                type="text"
+                placeholder="Tìm sản phẩm..."
                 className="form-input"
                 onChange={e => {
                   const term = e.target.value.toLowerCase();
@@ -484,7 +484,7 @@ export default function CreateOrderPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 24 }}>
               {products.map(product => (
-                <div 
+                <div
                   key={product.id}
                   onClick={() => handleAddToCart(product)}
                   style={{
@@ -531,7 +531,7 @@ export default function CreateOrderPage() {
         {step === 4 && (
           <div>
             <h3 style={{ marginBottom: 16 }}>Xác nhận đơn hàng</h3>
-            
+
             <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
                 <span>Thông tin đơn</span>
@@ -581,8 +581,8 @@ export default function CreateOrderPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
               <div>
                 <label className="form-label">Kỳ hạn nợ (ngày)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="form-input"
                   value={orderDebtTerm}
                   onChange={e => setOrderDebtTerm(Number(e.target.value))}
@@ -591,8 +591,8 @@ export default function CreateOrderPage() {
               </div>
               <div>
                 <label className="form-label">Phí giao hàng (đ)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="form-input"
                   value={deliveryFee}
                   onChange={e => setDeliveryFee(Number(e.target.value))}
@@ -601,8 +601,8 @@ export default function CreateOrderPage() {
               </div>
               <div>
                 <label className="form-label">Địa chỉ giao hàng</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="form-input"
                   value={shippingAddress}
                   onChange={e => setShippingAddress(e.target.value)}
@@ -611,7 +611,7 @@ export default function CreateOrderPage() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={handleSubmitOrder}
               disabled={loading}
               className="btn-primary"
@@ -662,16 +662,16 @@ export default function CreateOrderPage() {
           outline: none;
           border-color: var(--primary);
         }
-        .btn-primary {
+        /* .btn-primary {
           padding: 10px 20px;
           background: var(--primary);
-          color: white;
-          border: none;
+          color: var(--text-primary);
+          border: 1px solid var(--border);
           border-radius: 6px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s;
-        }
+        } */
         .btn-primary:hover:not(:disabled) {
           background: var(--primary-dark);
         }

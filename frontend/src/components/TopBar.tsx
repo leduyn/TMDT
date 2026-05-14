@@ -87,7 +87,7 @@ export default function TopBar() {
   })();
 
   return (
-    <header className="top-bar" style={{ left: isCollapsed ? 84 : 280 }}>
+    <header className="top-bar" style={{ left: mounted ? (isCollapsed ? 84 : 280) : 280 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
         {crumbs.map((crumb, idx) => (
           <React.Fragment key={idx}>
@@ -121,7 +121,7 @@ export default function TopBar() {
             display: 'flex',
             transition: 'all 0.3s ease'
           }}
-          title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+          title={mounted ? (theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối') : undefined}
         >
           {mounted && (theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />)}
           {!mounted && <div style={{ width: 20, height: 20 }} />}

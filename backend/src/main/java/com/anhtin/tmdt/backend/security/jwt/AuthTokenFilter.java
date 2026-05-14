@@ -41,9 +41,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else if (jwt != null) {
+                System.err.println("JWT Validation failed for token: " + jwt.substring(0, Math.min(jwt.length(), 10)) + "...");
             }
         } catch (Exception e) {
-            System.err.println("Cannot set user authentication: " + e);
+            System.err.println("Cannot set user authentication: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
