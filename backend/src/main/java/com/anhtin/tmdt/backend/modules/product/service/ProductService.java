@@ -64,6 +64,11 @@ public class ProductService {
                     dto.setAppliedPrice(priceInfo.getPrice());
                     dto.setAppliedPriceListName(priceInfo.getPriceListName());
                     dto.setAppliedPriceListId(priceInfo.getPriceListId());
+                    if (priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
+                        dto.setOldAppliedPrice(priceInfo.getOldPrice());
+                        double diff = priceInfo.getPrice() - priceInfo.getOldPrice();
+                        dto.setPriceChangeRatio((diff / priceInfo.getOldPrice()) * 100);
+                    }
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -82,6 +87,11 @@ public class ProductService {
         dto.setAppliedPrice(priceInfo.getPrice());
         dto.setAppliedPriceListName(priceInfo.getPriceListName());
         dto.setAppliedPriceListId(priceInfo.getPriceListId());
+        if (priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
+            dto.setOldAppliedPrice(priceInfo.getOldPrice());
+            double diff = priceInfo.getPrice() - priceInfo.getOldPrice();
+            dto.setPriceChangeRatio((diff / priceInfo.getOldPrice()) * 100);
+        }
         return dto;
     }
 
@@ -102,6 +112,7 @@ public class ProductService {
         product.setDropship(request.isDropship());
         product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
         product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
+        product.setShowDiscount(request.getShowDiscount() != null ? request.getShowDiscount() : false);
         product.setTags(request.getTags());
         product.setBravoOrder(request.getBravoOrder());
         product.setUnit(request.getUnit());
@@ -155,6 +166,7 @@ public class ProductService {
         product.setDropship(request.isDropship());
         product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
         product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
+        product.setShowDiscount(request.getShowDiscount() != null ? request.getShowDiscount() : false);
         product.setTags(request.getTags());
         product.setBravoOrder(request.getBravoOrder());
         product.setUnit(request.getUnit());

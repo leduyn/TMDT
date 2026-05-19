@@ -18,8 +18,8 @@ export async function fetchJSON<T>(
     if (res.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Optional: window.location.href = '/login'; 
-      // But better to let the components handle it via AuthContext
+      localStorage.removeItem('agencyId');
+      window.location.href = '/login'; 
     }
 
     let err: any = {};
@@ -35,5 +35,13 @@ export async function fetchJSON<T>(
     error.status = res.status;
     throw error;
   }
-  return res.json();
+
+  // Handle empty body (e.g. void endpoints returning HTTP 200)
+  const text = await res.text();
+  if (!text) return null as unknown as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null as unknown as T;
+  }
 }

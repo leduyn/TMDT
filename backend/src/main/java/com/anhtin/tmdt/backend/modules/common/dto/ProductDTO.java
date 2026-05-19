@@ -26,6 +26,9 @@ public class ProductDTO {
     private Double appliedPrice;
     private String appliedPriceListName;
     private Long appliedPriceListId;
+    private Boolean showDiscount;
+    private Double oldAppliedPrice;
+    private Double priceChangeRatio;
 
     private Boolean isAppVisible;
     private Boolean isWebVisible;
@@ -88,6 +91,12 @@ public class ProductDTO {
     public void setQuantityStep(Integer quantityStep) { this.quantityStep = quantityStep; }
     public String getUserManual() { return userManual; }
     public void setUserManual(String userManual) { this.userManual = userManual; }
+    public Boolean getShowDiscount() { return showDiscount; }
+    public void setShowDiscount(Boolean showDiscount) { this.showDiscount = showDiscount; }
+    public Double getOldAppliedPrice() { return oldAppliedPrice; }
+    public void setOldAppliedPrice(Double oldAppliedPrice) { this.oldAppliedPrice = oldAppliedPrice; }
+    public Double getPriceChangeRatio() { return priceChangeRatio; }
+    public void setPriceChangeRatio(Double priceChangeRatio) { this.priceChangeRatio = priceChangeRatio; }
     
     public BrandDTO getBrand() { return brand; }
 
@@ -110,6 +119,7 @@ public class ProductDTO {
         this.minPurchaseQuantity = product.getMinPurchaseQuantity();
         this.quantityStep = product.getQuantityStep();
         this.userManual = product.getUserManual();
+        this.showDiscount = product.getShowDiscount() != null ? product.getShowDiscount() : false;
         if (product.getCategory() != null) {
             this.categoryId = product.getCategory().getId();
             this.categoryName = product.getCategory().getName();

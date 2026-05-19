@@ -47,4 +47,9 @@ public class PriceUpdateVoucherController {
         voucherService.applyVoucher(id);
         return ResponseEntity.ok(new MessageResponse("Applied voucher successfully"));
     }
+
+    @GetMapping("/active-history/agency/{agencyId}")
+    public List<PriceUpdateVoucherDTO> getActiveHistoryForAgency(@PathVariable Long agencyId) {
+        return voucherService.getAppliedVouchersForAgency(agencyId);
+    }
 }

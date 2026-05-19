@@ -17,6 +17,11 @@ import com.anhtin.tmdt.backend.modules.price.entity.PriceListConditionType;
 import com.anhtin.tmdt.backend.modules.common.entity.VoucherStatus;
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
+import com.anhtin.tmdt.backend.modules.agency.service.CustomerPriceSyncService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,10 @@ public class PriceAssignmentService {
     private final PriceAssignmentVoucherRepository voucherRepository;
     private final AgencyPriceListRepository agencyPriceListRepository;
     private final PriceListConditionRepository conditionRepository;
+
+    @Autowired
+    @Lazy
+    private CustomerPriceSyncService customerPriceSyncService;
 
     @Transactional
     public void processPendingVouchers() {
@@ -83,6 +92,14 @@ public class PriceAssignmentService {
         voucher.setStatus(VoucherStatus.APPLIED);
         voucher.setAppliedAt(LocalDateTime.now());
         voucherRepository.save(voucher);
+
+        final Long plId = voucher.getPriceList().getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                customerPriceSyncService.syncAllPricesForPriceList(plId, null, "PRICE_ASSIGNMENT_CHANGED");
+            }
+        });
     }
 
     @Transactional
@@ -139,6 +156,14 @@ public class PriceAssignmentService {
                 }
             }
         }
+
+        final Long plId = voucher.getPriceList().getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                customerPriceSyncService.syncAllPricesForPriceList(plId, null, "PRICE_ASSIGNMENT_STOPPED");
+            }
+        });
     }
 
     @Transactional

@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface PriceUpdateVoucherPriceListRepository extends JpaRepository<PriceUpdateVoucherPriceList, Long> {
     List<PriceUpdateVoucherPriceList> findByVoucherId(Long voucherId);
+    List<PriceUpdateVoucherPriceList> findByPriceListId(Long priceListId);
     void deleteByVoucherId(Long voucherId);
 }

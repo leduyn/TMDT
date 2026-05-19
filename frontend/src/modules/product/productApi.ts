@@ -55,6 +55,9 @@ export interface ProductDTO {
   appliedPrice?: number;
   appliedPriceListName?: string;
   appliedPriceListId?: number;
+  showDiscount?: boolean;
+  oldAppliedPrice?: number;
+  priceChangeRatio?: number;
 }
 
 export interface ProductRequest {
@@ -79,6 +82,7 @@ export interface ProductRequest {
   minPurchaseQuantity?: number;
   quantityStep?: number;
   userManual?: string;
+  showDiscount?: boolean;
 }
 
 export interface AttributeValueDTO {

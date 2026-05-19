@@ -72,6 +72,9 @@ public class Product {
     @Column(name = "user_manual", columnDefinition = "TEXT")
     private String userManual;
 
+    @Column(name = "show_discount")
+    private Boolean showDiscount = false;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -112,4 +115,6 @@ public class Product {
     public void setQuantityStep(Integer quantityStep) { this.quantityStep = quantityStep; }
     public String getUserManual() { return userManual; }
     public void setUserManual(String userManual) { this.userManual = userManual; }
+    public Boolean getShowDiscount() { return showDiscount; }
+    public void setShowDiscount(Boolean showDiscount) { this.showDiscount = showDiscount; }
 }

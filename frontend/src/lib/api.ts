@@ -1,5 +1,6 @@
 export * from '../modules/user/userApi';
 export * from '../modules/agency/agencyApi';
+export * from '../modules/agency/customerPriceApi';
 export * from '../modules/customer/customerApi';
 export * from '../modules/product/productApi';
 export * from '../modules/price/priceApi';
@@ -7,3 +8,4 @@ export * from '../modules/credit/creditApi';
 export * from '../modules/order/orderApi';
 export * from '../modules/chat/chatApi';
 export * from '../modules/common/commonApi';
+export * from '../modules/region/regionApi';

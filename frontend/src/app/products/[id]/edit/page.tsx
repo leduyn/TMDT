@@ -28,6 +28,7 @@ export default function EditProductPage() {
     minPurchaseQuantity: 1,
     quantityStep: 1,
     userManual: '',
+    showDiscount: false,
   });
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
@@ -71,6 +72,7 @@ export default function EditProductPage() {
           minPurchaseQuantity: product.minPurchaseQuantity || 1,
           quantityStep: product.quantityStep || 1,
           userManual: product.userManual || '',
+          showDiscount: product.showDiscount ?? false,
         });
 
         // Pre-fill attributes
@@ -310,6 +312,10 @@ export default function EditProductPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" name="isWebVisible" checked={formData.isWebVisible} onChange={handleChange} id="isWebVisible" />
                   <label htmlFor="isWebVisible" style={{ fontSize: '0.9rem' }}>Hiển thị trên Web</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" name="showDiscount" checked={formData.showDiscount} onChange={handleChange} id="showDiscount" />
+                  <label htmlFor="showDiscount" style={{ fontSize: '0.9rem' }}>Hiển thị giá giảm / Giá trước thay đổi</label>
                 </div>
               </div>
             </div>

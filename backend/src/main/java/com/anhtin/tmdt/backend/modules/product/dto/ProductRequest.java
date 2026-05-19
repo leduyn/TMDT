@@ -46,6 +46,7 @@ public class ProductRequest {
     private Integer minPurchaseQuantity = 1;
     private Integer quantityStep = 1;
     private String userManual;
+    private Boolean showDiscount = false;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -89,4 +90,6 @@ public class ProductRequest {
     public void setQuantityStep(Integer quantityStep) { this.quantityStep = quantityStep; }
     public String getUserManual() { return userManual; }
     public void setUserManual(String userManual) { this.userManual = userManual; }
+    public Boolean getShowDiscount() { return showDiscount; }
+    public void setShowDiscount(Boolean showDiscount) { this.showDiscount = showDiscount; }
 }

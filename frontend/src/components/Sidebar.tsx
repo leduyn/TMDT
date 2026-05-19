@@ -19,6 +19,7 @@ import {
   CreditCard,
   User as UserIcon,
   FileText,
+  MapPin,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -54,6 +55,7 @@ export default function Sidebar() {
     { label: 'Khách hàng', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Người mua', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Người dùng', href: '/users', icon: UserIcon, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Khu vực KD', href: '/regions', icon: MapPin, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Người mua của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
     { label: 'Tín dụng', href: '/credit', icon: CreditCard, roles: ['ROLE_COMPANY', 'ROLE_AGENCY'] },
     { label: 'Công nợ', href: '/credit/debts', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ACCOUNTANT'] },

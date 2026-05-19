@@ -58,6 +58,7 @@ export interface PriceUpdateVoucherRequest {
 export const priceListApi = {
   getAll: () => fetchJSON<PriceListDTO[]>('/api/price-lists'),
   getById: (id: number) => fetchJSON<PriceListDTO>(`/api/price-lists/${id}`),
+  resolveForAgency: (agencyId: number) => fetchJSON<PriceListDTO>(`/api/price-lists/resolve/agency/${agencyId}`),
 };
 
 export const priceAssignmentVoucherApi = {
@@ -90,5 +91,6 @@ export const priceUpdateVoucherApi = {
   }),
   apply: (id: number) => fetchJSON<any>(`/api/price-vouchers/${id}/apply`, {
     method: 'POST'
-  })
+  }),
+  getActiveHistoryForAgency: (agencyId: number) => fetchJSON<PriceUpdateVoucherDTO[]>(`/api/price-vouchers/active-history/agency/${agencyId}`)
 };

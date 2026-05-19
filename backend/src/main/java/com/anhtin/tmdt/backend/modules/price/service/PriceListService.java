@@ -36,12 +36,20 @@ import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceListItem;
 import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.anhtin.tmdt.backend.modules.agency.service.CustomerPriceSyncService;
 
 @Service
 public class PriceListService {
 
     @Autowired
     private PriceListRepository priceListRepository;
+
+    @Autowired
+    @Lazy
+    private CustomerPriceSyncService customerPriceSyncService;
 
     @Autowired
     private PriceListItemRepository priceListItemRepository;
@@ -161,6 +169,14 @@ public class PriceListService {
         if (request.getPrice() != null) item.setPrice(request.getPrice());
         if (request.getIsVisible() != null) item.setIsVisible(request.getIsVisible());
         priceListItemRepository.save(Objects.requireNonNull(item));
+        final Long finalPlId = priceListId;
+        final Long finalProductId = request.getProductId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                customerPriceSyncService.syncPriceForProductInPriceList(finalPlId, finalProductId, null, "PRICE_LIST_UPDATED");
+            }
+        });
     }
 
     @Transactional
@@ -284,6 +300,13 @@ public class PriceListService {
         apl.setAgency(agency);
         apl.setPriceList(pl);
         agencyPriceListRepository.save(apl);
+        final Long finalAgencyId = agencyId;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                customerPriceSyncService.syncAllPricesForAgency(finalAgencyId, null, "AGENCY_ASSIGNMENT_CHANGED");
+            }
+        });
     }
 
     @Transactional
@@ -313,6 +336,13 @@ public class PriceListService {
     public void unassignAgency(Long agencyId) {
         if (agencyId == null) throw new IllegalArgumentException("Agency ID cannot be null");
         agencyPriceListRepository.deleteByAgencyId(agencyId);
+        final Long finalAgencyId = agencyId;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                customerPriceSyncService.syncAllPricesForAgency(finalAgencyId, null, "AGENCY_ASSIGNMENT_CHANGED");
+            }
+        });
     }
 
     public List<Long> getAssignedAgencyIds(Long priceListId) {
@@ -325,6 +355,7 @@ public class PriceListService {
         private Double price;
         private String priceListName;
         private Long priceListId;
+        private Double oldPrice;
 
         public Double getPrice() { return price; }
         public void setPrice(Double price) { this.price = price; }
@@ -332,6 +363,12 @@ public class PriceListService {
         public void setPriceListName(String priceListName) { this.priceListName = priceListName; }
         public Long getPriceListId() { return priceListId; }
         public void setPriceListId(Long priceListId) { this.priceListId = priceListId; }
+        public Double getOldPrice() { return oldPrice; }
+        public void setOldPrice(Double oldPrice) { this.oldPrice = oldPrice; }
+    }
+
+    public ResolvedPriceInfo calculateRawPriceInfoForAgency(Long productId, Long agencyId) {
+        return getResolvedPriceInfo(productId, agencyId, null);
     }
 
     public ResolvedPriceInfo getResolvedPriceInfo(Long productId, Long agencyId, Long customerId) {
@@ -357,11 +394,11 @@ public class PriceListService {
                     .forEach(c -> candidates.add(c.getPriceList()));
         } else if (agencyId != null) {
             // Hierarchy for Agency: Direct -> Rank -> All Agency -> Default
-            // Láº¥y gÃ¡n trá»±c tiáº¿p má»›i nháº¥t Ä‘Ã£ cÃ³ hiá»‡u lá»±c
+            // Lấy gán trực tiếp mới nhất đã có hiệu lực
             agencyPriceListRepository.findFirstByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(agencyId, now)
                     .ifPresent(a -> candidates.add(a.getPriceList()));
             
-            // Láº¥y rank thá»±c táº¿ cá»§a Ä‘áº¡i lÃ½
+            // Lấy rank thực tế của đại lý
             String rank = getAgencyRank(agencyId);
             priceListConditionRepository.findActiveByRank(
                     PriceListConditionType.AGENCY_RANK, rank, now)
@@ -389,13 +426,14 @@ public class PriceListService {
             if (item.isPresent()) {
                 Double p = item.get().getPrice();
                 if (Boolean.TRUE.equals(item.get().getIsVisible())) {
-                    // Æ¯u tiÃªn 1: Náº¿u lÃ  báº£ng giÃ¡ chá»‰ Ä‘á»‹nh trá»±c tiáº¿p (vá»‹ trÃ­ 0), láº¥y ngay ká»ƒ cáº£ lÃ  giÃ¡ -1 (LiÃªn há»‡)
-                    // Æ¯u tiÃªn 2: Náº¿u giÃ¡ > 0, láº¥y ngay
-                    // Æ¯u tiÃªn 3: Náº¿u lÃ  báº£ng giÃ¡ cuá»‘i cÃ¹ng (máº·c Ä‘á»‹nh), láº¥y ngay ká»ƒ cáº£ giÃ¡ -1
+                    // Ưu tiên 1: Nếu là bảng giá chỉ định trực tiếp (vị trí 0), lấy ngay kể cả là giá -1 (Liên hệ)
+                    // Ưu tiên 2: Nếu giá > 0, lấy ngay
+                    // Ưu tiên 3: Nếu là bảng giá cuối cùng (mặc định), lấy ngay kể cả giá -1
                     if (i == 0 || p != null && p > 0 || isLast) {
                         result.setPrice(p);
                         result.setPriceListName(pl.getName());
                         result.setPriceListId(pl.getId());
+                        result.setOldPrice(item.get().getOldPrice());
                         return result;
                     }
                 }

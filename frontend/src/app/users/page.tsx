@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { userApi, UserDTO, agencyApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import NotificationModal from '@/components/NotificationModal';
 import PageHeader from '@/components/ui/PageHeader';
@@ -13,6 +14,7 @@ import Badge from '@/components/ui/Badge';
 import { Users, Trash2, Shield, Search, Eye, X } from 'lucide-react';
 
 export default function UserManagementPage() {
+  const { user, isLoading } = useAuth();
   const [users, setUsers] = useState<UserDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,8 +39,14 @@ export default function UserManagementPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (!isLoading) {
+      if (!user || !user.roles.includes('ROLE_COMPANY')) {
+        router.push('/login');
+        return;
+      }
+      fetchUsers();
+    }
+  }, [user, isLoading, router]);
 
   const handleDeleteUser = async (id: number) => {
     if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
