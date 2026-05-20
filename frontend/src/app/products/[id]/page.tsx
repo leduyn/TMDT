@@ -309,8 +309,42 @@ export default function ProductDetailPage() {
                 {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (resolvedPrice !== null ? resolvedPrice : (product.basePrice || 0)))}
               </div>
               {!isCompanyAdmin && resolvedPrice !== null && (
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ textDecoration: 'line-through' }}>{formatPrice(product.basePrice || 0)}</span>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {(() => {
+                    let oldPrice = 0;
+                    let ratio = 0;
+                    let hasDiscount = false;
+                    
+                    if (product.oldAppliedPrice && product.oldAppliedPrice > 0) {
+                      oldPrice = product.oldAppliedPrice;
+                      ratio = product.priceChangeRatio || 0;
+                      hasDiscount = true;
+                    } else if (resolvedPrice !== product.basePrice && product.basePrice && product.basePrice > 0) {
+                      oldPrice = product.basePrice;
+                      ratio = ((resolvedPrice - product.basePrice) / product.basePrice) * 100;
+                      hasDiscount = true;
+                    }
+                    
+                    if (hasDiscount) {
+                      return (
+                        <>
+                          <span style={{ textDecoration: 'line-through' }}>{formatPrice(oldPrice)}</span>
+                          <span className="badge" style={{ 
+                            fontSize: '0.75rem',
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            fontWeight: 600,
+                            background: ratio < 0 ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)',
+                            color: ratio < 0 ? '#2ecc71' : '#e74c3c'
+                          }}>
+                            {ratio < 0 ? '' : '+'}{ratio.toFixed(1)}%
+                          </span>
+                        </>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                   <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
                     Áp dụng: {product.appliedPriceListName || 'Bảng giá hệ thống'} (ID: {product.appliedPriceListId})
                   </span>
