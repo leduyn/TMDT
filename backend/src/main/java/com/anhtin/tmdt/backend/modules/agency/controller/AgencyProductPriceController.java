@@ -50,6 +50,16 @@ public class AgencyProductPriceController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/remove-override")
+    @PreAuthorize("hasAnyRole('COMPANY', 'ADMIN')")
+    public ResponseEntity<?> removeOverride(
+            @RequestParam Long agencyId,
+            @RequestParam Long productId,
+            @RequestAttribute(value = "userId", required = false) Long userId) {
+        agencyProductPriceService.removeOverride(agencyId, productId, userId);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/rollback/{historyId}")
     @PreAuthorize("hasAnyRole('COMPANY', 'ADMIN')")
     public ResponseEntity<?> rollbackPrice(

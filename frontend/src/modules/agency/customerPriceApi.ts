@@ -40,6 +40,11 @@ export const customerPriceApi = {
             method: 'POST'
         }),
     
+    removeOverride: (agencyId: number, productId: number) => 
+        fetchJSON<void>(`/api/customer-prices/remove-override?agencyId=${agencyId}&productId=${productId}`, {
+            method: 'POST'
+        }),
+    
     rollbackPrice: (historyId: number) => 
         fetchJSON<void>(`/api/customer-prices/rollback/${historyId}`, {
             method: 'POST'

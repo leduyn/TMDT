@@ -87,6 +87,21 @@ export default function AgencyDetailPage() {
     }
   };
 
+  const handleRemoveOverride = async (productId: number) => {
+    if (!id) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa giá ghi đè riêng của sản phẩm này và quay lại sử dụng giá từ bảng giá mặc định?')) return;
+    try {
+      setIsLoading(true);
+      await customerPriceApi.removeOverride(Number(id), productId);
+      alert('Đã xóa giá ghi đè thành công');
+      fetchPriceAndProducts();
+    } catch (err) {
+      alert('Lỗi khi xóa giá ghi đè');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSyncPrices = async () => {
     if (!id) return;
     if (!confirm('Hệ thống sẽ đồng bộ lại toàn bộ giá cho khách hàng này dựa trên bảng giá. Quá trình này chạy ngầm. Tiếp tục?')) return;
@@ -523,6 +538,16 @@ export default function AgencyDetailPage() {
                             >
                               <History size={16} />
                             </button>
+                            {p.isOverride && (
+                              <button 
+                                onClick={() => handleRemoveOverride(p.productId)}
+                                className="btn-icon" 
+                                title="Xóa giá riêng (Trở về giá mặc định)"
+                                style={{ color: '#ef4444' }}
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

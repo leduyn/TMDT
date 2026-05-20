@@ -25,6 +25,8 @@ import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
 import com.anhtin.tmdt.backend.modules.user.entity.User;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyProductPriceDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyProductPriceHistoryDTO;
+import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
+import com.anhtin.tmdt.backend.modules.price.entity.PriceList;
 
 @Service
 public class AgencyProductPriceService {
@@ -40,6 +42,9 @@ public class AgencyProductPriceService {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private PriceListService priceListService;
 
     public List<AgencyProductPriceDTO> getPricesForAgency(Long agencyId) {
         return agencyProductPriceRepository.findByAgencyId(agencyId).stream().map(this::mapToDTO).collect(Collectors.toList());
@@ -98,6 +103,43 @@ public class AgencyProductPriceService {
         agencyProductPriceRepository.save(app);
 
         saveHistory(app, app.getAgency(), app.getProduct(), oldPrice, newPrice, changedById, "ROLLBACK");
+    }
+
+    @Transactional
+    public void removeOverride(Long agencyId, Long productId, Long changedById) {
+        if (agencyId == null || productId == null) throw new IllegalArgumentException("Invalid input");
+        
+        AgencyProductPrice app = agencyProductPriceRepository.findByAgencyIdAndProductId(agencyId, productId)
+                .orElseThrow(() -> new RuntimeException("Price record not found"));
+
+        if (!Boolean.TRUE.equals(app.getIsOverride())) {
+            return; // Already not overridden
+        }
+
+        Double oldPrice = app.getPrice();
+        
+        // Remove override flag
+        app.setIsOverride(false);
+        
+        // Calculate what the price SHOULD be from price lists
+        PriceListService.ResolvedPriceInfo rawInfo = priceListService.calculateRawPriceInfoForAgency(productId, agencyId);
+        
+        Double newPrice = rawInfo != null ? rawInfo.getPrice() : null;
+        app.setPrice(newPrice);
+        if (oldPrice != null) {
+            app.setOldPrice(oldPrice);
+        }
+        if (rawInfo != null && rawInfo.getPriceListId() != null) {
+            PriceList pl = new PriceList();
+            pl.setId(rawInfo.getPriceListId());
+            app.setSourcePriceList(pl);
+        } else {
+            app.setSourcePriceList(null);
+        }
+        app.setUpdatedAt(LocalDateTime.now());
+        agencyProductPriceRepository.save(app);
+
+        saveHistory(app, app.getAgency(), app.getProduct(), oldPrice, newPrice, changedById, "REMOVE_OVERRIDE");
     }
 
     private void saveHistory(AgencyProductPrice app, Agency agency, Product product, Double oldPrice, Double newPrice, Long changedById, String source) {
