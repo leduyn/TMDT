@@ -19,6 +19,8 @@ import {
   CreditCard,
   User as UserIcon,
   FileText,
+  MapPin,
+  Settings,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -40,8 +42,8 @@ export default function Sidebar() {
 
   const getRoleBadge = (roles: string[]) => {
     if (roles.includes('ROLE_COMPANY')) return { label: 'Công ty', type: 'warning' as const };
-    if (roles.includes('ROLE_AGENCY')) return { label: 'Đại lý', type: 'primary' as const };
-    return { label: 'Khách hàng', type: 'success' as const };
+    if (roles.includes('ROLE_AGENCY')) return { label: 'Khách hàng', type: 'primary' as const };
+    return { label: 'Người mua', type: 'success' as const };
   };
 
   const navItems = [
@@ -51,11 +53,14 @@ export default function Sidebar() {
     { label: 'Bảng giá', href: '/price-lists', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Hẹn giờ giá', href: '/price-vouchers', icon: Clock, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Đơn hàng', href: '/orders', icon: FileText, roles: ['ROLE_USER'] },
-    { label: 'Đại lý', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
-    { label: 'Khách hàng', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
-    { label: 'Khách của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
+    { label: 'Khách hàng', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Người mua', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Người dùng', href: '/users', icon: UserIcon, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Khu vực KD', href: '/regions', icon: MapPin, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Người mua của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
     { label: 'Tín dụng', href: '/credit', icon: CreditCard, roles: ['ROLE_COMPANY', 'ROLE_AGENCY'] },
     { label: 'Công nợ', href: '/credit/debts', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ACCOUNTANT'] },
+    { label: 'Cài đặt', href: '/settings', icon: Settings, roles: ['ROLE_COMPANY'] },
   ];
 
   const filteredNavItems = navItems.filter(item => 
@@ -102,7 +107,7 @@ export default function Sidebar() {
           <button 
             onClick={toggleCollapse}
             style={{ 
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)', 
               color: 'var(--text-muted)', borderRadius: 8,
               cursor: 'pointer', padding: 6, display: 'flex'
             }}
@@ -116,7 +121,7 @@ export default function Sidebar() {
         <button 
           onClick={toggleCollapse}
           style={{ 
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
+            background: 'var(--bg-secondary)', border: '1px solid var(--border)', 
             color: 'var(--text-muted)', borderRadius: '50%',
             cursor: 'pointer', padding: 6, display: 'flex', margin: '0 auto 20px'
           }}
@@ -156,3 +161,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+

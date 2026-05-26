@@ -1,0 +1,9 @@
+- `[x]` 1. Create Backend Entities & Repositories (`AgencyProductPrice`, `AgencyProductPriceHistory`)
+- `[x]` 2. Implement `CustomerPriceSyncService` (Async auto-synchronization logic)
+- `[x]` 3. Implement `AgencyProductPriceService` (Overrides, history tracking, import)
+- `[x]` 4. Integrate Event Hooks into existing services (`PriceListService`, `PriceUpdateVoucherService`)
+- `[x]` 5. Create `AgencyProductPriceController` (REST APIs)
+- `[/]` 6. Frontend: Add "Giá Sản Phẩm" Tab in Agency Details page
+- `[ ]` 7. Frontend: Build Data Table, Override Modal, and History Drawer
+- `[ ]` 8. Frontend: Implement Excel Import UI
+- `[ ]` 9. Verify and Refactor

@@ -260,10 +260,10 @@ export default function OrderDetailPage() {
 
         {/* Sidebar Info */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <GlassCard title="Thông tin khách hàng" icon={<User size={20} />}>
+          <GlassCard title="Thông tin người mua" icon={<User size={20} />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 4 }}>Tên khách hàng</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 4 }}>Tên người mua</div>
                 <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <User size={16} />
                   {order.customerName}
@@ -271,7 +271,7 @@ export default function OrderDetailPage() {
               </div>
               {order.agencyName && (
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 4 }}>Đại lý quản lý</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 4 }}>Khách hàng quản lý</div>
                   <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <FileText size={16} />
                     {order.agencyName}

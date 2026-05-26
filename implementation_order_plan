@@ -1,0 +1,77 @@
+# Kế Hoạch Cải Tiến Giao Diện Tạo Đơn Hàng
+
+Tài liệu này đề xuất phương án tối ưu hóa giao diện trang Tạo đơn hàng mới (`/orders/create`) nhằm hỗ trợ tốt nhất khi hệ thống có hàng trăm khách hàng, người mua và hàng ngàn sản phẩm.
+
+---
+
+## Vấn Đề Hiện Tại
+
+1. **Chọn Khách hàng (Bước 1):**
+   - Hiện thị toàn bộ danh sách khách hàng (Đại lý - Agencies) dưới dạng các thẻ (cards) trên lưới.
+   - Không có bộ lọc hay thanh tìm kiếm. Khi số lượng Đại lý tăng lên hàng chục, hàng trăm, người dùng sẽ phải cuộn trang rất dài và khó tìm.
+
+2. **Chọn Người mua (Bước 2):**
+   - Hiển thị toàn bộ người mua trực thuộc Đại lý dưới dạng thẻ grid mà không có bộ lọc/tìm kiếm.
+   - Khó khăn trong việc định vị người mua cụ thể.
+
+3. **Chọn Sản phẩm (Bước 3):**
+   - **Lỗi logic tìm kiếm:** Khi người dùng nhập từ khóa tìm kiếm sản phẩm, hàm `onChange` thực hiện lọc và cập nhật trực tiếp vào state `products` (`setProducts(filtered)`). Điều này làm mất danh sách gốc. Khi xóa ô tìm kiếm hoặc tìm từ khóa khác, người dùng không thể tìm thấy các sản phẩm đã bị lọc mất trước đó (phải reload lại trang).
+   - Danh sách hiển thị dạng card đơn giản, không có hình ảnh minh họa, thông tin phân loại (Thương hiệu, Danh mục) và dễ gây quá tải giao diện nếu số lượng sản phẩm lớn.
+
+---
+
+## Đề Xuất Cải Tiến Cụ Thể
+
+### 1. Cải tiến Chọn Khách hàng (Bước 1)
+- **Thanh tìm kiếm:** Bổ sung ô nhập tìm kiếm phía trên danh sách. Hỗ trợ tìm theo tên, số điện thoại hoặc địa chỉ của Khách hàng (Đại lý).
+- **Layout giới hạn chiều cao:** Chuyển danh sách card sang một container có chiều cao cố định (ví dụ: `max-height: 400px` hoặc `450px`) với thuộc tính cuộn dọc (`overflow-y: auto`). Điều này giữ cho giao diện luôn gọn gàng bất kể có bao nhiêu khách hàng.
+- **Thẻ thông tin trực quan:** Hiển thị thẻ gọn đẹp hơn với biểu tượng (Building/Store) và các chi tiết được căn chỉnh rõ ràng.
+
+### 2. Cải tiến Chọn Người mua (Bước 2)
+- **Thanh tìm kiếm người mua:** Bổ sung ô tìm kiếm người mua theo Tên hiển thị, Tên đăng nhập (username) hoặc Số điện thoại.
+- **Layout giới hạn chiều cao:** Tương tự Bước 1, sử dụng danh sách cuộn dọc để chứa người mua.
+- **Cảnh báo tín dụng & Công nợ:** Hiển thị các nhãn nợ quá hạn và thông tin công nợ nổi bật hơn với mã màu đỏ/xanh rõ ràng.
+
+### 3. Cải tiến Chọn Sản phẩm (Bước 3)
+- **Sửa lỗi tìm kiếm:**
+  - Giữ nguyên danh sách gốc `products` trong state.
+  - Thêm một state `productSearchTerm` và thực hiện lọc sản phẩm động khi render:
+    ```tsx
+    const filteredProducts = products.filter(p => 
+      p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+      (p.brand?.name && p.brand.name.toLowerCase().includes(productSearchTerm.toLowerCase()))
+    );
+    ```
+- **Bộ lọc theo Danh mục và Thương hiệu (Chips/Filter Tags):**
+  - Trích xuất danh sách các Danh mục (`categories`) và Thương hiệu (`brands`) từ danh sách sản phẩm hiện có.
+  - Hiển thị các nút nhấn nhanh (Chips) để người dùng có thể lọc nhanh theo nhóm sản phẩm.
+- **Layout Danh sách Sản phẩm Premium:**
+  - Mỗi hàng/card sản phẩm sẽ có hình ảnh thu nhỏ (`product.imageUrl`), nếu không có ảnh sẽ dùng một placeholder đẹp mắt chứa chữ cái đầu của sản phẩm.
+  - Hiển thị đơn vị tính (`unit`), số lượng tồn kho (`stockQuantity` hoặc `stock`) cùng trạng thái hàng hóa.
+  - Bọc danh sách sản phẩm trong khung cuộn dọc (`max-height: 480px`) kèm thiết kế lưới 2 hoặc 3 cột gọn gàng.
+
+---
+
+## Proposed Changes
+
+### Frontend Component
+
+#### [MODIFY] [page.tsx](file:///d:/Java%20lean/TMDT/frontend/src/app/orders/create/page.tsx)
+- Bổ sung state `agencySearchQuery`, `buyerSearchQuery`, và `productSearchQuery`.
+- Bổ sung state `selectedCategoryFilter` và `selectedBrandFilter` để lọc nâng cao sản phẩm.
+- Thay đổi logic render của cả 3 bước để tích hợp thanh tìm kiếm và hiển thị dạng danh sách cuộn mượt mà.
+- Sửa lỗi mutate state `products` khi tìm kiếm.
+- Tối ưu hóa UI/UX bằng cách sử dụng các icon của `lucide-react` (như `Search`, `Store`, `User`, `Package`, `Filter`, etc.) và biến giao diện trở nên chuyên nghiệp, hiện đại, có chiều sâu hơn.
+
+---
+
+## Kế hoạch Kiểm thử (Verification Plan)
+
+### Kiểm thử thủ công:
+1. **Kiểm thử tìm kiếm Khách hàng (Bước 1):** Gõ tìm kiếm theo tên hoặc SĐT của đại lý. Kiểm tra danh sách hiển thị khớp ngay lập tức và scrollbar hoạt động mượt mà.
+2. **Kiểm thử tìm kiếm Người mua (Bước 2):** Chọn một Đại lý có nhiều Người mua. Gõ tìm kiếm và xác nhận kết quả khớp.
+3. **Kiểm thử tìm kiếm Sản phẩm & Bộ lọc (Bước 3):**
+   - Nhập từ khóa sản phẩm bất kỳ -> hiển thị kết quả. Xóa từ khóa -> danh sách sản phẩm đầy đủ quay lại bình thường.
+   - Nhấp chọn các chip Danh mục hoặc Thương hiệu để lọc sản phẩm tương ứng.
+   - Thêm sản phẩm vào giỏ hàng và kiểm tra tính chính xác của số tiền tạm tính, tổng tiền.
+4. **Kiểm thử xác nhận & đặt hàng (Bước 4):** Tiến hành tạo đơn hàng và kiểm tra xem API được gọi thành công và chuyển hướng về trang danh sách đơn hàng.

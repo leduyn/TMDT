@@ -20,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+
 /**
  * Interceptor xác thực JWT cho kết nối WebSocket.
  * Client gửi JWT token trong header "Authorization" khi CONNECT.

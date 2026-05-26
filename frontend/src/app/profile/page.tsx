@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -257,3 +257,4 @@ export default function ProfilePage() {
     </main>
   );
 }
+

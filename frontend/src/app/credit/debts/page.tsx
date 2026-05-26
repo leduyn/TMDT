@@ -172,7 +172,7 @@ function AgencyDebtsContent() {
             <input 
               type="text" 
               className="form-input"
-              placeholder="Tìm theo tên KH, Đại lý, Mã đơn hàng, Mã công nợ..."
+              placeholder="Tìm theo tên Khách hàng, Người mua, Mã đơn hàng, Mã công nợ..."
               style={{ paddingLeft: 40 }}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -182,13 +182,13 @@ function AgencyDebtsContent() {
         
         {isAdmin && (
           <div style={{ maxWidth: 200 }}>
-            <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Lọc theo Đại lý</label>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Lọc theo Khách hàng</label>
             <select 
               className="form-input"
               value={selectedAgencyId || ''}
               onChange={e => setSelectedAgencyId(e.target.value ? Number(e.target.value) : null)}
             >
-              <option value="">-- Tất cả đại lý --</option>
+              <option value="">-- Tất cả Khách hàng --</option>
               {agencies.map(a => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -209,8 +209,8 @@ function AgencyDebtsContent() {
             <thead>
               <tr>
                 <th>Ngày ghi nhận</th>
-                {isAdmin && !selectedAgencyId && <th>Đại lý</th>}
-                <th>Khách hàng</th>
+                {isAdmin && !selectedAgencyId && <th>Khách hàng</th>}
+                <th>Người mua</th>
                 <th>Mã công nợ</th>
                 <th>Mã ĐH</th>
                 <th>Loại</th>
@@ -493,3 +493,4 @@ function OrderDebtsModal({ orderId, onClose, onPay }: { orderId: number; onClose
     </div>
   );
 }
+

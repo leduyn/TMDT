@@ -1,4 +1,4 @@
-export const getBackendUrl = () => {
+﻿export const getBackendUrl = () => {
   return '';
 };
 
@@ -9,3 +9,4 @@ export const resolveImageUrl = (url?: string) => {
   if (url.startsWith('uploads/')) return `${getBackendUrl()}/${url}`;
   return url;
 };
+

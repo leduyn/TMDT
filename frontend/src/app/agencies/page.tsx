@@ -128,7 +128,7 @@ export default function AgenciesPage() {
         fetchData();
       }
     } catch (err) {
-      alert('Lỗi khi tạo đại lý');
+      alert('Lỗi khi tạo Khách hàng');
     }
   };
 
@@ -141,7 +141,7 @@ export default function AgenciesPage() {
       setSelectedAgency(null);
       fetchData();
     } catch (err) {
-      alert('Lỗi khi duyệt đại lý');
+      alert('Lỗi khi duyệt Khách hàng');
     }
   };
 
@@ -160,7 +160,7 @@ export default function AgenciesPage() {
       setShowEditModal(false);
       fetchData();
     } catch (err) {
-      alert('Lỗi khi cập nhật đại lý');
+      alert('Lỗi khi cập nhật Khách hàng');
     }
   };
 
@@ -212,7 +212,7 @@ export default function AgenciesPage() {
 
   const columns: Column<Agency>[] = [
     { 
-      header: 'Đại lý', 
+      header: 'Khách hàng', 
       key: 'name',
       width: '25%',
       render: (a) => (
@@ -262,6 +262,7 @@ export default function AgenciesPage() {
       header: 'Thao tác', 
       key: 'actions', 
       align: 'right',
+      width: '20%',
       render: (a) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           {a.status === 'PENDING' && (
@@ -298,8 +299,8 @@ export default function AgenciesPage() {
       <Navbar />
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
-          title="Quản lý Đại lý" 
-          subtitle="Danh sách và thiết lập các đại lý ủy quyền trong hệ thống"
+          title="Quản lý Khách hàng" 
+          subtitle="Danh sách và thiết lập các Khách hàng ủy quyền trong hệ thống"
           icon="Building2"
         />
 
@@ -330,11 +331,11 @@ export default function AgenciesPage() {
         <SearchActionHeader 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          placeholder="Tìm kiếm đại lý theo tên, SĐT hoặc tài khoản..."
+          placeholder="Tìm kiếm Khách hàng theo tên, SĐT hoặc tài khoản..."
           actions={
             <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
               <UserPlus size={18} />
-              Thêm Đại lý mới
+              Thêm Khách hàng mới
             </button>
           }
         />
@@ -343,14 +344,14 @@ export default function AgenciesPage() {
           data={filteredAgencies}
           columns={columns}
           loading={isLoading}
-          emptyMessage={searchQuery ? 'Không tìm thấy đại lý nào phù hợp' : 'Chưa có đại lý nào'}
+          emptyMessage={searchQuery ? 'Không tìm thấy Khách hàng nào phù hợp' : 'Chưa có Khách hàng nào'}
         />
 
-        {/* Modal Thêm Đại lý Mới */}
+        {/* Modal Thêm Khách hàng Mới */}
         {showCreateModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <GlassCard className="fade-in" style={{ width: '100%', maxWidth: 600, padding: 32, maxHeight: '90vh', overflowY: 'auto' }}>
-              <h2 style={{ marginBottom: 24, marginTop: 0 }}>Thêm Đại lý mới</h2>
+              <h2 style={{ marginBottom: 24, marginTop: 0 }}>Thêm Khách hàng mới</h2>
               
               <div style={{ display: 'flex', gap: 12, marginBottom: 24, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 12 }}>
                 <button 
@@ -409,10 +410,10 @@ export default function AgenciesPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <h3 style={{ fontSize: '1rem', margin: '0 0 12px 0', color: 'var(--accent)' }}>Thông tin Đại lý</h3>
+                    <h3 style={{ fontSize: '1rem', margin: '0 0 12px 0', color: 'var(--accent)' }}>Thông tin Khách hàng</h3>
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Tên Đại lý</label>
+                    <label className="form-label">Tên Khách hàng</label>
                     <input type="text" className="input-field" required value={newAgency.name} onChange={e => setNewAgency({...newAgency, name: e.target.value})} />
                   </div>
                   <div>
@@ -451,14 +452,14 @@ export default function AgenciesPage() {
 
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 32 }}>
                   <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)}>Hủy</button>
-                  <button type="submit" className="btn-primary">Tạo Đại lý</button>
+                  <button type="submit" className="btn-primary">Tạo Khách hàng</button>
                 </div>
               </form>
             </GlassCard>
           </div>
         )}
 
-        {/* Modal Duyệt Đại lý */}
+        {/* Modal Duyệt Khách hàng */}
         {showApproveModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <GlassCard className="fade-in" style={{ width: '100%', maxWidth: 500, padding: 32 }}>
@@ -466,13 +467,13 @@ export default function AgenciesPage() {
                 <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <ShieldCheck size={32} style={{ color: '#10b981' }} />
                 </div>
-                <h2 style={{ margin: 0 }}>Duyệt Đại lý</h2>
-                <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Vui lòng kiểm tra và hoàn thiện thông tin đại lý</p>
+                <h2 style={{ margin: 0 }}>Duyệt Khách hàng</h2>
+                <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Vui lòng kiểm tra và hoàn thiện thông tin Khách hàng</p>
               </div>
 
               <form onSubmit={handleApprove}>
                 <div style={{ marginBottom: 16 }}>
-                  <label className="form-label">Tên Đại lý</label>
+                  <label className="form-label">Tên Khách hàng</label>
                   <input type="text" className="input-field" required value={approvalData.name} onChange={e => setApprovalData({...approvalData, name: e.target.value})} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -499,7 +500,7 @@ export default function AgenciesPage() {
           </div>
         )}
 
-        {/* Modal Điều chỉnh Đại lý */}
+        {/* Modal Điều chỉnh Khách hàng */}
         {showEditModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <GlassCard className="fade-in" style={{ width: '100%', maxWidth: 550, padding: 32 }}>
@@ -507,13 +508,13 @@ export default function AgenciesPage() {
                 <div style={{ width: 64, height: 64, background: 'rgba(99,102,241,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <Edit size={32} style={{ color: 'var(--accent)' }} />
                 </div>
-                <h2 style={{ margin: 0 }}>Điều chỉnh Đại lý</h2>
-                <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Cập nhật thông tin và tọa độ định vị đại lý</p>
+                <h2 style={{ margin: 0 }}>Điều chỉnh Khách hàng</h2>
+                <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Cập nhật thông tin và tọa độ định vị Khách hàng</p>
               </div>
 
               <form onSubmit={handleUpdate}>
                 <div style={{ marginBottom: 16 }}>
-                  <label className="form-label">Tên Đại lý</label>
+                  <label className="form-label">Tên Khách hàng</label>
                   <input type="text" className="input-field" required value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>

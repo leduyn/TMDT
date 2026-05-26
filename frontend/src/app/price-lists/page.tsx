@@ -178,7 +178,7 @@ export default function PriceListsPage() {
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
           title="Quản lý Bảng giá" 
-          subtitle="Thiết lập các kịch bản giá cho các nhóm đại lý và khách hàng khác nhau"
+          subtitle="Thiết lập các kịch bản giá cho các nhóm Khách hàng và Người mua khác nhau"
           icon="ClipboardList"
         />
 
@@ -220,7 +220,7 @@ export default function PriceListsPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Tên bảng giá</label>
                   <input required value={newListName} onChange={e => setNewListName(e.target.value)}
-                    className="input-field" placeholder="Ví dụ: Bảng giá Đại lý Vàng 2024" />
+                    className="input-field" placeholder="Ví dụ: Bảng giá Khách hàng Vàng 2024" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Mô tả</label>
@@ -243,3 +243,4 @@ export default function PriceListsPage() {
     </>
   );
 }
+

@@ -10,7 +10,7 @@ export default function EditCustomerPage() {
   const router = useRouter();
   const { id } = useParams();
   const { user } = useAuth();
-  const isAgency = user?.role === 'AGENCY';
+  const isAgency = user?.roles.includes('ROLE_AGENCY');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -63,7 +63,7 @@ export default function EditCustomerPage() {
       setLoading(false);
     }).catch(err => {
       console.error('Error fetching data:', err);
-      setError('Không thể tải thông tin khách hàng');
+      setError('Không thể tải thông tin người mua');
       setLoading(false);
     });
   }, [id]);
@@ -81,7 +81,7 @@ export default function EditCustomerPage() {
       });
       router.push('/customers');
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi cập nhật khách hàng');
+      setError(err.message || 'Lỗi khi cập nhật người mua');
       setSaving(false);
     }
   };
@@ -93,8 +93,8 @@ export default function EditCustomerPage() {
       <Navbar />
       <main style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Sửa Khách hàng</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Cập nhật thông tin và phân bổ lại đại lý quản lý</p>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Sửa Người mua</h1>
+          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Cập nhật thông tin và phân bổ lại khách hàng quản lý</p>
         </div>
 
         {error && (
@@ -195,10 +195,10 @@ export default function EditCustomerPage() {
 
             {isAgency && (
               <div style={{ background: 'rgba(52, 152, 219, 0.1)', padding: 24, borderRadius: 16, border: '1px solid rgba(52, 152, 219, 0.2)' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1rem', color: '#3498db' }}>Thông tin riêng của đại lý</h3>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1rem', color: '#3498db' }}>Thông tin riêng của khách hàng</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Tên gợi nhớ (Chỉ đại lý thấy)</label>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Tên gợi nhớ (Chỉ khách hàng thấy)</label>
                     <input
                       type="text"
                       className="input-field"
@@ -224,7 +224,7 @@ export default function EditCustomerPage() {
                       rows={2}
                       value={formData.customShippingAddress}
                       onChange={e => setFormData({ ...formData, customShippingAddress: e.target.value })}
-                      placeholder="Địa chỉ cụ thể cho đại lý này..."
+                      placeholder="Địa chỉ cụ thể cho khách hàng này..."
                     />
                   </div>
                 </div>
@@ -233,7 +233,7 @@ export default function EditCustomerPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Nhóm khách hàng</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Nhóm người mua</label>
                 <select
                   className="input-field"
                   value={formData.customerGroupId}
@@ -248,7 +248,7 @@ export default function EditCustomerPage() {
               
               {!isAgency && (
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', marginBottom: 12, fontWeight: 500 }}>Đại lý quản lý (Có thể chọn nhiều)</label>
+                  <label style={{ display: 'block', marginBottom: 12, fontWeight: 500 }}>Người mua quản lý (Có thể chọn nhiều)</label>
                   <div style={{ 
                     display: 'grid', 
                     gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 

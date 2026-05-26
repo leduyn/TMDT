@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -15,11 +15,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TMDT – Sàn thương mại điện tử",
-  description: "Nền tảng thương mại điện tử B2B2C: Kết nối Công ty, Đại lý và Khách hàng",
+  description: "Nền tảng thương mại điện tử B2B2C: Kết nối Công ty, Người mua và Người mua",
 };
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { CartProvider } from "@/context/CartContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export default function RootLayout({
   children,
@@ -27,16 +28,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <CartProvider>
-            <DashboardLayout>
-              {children}
-            </DashboardLayout>
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem>
+          <AuthProvider>
+            <CartProvider>
+              <DashboardLayout>
+                {children}
+              </DashboardLayout>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+
