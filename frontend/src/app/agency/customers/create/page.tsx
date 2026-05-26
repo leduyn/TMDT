@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
@@ -39,7 +39,7 @@ export default function AgencyCreateCustomerPage() {
         return;
       }
       if (!user.roles?.includes('ROLE_AGENCY')) {
-        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Đại lý.');
+        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Người mua.');
       }
     }
   }, [user, authLoading]);
@@ -57,17 +57,17 @@ export default function AgencyCreateCustomerPage() {
 
     try {
       if (!user?.agencyId) {
-        throw new Error('Không thể xác định thông tin đại lý của bạn.');
+        throw new Error('Không thể xác định thông tin Người mua của bạn.');
       }
 
       await customerApi.create({
         ...formData,
         customerGroupId: formData.customerGroupId ? Number(formData.customerGroupId) : undefined,
-        agencyIds: [user.agencyId] // Tự động gán cho đại lý hiện tại
+        agencyIds: [user.agencyId] // Tự động gán cho Khách hàng hiện tại
       });
       router.push('/my-customers');
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tạo khách hàng');
+      setError(err.message || 'Lỗi khi tạo Người mua');
       setShowErrorModal(true);
       setLoading(false);
     }
@@ -80,8 +80,8 @@ export default function AgencyCreateCustomerPage() {
       <Navbar />
       <main style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Tạo Khách hàng Mới</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Thêm khách hàng vào danh sách quản lý của đại lý bạn</p>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Tạo Người mua Mới</h1>
+          <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Thêm Người mua vào danh sách quản lý của Người mua bạn</p>
         </div>
 
 
@@ -147,16 +147,16 @@ export default function AgencyCreateCustomerPage() {
             </div>
 
             <div style={{ background: 'rgba(52, 152, 219, 0.1)', padding: 24, borderRadius: 16, border: '1px solid rgba(52, 152, 219, 0.2)' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: '1rem', color: '#3498db' }}>Thông tin quản lý của đại lý</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: '1rem', color: '#3498db' }}>Thông tin quản lý của Người mua</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Tên gọi khách hàng</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Tên gọi Người mua</label>
                   <input
                     type="text"
                     className="input-field"
                     value={formData.customName}
                     onChange={e => setFormData({ ...formData, customName: e.target.value })}
-                    placeholder="Tên gợi nhớ để đại lý dễ quản lý..."
+                    placeholder="Tên gợi nhớ để Người mua dễ quản lý..."
                   />
                 </div>
                 <div>
@@ -166,7 +166,7 @@ export default function AgencyCreateCustomerPage() {
                     className="input-field"
                     value={formData.customPhone}
                     onChange={e => setFormData({ ...formData, customPhone: e.target.value })}
-                    placeholder="Số điện thoại của khách hàng..."
+                    placeholder="Số điện thoại của Người mua..."
                   />
                 </div>
                 <div>
@@ -197,7 +197,7 @@ export default function AgencyCreateCustomerPage() {
                 disabled={loading || !!error}
                 style={{ padding: '12px 32px' }}
               >
-                {loading ? 'Đang tạo...' : 'Tạo khách hàng'}
+                {loading ? 'Đang tạo...' : 'Tạo Người mua'}
               </button>
             </div>
           </form>
@@ -213,3 +213,4 @@ export default function AgencyCreateCustomerPage() {
     </>
   );
 }
+

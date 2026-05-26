@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi } from '@/lib/api';
+import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
-import { Plus, Trash2, ChevronRight, Check, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, Check, AlertTriangle, Search, Filter, Building, User, Package } from 'lucide-react';
 
 interface CartItem {
   productId: number;
@@ -24,7 +24,7 @@ export default function CreateOrderPage() {
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
   const [agencyCustomers, setAgencyCustomers] = useState<UserDTO[]>([]);
   const [products, setProducts] = useState<ProductDTO[]>([]);
-  
+
   const [selectedAgency, setSelectedAgency] = useState<AgencyDTO | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
   const [shippingAddress, setShippingAddress] = useState('');
@@ -41,6 +41,13 @@ export default function CreateOrderPage() {
     invoiceTaxCode: '',
     invoiceAddress: ''
   });
+
+  // Search and Filter States for UX enhancement with large datasets
+  const [agencySearch, setAgencySearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
   useEffect(() => {
     loadAgencies();
@@ -88,6 +95,14 @@ export default function CreateOrderPage() {
     } catch (e) {
       console.error('Failed to load credit info', e);
     }
+    // Reset search queries and selections when customer changes to avoid state leaks
+    setCustomerSearch('');
+    setSelectedCustomer(null);
+    setShowNewCustomerForm(false);
+    setProductSearch('');
+    setSelectedCategory(null);
+    setSelectedBrand(null);
+    setCart([]); // Clear cart to prevent cross-agency price lists or inventory conflicts
     setStep(2);
   };
 
@@ -96,14 +111,18 @@ export default function CreateOrderPage() {
     if (customer) {
       setShippingAddress(customer.shippingAddress || '');
     }
+    // Reset product searches when buyer changes in case it impacts the price list
+    setProductSearch('');
+    setSelectedCategory(null);
+    setSelectedBrand(null);
     setStep(3);
   };
 
   const handleAddToCart = (product: ProductDTO) => {
     const existing = cart.find(item => item.productId === product.id);
     if (existing) {
-      setCart(cart.map(item => 
-        item.productId === product.id 
+      setCart(cart.map(item =>
+        item.productId === product.id
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
@@ -112,7 +131,7 @@ export default function CreateOrderPage() {
         productId: product.id,
         productName: product.name,
         quantity: 1,
-        price: product.basePrice || 0
+        price: product.appliedPrice || product.basePrice || 0
       }]);
     }
   };
@@ -121,7 +140,7 @@ export default function CreateOrderPage() {
     if (quantity <= 0) {
       setCart(cart.filter(item => item.productId !== productId));
     } else {
-      setCart(cart.map(item => 
+      setCart(cart.map(item =>
         item.productId === productId ? { ...item, quantity } : item
       ));
     }
@@ -137,7 +156,7 @@ export default function CreateOrderPage() {
 
   const handleSubmitOrder = async () => {
     if (!selectedAgency) {
-      setError('Vui lòng chọn đại lý');
+      setError('Vui lòng chọn Khách hàng');
       return;
     }
 
@@ -199,14 +218,14 @@ export default function CreateOrderPage() {
     <div className="container">
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ marginBottom: 4 }}>Tạo đơn hàng mới</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Tạo đơn hàng cho đại lý hoặc khách hàng</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Tạo đơn hàng cho Khách hàng hoặc Người mua</p>
       </div>
 
       {selectedAgency && (
         <GlassCard style={{ padding: '16px 20px', marginBottom: 24, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div style={{ borderRight: '1px solid var(--border)', paddingRight: 24 }}>
-              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Đại lý</div>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Khách hàng</div>
               <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedAgency.name}</div>
               <div style={{ display: 'flex', gap: 16 }}>
                 <div style={{ fontSize: 13 }}>
@@ -223,9 +242,9 @@ export default function CreateOrderPage() {
                 )}
               </div>
             </div>
-            
+
             <div>
-              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Khách hàng</div>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Người mua</div>
               {selectedCustomer ? (
                 <>
                   <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer.displayName || selectedCustomer.username}</div>
@@ -248,7 +267,7 @@ export default function CreateOrderPage() {
                 </>
               ) : (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 14 }}>
-                  Chưa chọn khách hàng
+                  Chưa chọn Người mua
                 </div>
               )}
             </div>
@@ -258,8 +277,8 @@ export default function CreateOrderPage() {
 
       <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
         {[1, 2, 3, 4].map(s => (
-          <div key={s} style={{ 
-            display: 'flex', 
+          <div key={s} style={{
+            display: 'flex',
             alignItems: 'center',
             color: step >= s ? 'var(--primary)' : 'var(--text-muted)'
           }}>
@@ -267,20 +286,20 @@ export default function CreateOrderPage() {
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: step >= s ? 'var(--primary)' : 'var(--border)',
+              background: step >= s ? 'var(--success)' : 'var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: step >= s ? 'white' : 'var(--text-muted)',
+              color: step >= s ? 'var(--text-primary)' : 'var(--text-muted)',
               fontWeight: 600,
               fontSize: 14
             }}>
-              {step > s ? <Check size={16} /> : s}
+              {step > s ? <Check size={16} style={{ marginLeft: 8, color: 'var(--primary)' }} /> : s}
             </div>
             <span style={{ marginLeft: 8, fontSize: 14 }}>
-              {s === 1 ? 'Chọn Đại lý' : s === 2 ? 'Chọn Khách hàng' : s === 3 ? 'Chọn Sản phẩm' : 'Xác nhận'}
+              {s === 1 ? 'Chọn Khách hàng' : s === 2 ? 'Chọn Người mua' : s === 3 ? 'Chọn Sản phẩm' : 'Xác nhận'}
             </span>
-            {s < 4 && <ChevronRight size={16} style={{ marginLeft: 8, color: 'var(--text-muted)' }} />}
+            {s < 4 && <ChevronRight size={16} style={{ marginLeft: 8, color: 'var(--primary)' }} />}
           </div>
         ))}
       </div>
@@ -294,163 +313,314 @@ export default function CreateOrderPage() {
       <GlassCard style={{ padding: 24 }}>
         {step === 1 && (
           <div>
-            <h3 style={{ marginBottom: 16 }}>Chọn Đại lý</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
-              {agencies.map(agency => (
-                <div 
-                  key={agency.id}
-                  className="agency-card"
-                  onClick={() => handleSelectAgency(agency)}
-                  style={{
-                    padding: 16,
-                    border: selectedAgency?.id === agency.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    background: selectedAgency?.id === agency.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent'
-                  }}
-                >
-                  <div style={{ fontWeight: 600 }}>{agency.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{agency.phone}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{agency.address}</div>
+            <h3 style={{ marginBottom: 16 }}>Chọn Khách hàng</h3>
+            <div style={{ position: 'relative', marginBottom: 20 }}>
+              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                <Search size={18} />
+              </span>
+              <input
+                type="text"
+                placeholder="Tìm khách hàng theo tên, số điện thoại, địa chỉ..."
+                className="input-field"
+                style={{ paddingLeft: 42 }}
+                value={agencySearch}
+                onChange={e => setAgencySearch(e.target.value)}
+              />
+            </div>
+
+            <div style={{ 
+              maxHeight: '400px', 
+              overflowY: 'auto', 
+              paddingRight: 8,
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+              gap: 16 
+            }}>
+              {agencies.filter(agency => {
+                const query = agencySearch.toLowerCase();
+                return (
+                  agency.name.toLowerCase().includes(query) ||
+                  (agency.phone && agency.phone.toLowerCase().includes(query)) ||
+                  (agency.address && agency.address.toLowerCase().includes(query))
+                );
+              }).length > 0 ? (
+                agencies.filter(agency => {
+                  const query = agencySearch.toLowerCase();
+                  return (
+                    agency.name.toLowerCase().includes(query) ||
+                    (agency.phone && agency.phone.toLowerCase().includes(query)) ||
+                    (agency.address && agency.address.toLowerCase().includes(query))
+                  );
+                }).map(agency => (
+                  <div
+                    key={agency.id}
+                    className="agency-card glass-card"
+                    onClick={() => handleSelectAgency(agency)}
+                    style={{
+                      padding: 16,
+                      border: selectedAgency?.id === agency.id ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      borderRadius: 12,
+                      cursor: 'pointer',
+                      background: selectedAgency?.id === agency.id ? 'var(--accent-glow)' : 'transparent',
+                      display: 'flex',
+                      gap: 12,
+                      alignItems: 'flex-start',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ 
+                      background: selectedAgency?.id === agency.id ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)', 
+                      padding: 8, 
+                      borderRadius: 8,
+                      color: selectedAgency?.id === agency.id ? 'white' : 'var(--accent-light)' 
+                    }}>
+                      <Building size={20} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{agency.name}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>SĐT: {agency.phone || 'N/A'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{agency.address || 'N/A'}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+                  Không tìm thấy khách hàng nào phù hợp
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3>Chọn Khách hàng</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <h3 style={{ margin: 0 }}>Chọn Người mua</h3>
+                {!showNewCustomerForm && (
+                  <button
+                    onClick={() => setShowNewCustomerForm(true)}
+                    className="btn-outline"
+                    style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
+                  >
+                    <Plus size={14} /> Thêm Người mua mới
+                  </button>
+                )}
+              </div>
               {creditDetail && (
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ 
-                    padding: '8px 12px', 
-                    background: getTotalAmount() > creditDetail.hmkd ? '#fee2e2' : '#dcfce7',
-                    borderRadius: 6, fontSize: 12, color: getTotalAmount() > creditDetail.hmkd ? '#dc2626' : '#16a34a',
+                  <div style={{
+                    padding: '8px 12px',
+                    background: getTotalAmount() > creditDetail.hmkd ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                    borderRadius: 8, fontSize: 12, color: getTotalAmount() > creditDetail.hmkd ? '#fca5a5' : '#6ee7b7',
                     border: '1px solid currentColor'
                   }}>
-                    Đại lý HMKD: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
+                    Khách hàng HMKD: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
                   </div>
-                  <div style={{ 
-                    padding: '8px 12px', background: '#fff7ed', borderRadius: 6, fontSize: 12, color: '#c2410c',
+                  <div style={{
+                    padding: '8px 12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 8, fontSize: 12, color: '#fcd34d',
                     border: '1px solid currentColor'
                   }}>
-                    Đại lý NQH: <strong>{creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ</strong>
+                    Khách hàng NQH: <strong>{creditDetail.overdueDebts.filter(d => d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ</strong>
                   </div>
                 </div>
               )}
             </div>
 
             {!showNewCustomerForm ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
-                <div 
-                  onClick={() => handleSelectCustomer(null)}
-                  style={{
-                    padding: 16,
-                    border: !selectedCustomer ? '2px solid var(--primary)' : '1px solid var(--border)',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    background: !selectedCustomer ? 'rgba(99, 102, 241, 0.1)' : 'transparent'
-                  }}
-                >
-                  <div style={{ fontWeight: 600 }}>{selectedAgency?.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Đại lý nhận hàng</div>
+              <div>
+                <div style={{ position: 'relative', marginBottom: 20 }}>
+                  <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                    <Search size={18} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Tìm người mua theo tên, số điện thoại, username..."
+                    className="input-field"
+                    style={{ paddingLeft: 42 }}
+                    value={customerSearch}
+                    onChange={e => setCustomerSearch(e.target.value)}
+                  />
                 </div>
-                {agencyCustomers.map(customer => {
-                  const debtInfo = creditDetail?.customerDebts.find(d => d.customerId === customer.id);
-                  const overdueDebt = creditDetail?.overdueDebts.filter(d => d.customerId === customer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0) || 0;
-                  
-                  return (
-                    <div 
-                      key={customer.id}
-                      onClick={() => handleSelectCustomer(customer)}
+
+                <div style={{ 
+                  maxHeight: '400px', 
+                  overflowY: 'auto', 
+                  paddingRight: 8,
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: 16 
+                }}>
+                  {/* Default Buyer Selection Card */}
+                  {customerSearch.length === 0 && (
+                    <div
+                      onClick={() => handleSelectCustomer(null)}
+                      className="agency-card glass-card"
                       style={{
                         padding: 16,
-                        border: selectedCustomer?.id === customer.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                        borderRadius: 8,
+                        border: !selectedCustomer ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        borderRadius: 12,
                         cursor: 'pointer',
-                        background: selectedCustomer?.id === customer.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                        position: 'relative'
+                        background: !selectedCustomer ? 'var(--accent-glow)' : 'transparent',
+                        display: 'flex',
+                        gap: 12,
+                        alignItems: 'flex-start',
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      <div style={{ fontWeight: 600 }}>{customer.displayName || customer.username}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Dư nợ: <span style={{ color: (debtInfo?.totalDebt || 0) > 0 ? '#ef4444' : 'inherit' }}>{(debtInfo?.totalDebt || 0).toLocaleString()}đ</span></div>
-                      {overdueDebt > 0 && (
-                        <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>Nợ quá hạn: {overdueDebt.toLocaleString()}đ</div>
-                      )}
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{customer.phone}</div>
+                      <div style={{ 
+                        background: !selectedCustomer ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)', 
+                        padding: 8, 
+                        borderRadius: 8,
+                        color: !selectedCustomer ? 'white' : 'var(--accent-light)' 
+                      }}>
+                        <User size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedAgency?.name}</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>Người mua nhận hàng mặc định</div>
+                      </div>
                     </div>
-                  );
-                })}
+                  )}
+
+                  {/* Filtered Buyers */}
+                  {agencyCustomers.filter(customer => {
+                    const query = customerSearch.toLowerCase();
+                    return (
+                      (customer.displayName || '').toLowerCase().includes(query) ||
+                      (customer.username || '').toLowerCase().includes(query) ||
+                      (customer.phone && customer.phone.toLowerCase().includes(query))
+                    );
+                  }).length > 0 ? (
+                    agencyCustomers.filter(customer => {
+                      const query = customerSearch.toLowerCase();
+                      return (
+                        (customer.displayName || '').toLowerCase().includes(query) ||
+                        (customer.username || '').toLowerCase().includes(query) ||
+                        (customer.phone && customer.phone.toLowerCase().includes(query))
+                      );
+                    }).map(customer => {
+                      const debtInfo = creditDetail?.customerDebts.find(d => d.customerId === customer.id);
+                      const overdueDebt = creditDetail?.overdueDebts.filter(d => d.customerId === customer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0) || 0;
+                      const isSelected = selectedCustomer?.id === customer.id;
+
+                      return (
+                        <div
+                          key={customer.id}
+                          className="agency-card glass-card"
+                          onClick={() => handleSelectCustomer(customer)}
+                          style={{
+                            padding: 16,
+                            border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                            borderRadius: 12,
+                            cursor: 'pointer',
+                            background: isSelected ? 'var(--accent-glow)' : 'transparent',
+                            display: 'flex',
+                            gap: 12,
+                            alignItems: 'flex-start',
+                            position: 'relative',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <div style={{ 
+                            background: isSelected ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)', 
+                            padding: 8, 
+                            borderRadius: 8,
+                            color: isSelected ? 'white' : 'var(--accent-light)' 
+                          }}>
+                            <User size={20} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{customer.displayName || customer.username}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                              Dư nợ: <span style={{ color: (debtInfo?.totalDebt || 0) > 0 ? 'var(--danger)' : 'inherit', fontWeight: (debtInfo?.totalDebt || 0) > 0 ? 600 : 400 }}>{(debtInfo?.totalDebt || 0).toLocaleString()}đ</span>
+                            </div>
+                            {overdueDebt > 0 && (
+                              <div style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 600, marginTop: 2 }}>
+                                Nợ quá hạn: {overdueDebt.toLocaleString()}đ
+                              </div>
+                            )}
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>SĐT: {customer.phone || 'N/A'}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    customerSearch.length > 0 && (
+                      <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+                        Không tìm thấy người mua nào phù hợp
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <button 
+                  <button
                     onClick={() => { setShowNewCustomerForm(false); setSelectedCustomer(null); }}
                     className="btn-secondary"
                     style={{ marginBottom: 16 }}
                   >
-                    ← Quay lại chọn khách có sẵn
+                    ← Quay lại chọn người mua có sẵn
                   </button>
                 </div>
                 <div>
-                  <label className="form-label">Tên khách hàng</label>
-                  <input 
-                    type="text" 
+                  <label className="form-label">Tên Người mua</label>
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.name}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, name: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, name: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="form-label">Số điện thoại</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.phone}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, phone: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, phone: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Địa chỉ giao hàng</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.shippingAddress}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, shippingAddress: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, shippingAddress: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="form-label">Tên xuất hóa đơn</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.invoiceName}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, invoiceName: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceName: e.target.value })}
                   />
                 </div>
                 <div>
                   <label className="form-label">Mã số thuế</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.invoiceTaxCode}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, invoiceTaxCode: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceTaxCode: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Địa chỉ xuất hóa đơn</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={newCustomerInfo.invoiceAddress}
-                    onChange={e => setNewCustomerInfo({...newCustomerInfo, invoiceAddress: e.target.value})}
+                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceAddress: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1', marginTop: 16 }}>
-                  <button 
+                  <button
                     onClick={() => handleSelectCustomer(null)}
                     disabled={!newCustomerInfo.name || !newCustomerInfo.phone}
                     className="btn-primary"
@@ -463,87 +633,327 @@ export default function CreateOrderPage() {
           </div>
         )}
 
-        {step === 3 && (
-          <div>
-            <h3 style={{ marginBottom: 16 }}>Chọn sản phẩm</h3>
-            <div style={{ marginBottom: 24 }}>
-              <input 
-                type="text" 
-                placeholder="Tìm sản phẩm..." 
-                className="form-input"
-                onChange={e => {
-                  const term = e.target.value.toLowerCase();
-                  if (term) {
-                    const filtered = products.filter((p: ProductDTO) => p.name.toLowerCase().includes(term));
-                    if (filtered.length > 0) setProducts(filtered);
-                  } else {
-                    setProducts(products);
-                  }
-                }}
-              />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 24 }}>
-              {products.map(product => (
-                <div 
-                  key={product.id}
-                  onClick={() => handleAddToCart(product)}
-                  style={{
-                    padding: 12,
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ fontWeight: 500 }}>{product.name}</div>
-                  <div style={{ color: 'var(--primary)', fontWeight: 600 }}>{product.basePrice?.toLocaleString()}đ</div>
-                </div>
-              ))}
-            </div>
+        {step === 3 && (() => {
+          // Compute unique categories and brands in scope
+          const uniqueCategories = Array.from(new Set(products.map(p => p.categoryName).filter(Boolean))) as string[];
+          const uniqueBrands = Array.from(new Set(products.map(p => p.brand?.name).filter(Boolean))) as string[];
 
-            {cart.length > 0 && (
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <h4 style={{ marginBottom: 12 }}>Giỏ hàng ({cart.length} sản phẩm)</h4>
-                {cart.map(item => (
-                  <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{item.productName}</div>
-                      <div style={{ color: 'var(--primary)' }}>{item.price.toLocaleString()}đ</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button onClick={() => updateCartQuantity(item.productId, item.quantity - 1)} style={{ width: 28, height: 28, background: 'var(--border)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>-</button>
-                      <span style={{ minWidth: 30, textAlign: 'center' }}>{item.quantity}</span>
-                      <button onClick={() => updateCartQuantity(item.productId, item.quantity + 1)} style={{ width: 28, height: 28, background: 'var(--border)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>+</button>
-                      <button onClick={() => removeFromCart(item.productId)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                        <Trash2 size={18} />
+          // Filter products reactively in-memory
+          const filteredProducts = products.filter(product => {
+            const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase()) || 
+                                  (product.brand?.name || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+                                  (product.categoryName || '').toLowerCase().includes(productSearch.toLowerCase());
+            const matchesCategory = !selectedCategory || product.categoryName === selectedCategory;
+            const matchesBrand = !selectedBrand || product.brand?.name === selectedBrand;
+            return matchesSearch && matchesCategory && matchesBrand;
+          });
+
+          const getProductInitials = (name: string) => {
+            return name ? name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() : 'SP';
+          };
+
+          return (
+            <div>
+              <h3 style={{ marginBottom: 16 }}>Chọn sản phẩm</h3>
+              
+              {/* Product Search Box */}
+              <div style={{ position: 'relative', marginBottom: 16 }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                  <Search size={18} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Tìm sản phẩm theo tên, thương hiệu, danh mục..."
+                  className="input-field"
+                  style={{ paddingLeft: 42 }}
+                  value={productSearch}
+                  onChange={e => setProductSearch(e.target.value)}
+                />
+              </div>
+
+              {/* Category and Brand Filter Chips */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20, background: 'rgba(255, 255, 255, 0.02)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
+                {uniqueCategories.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80, fontWeight: 500 }}>Danh mục:</span>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 2 }}>
+                      <button
+                        onClick={() => setSelectedCategory(null)}
+                        className="badge"
+                        style={{ 
+                          cursor: 'pointer',
+                          background: !selectedCategory ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
+                          color: !selectedCategory ? 'white' : 'var(--text-secondary)',
+                          border: '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        Tất cả
                       </button>
+                      {uniqueCategories.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                          className="badge"
+                          style={{ 
+                            cursor: 'pointer',
+                            background: selectedCategory === cat ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
+                            color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
+                            border: '1px solid var(--border)',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {cat}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ))}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 18, fontWeight: 600 }}>
-                  <span>Tổng tiền:</span>
-                  <span>{getTotalAmount().toLocaleString()}đ</span>
-                </div>
+                )}
+
+                {uniqueBrands.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80, fontWeight: 500 }}>Thương hiệu:</span>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 2 }}>
+                      <button
+                        onClick={() => setSelectedBrand(null)}
+                        className="badge"
+                        style={{ 
+                          cursor: 'pointer',
+                          background: !selectedBrand ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
+                          color: !selectedBrand ? 'white' : 'var(--text-secondary)',
+                          border: '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        Tất cả
+                      </button>
+                      {uniqueBrands.map(br => (
+                        <button
+                          key={br}
+                          onClick={() => setSelectedBrand(br === selectedBrand ? null : br)}
+                          className="badge"
+                          style={{ 
+                            cursor: 'pointer',
+                            background: selectedBrand === br ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
+                            color: selectedBrand === br ? 'white' : 'var(--text-secondary)',
+                            border: '1px solid var(--border)',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {br}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Products List Zone */}
+              <div style={{ 
+                maxHeight: '450px', 
+                overflowY: 'auto', 
+                paddingRight: 8,
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', 
+                gap: 16, 
+                marginBottom: 24 
+              }}>
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map(product => (
+                    <div
+                      key={product.id}
+                      onClick={() => handleAddToCart(product)}
+                      className="product-card glass-card"
+                      style={{
+                        padding: 12,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        height: '100%',
+                        position: 'relative',
+                        borderRadius: 12,
+                        border: '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div>
+                        {/* Image area */}
+                        <div style={{
+                          width: '100%',
+                          height: 120,
+                          borderRadius: 8,
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          marginBottom: 10,
+                          border: '1px solid rgba(255, 255, 255, 0.05)'
+                        }}>
+                          {product.imageUrl ? (
+                            <img 
+                              src={product.imageUrl} 
+                              alt={product.name} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                          ) : (
+                            <div style={{
+                              fontSize: 22,
+                              fontWeight: 700,
+                              color: 'var(--accent-light)',
+                              background: 'linear-gradient(135deg, var(--accent-glow) 0%, rgba(139, 92, 246, 0.05) 100%)',
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              {getProductInitials(product.name)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Info */}
+                        <div style={{ 
+                          fontWeight: 600, 
+                          fontSize: 14, 
+                          lineHeight: '1.4', 
+                          marginBottom: 6, 
+                          color: 'var(--text-primary)',
+                          display: '-webkit-box', 
+                          WebkitLineClamp: 2, 
+                          WebkitBoxOrient: 'vertical', 
+                          overflow: 'hidden', 
+                          height: 40 
+                        }}>
+                          {product.name}
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                          {product.brand?.name && (
+                            <span className="badge badge-primary" style={{ fontSize: 10, padding: '1px 6px' }}>{product.brand.name}</span>
+                          )}
+                          {product.categoryName && (
+                            <span className="badge badge-info" style={{ fontSize: 10, padding: '1px 6px' }}>{product.categoryName}</span>
+                          )}
+                          {product.isDropship && (
+                            <span className="badge badge-success" style={{ fontSize: 10, padding: '1px 6px' }}>Dropship</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 8, marginTop: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Đơn vị: {product.unit || 'Cái'}</span>
+                          <span style={{ 
+                            fontSize: 11, 
+                            color: (product.stockQuantity || 0) > 0 ? 'var(--success)' : 'var(--danger)',
+                            fontWeight: 600
+                          }}>
+                            {(product.stockQuantity || 0) > 0 ? `Tồn: ${product.stockQuantity}` : 'Hết hàng'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ color: 'var(--accent-light)', fontWeight: 700, fontSize: 15 }}>
+                              {(product.appliedPrice || product.basePrice)?.toLocaleString()}đ
+                            </div>
+                            {product.oldAppliedPrice && product.oldAppliedPrice > 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)', fontSize: 12 }}>
+                                  {product.oldAppliedPrice.toLocaleString()}đ
+                                </span>
+                                <span style={{ 
+                                  color: product.priceChangeRatio && product.priceChangeRatio < 0 ? '#10b981' : '#ef4444', 
+                                  fontSize: 11, 
+                                  fontWeight: 600,
+                                  background: product.priceChangeRatio && product.priceChangeRatio < 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                  padding: '1px 4px',
+                                  borderRadius: 4
+                                }}>
+                                  {product.priceChangeRatio && product.priceChangeRatio > 0 ? `+${product.priceChangeRatio.toFixed(0)}%` : `${product.priceChangeRatio?.toFixed(0)}%`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ 
+                            background: 'var(--accent)', 
+                            color: 'white', 
+                            borderRadius: '50%', 
+                            width: 26, 
+                            height: 26, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: 16,
+                            boxShadow: '0 2px 8px var(--accent-glow)'
+                          }}>
+                            +
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+                    Không tìm thấy sản phẩm nào phù hợp
+                  </div>
+                )}
+              </div>
+
+              {/* Cart Zone */}
+              {cart.length > 0 && (
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                  <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Package size={18} style={{ color: 'var(--accent-light)' }} /> Giỏ hàng ({cart.length} sản phẩm)
+                  </h4>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: 4 }}>
+                    {cart.map(item => (
+                      <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                        <div>
+                          <div style={{ fontWeight: 500, fontSize: 13 }}>{item.productName}</div>
+                          <div style={{ color: 'var(--accent-light)', fontSize: 12 }}>{item.price.toLocaleString()}đ</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button onClick={() => updateCartQuantity(item.productId, item.quantity - 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>-</button>
+                          <span style={{ minWidth: 24, textAlign: 'center', fontSize: 13 }}>{item.quantity}</span>
+                          <button onClick={() => updateCartQuantity(item.productId, item.quantity + 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>+</button>
+                          <button onClick={() => removeFromCart(item.productId)} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <span>Tổng tiền:</span>
+                    <span style={{ color: 'var(--success)' }}>{getTotalAmount().toLocaleString()}đ</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {step === 4 && (
           <div>
             <h3 style={{ marginBottom: 16 }}>Xác nhận đơn hàng</h3>
-            
+
             <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
                 <span>Thông tin đơn</span>
                 <span style={{ fontSize: 12, color: 'var(--primary)' }}>Kỳ hạn: {orderDebtTerm} ngày</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
-                <div>Đại lý: <strong>{selectedAgency?.name}</strong></div>
-                <div>Khách hàng: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || 'Đại lý'}</strong></div>
+                <div>Khách hàng: <strong>{selectedAgency?.name}</strong></div>
+                <div>Người mua: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || 'Người mua'}</strong></div>
                 {creditDetail && (
                   <>
                     <div style={{ color: creditDetail.hmkd < getTotalAmount() ? '#ef4444' : 'inherit' }}>
-                      HMKD Đại lý: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
+                      HMKD Khách hàng: <strong>{creditDetail.hmkd.toLocaleString()}đ</strong>
                     </div>
                     {selectedCustomer && (
                       <div>
@@ -581,8 +991,8 @@ export default function CreateOrderPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
               <div>
                 <label className="form-label">Kỳ hạn nợ (ngày)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="form-input"
                   value={orderDebtTerm}
                   onChange={e => setOrderDebtTerm(Number(e.target.value))}
@@ -591,8 +1001,8 @@ export default function CreateOrderPage() {
               </div>
               <div>
                 <label className="form-label">Phí giao hàng (đ)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="form-input"
                   value={deliveryFee}
                   onChange={e => setDeliveryFee(Number(e.target.value))}
@@ -601,8 +1011,8 @@ export default function CreateOrderPage() {
               </div>
               <div>
                 <label className="form-label">Địa chỉ giao hàng</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="form-input"
                   value={shippingAddress}
                   onChange={e => setShippingAddress(e.target.value)}
@@ -611,7 +1021,7 @@ export default function CreateOrderPage() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={handleSubmitOrder}
               disabled={loading}
               className="btn-primary"
@@ -662,16 +1072,16 @@ export default function CreateOrderPage() {
           outline: none;
           border-color: var(--primary);
         }
-        .btn-primary {
+        /* .btn-primary {
           padding: 10px 20px;
           background: var(--primary);
-          color: white;
-          border: none;
+          color: var(--text-primary);
+          border: 1px solid var(--border);
           border-radius: 6px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s;
-        }
+        } */
         .btn-primary:hover:not(:disabled) {
           background: var(--primary-dark);
         }

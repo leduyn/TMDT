@@ -50,7 +50,7 @@ export default function HomePage() {
             maxWidth: 580, margin: '0 auto 40px',
             lineHeight: 1.7, animationDelay: '0.2s',
           }}>
-            Kết nối Công ty, Đại lý và Khách hàng trên một nền tảng thống nhất.
+            Kết nối Công ty, Khách hàng và Người mua trên một nền tảng thống nhất.
             Hỗ trợ Dropshipping, Marketplace và tích lũy điểm thưởng.
           </p>
 
@@ -74,18 +74,18 @@ export default function HomePage() {
             {[
               {
                 icon: '🏢', title: 'Dành cho Công ty',
-                desc: 'Quản lý đại lý, cấu hình hoa hồng linh hoạt, theo dõi doanh thu và xếp hạng đại lý hàng tháng.',
+                desc: 'Quản lý Khách hàng, cấu hình hoa hồng linh hoạt, theo dõi doanh thu và xếp hạng Khách hàng hàng tháng.',
                 gradient: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))',
                 border: 'rgba(99,102,241,0.3)',
               },
               {
-                icon: '🏪', title: 'Dành cho Đại lý',
+                icon: '🏪', title: 'Dành cho Khách hàng',
                 desc: 'Bán sản phẩm của công ty qua mô hình Dropship hoặc đăng bán sản phẩm riêng trên Marketplace.',
                 gradient: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))',
                 border: 'rgba(139,92,246,0.3)',
               },
               {
-                icon: '👤', title: 'Dành cho Khách hàng',
+                icon: '👤', title: 'Dành cho Người mua',
                 desc: 'Mua sắm đa dạng sản phẩm, tích lũy điểm thưởng, nhận ưu đãi và theo dõi đơn hàng dễ dàng.',
                 gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))',
                 border: 'rgba(16,185,129,0.3)',
@@ -141,3 +141,4 @@ export default function HomePage() {
     </>
   );
 }
+

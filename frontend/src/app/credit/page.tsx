@@ -202,7 +202,7 @@ function CreditManagementContent() {
             background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
-            💳 Quản lý Tín dụng Đại lý
+            💰 Quản lý Tín dụng Khách hàng
           </h1>
           <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
             Theo dõi hạn mức khả dụng (HMKD), ví ký quỹ và lịch sử giao dịch
@@ -213,7 +213,7 @@ function CreditManagementContent() {
         {isCompany && (
           <div style={{ marginBottom: 28 }}>
             <label style={{ color: '#94a3b8', fontSize: 13, display: 'block', marginBottom: 8 }}>
-              Chọn đại lý
+              Chọn Khách hàng
             </label>
             <select
               id="credit-agency-select"
@@ -225,7 +225,7 @@ function CreditManagementContent() {
                 outline: 'none', cursor: 'pointer',
               }}
             >
-              <option value="">-- Chọn đại lý --</option>
+              <option value="">-- Chọn Khách hàng --</option>
               {agencies.map(a => (
                 <option key={a.id} value={a.id}>{a.name} (ID: {a.id})</option>
               ))}
@@ -267,16 +267,16 @@ function CreditManagementContent() {
               <StatCard label="Hạn mức khả dụng (HMKD)" value={fmt(detail.hmkd)}
                 sub="= Hạn mức − (Dư nợ + Nợ bảo lãnh) + Ký quỹ" color="#38bdf8" />
               <StatCard label="Hạn mức tín dụng" value={fmt(detail.creditLimit)} color="#818cf8" />
-              <StatCard label="Dư nợ (Đại lý)" value={fmt(detail.totalDebt)}
+              <StatCard label="Dư nợ (Khách hàng)" value={fmt(detail.totalDebt)}
                 sub={detail.overdueDebts.length > 0 ? `${detail.overdueDebts.length} khoản quá hạn` : 'Không có nợ quá hạn'}
                 color={detail.totalDebt > 0 ? '#ef4444' : '#22c55e'} />
-              <StatCard label="Nợ bảo lãnh (Khách hàng)" value={fmt(detail.guaranteeDebt)}
+              <StatCard label="Nợ bảo lãnh (Người mua)" value={fmt(detail.guaranteeDebt)}
                 color={detail.guaranteeDebt > 0 ? '#f43f5e' : '#10b981'} />
               <StatCard label="Ví ký quỹ khả dụng" value={fmt(detail.vtcAvailable)}
                 sub="Giá trị còn lại của ví ký quỹ sau khi trừ khoản bị tạm giữ do nợ quá hạn"
                 color="#f59e0b" />
               <StatCard label="Ví ký quỹ tạm giữ" value={fmt(detail.vtcHold)}
-                sub="Tạm giữ khi đơn hàng liên quan đến đại lý bị nợ quá hạn chưa được thanh toán"
+                sub="Tạm giữ khi đơn hàng liên quan đến Người mua bị nợ quá hạn chưa được thanh toán"
                 color="#a78bfa" />
             </div>
 
@@ -435,16 +435,16 @@ function CreditManagementContent() {
               borderRadius: 16, padding: 24, marginBottom: 24,
             }}>
               <h2 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 16, marginTop: 0, marginBottom: 16 }}>
-                👥 Dư nợ theo khách hàng
+                👥 Dư nợ theo Người mua
               </h2>
               {!detail.customerDebts || detail.customerDebts.length === 0 ? (
-                <div style={{ color: '#64748b', textAlign: 'center', padding: 32 }}>Không có dữ liệu khách hàng</div>
+                <div style={{ color: '#64748b', textAlign: 'center', padding: 32 }}>Không có dữ liệu Người mua</div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ color: '#94a3b8' }}>
-                        {['Khách hàng', 'Dư nợ hiện tại'].map(h => (
+                        {['Người mua', 'Dư nợ hiện tại'].map(h => (
                           <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
                         ))}
                       </tr>
@@ -502,7 +502,7 @@ function CreditManagementContent() {
                                 color: isCustomer ? '#f59e0b' : '#94a3b8',
                                 borderRadius: 6, padding: '2px 10px', fontWeight: 600, fontSize: 12,
                               }}>
-                                {isCustomer ? 'Nợ bảo lãnh' : 'Nợ đại lý'}
+                                {isCustomer ? 'Nợ bảo lãnh' : 'Nợ Khách hàng'}
                               </span>
                             </td>
                             <td style={{ padding: '10px 12px', color: meta.color, fontWeight: 600 }}>
@@ -528,14 +528,14 @@ function CreditManagementContent() {
 
         {!loading && !detail && selectedId && (
           <div style={{ textAlign: 'center', color: '#64748b', padding: 60 }}>
-            Không tìm thấy tài khoản tín dụng cho đại lý này.
+            Không tìm thấy tài khoản tín dụng cho Khách hàng này.
           </div>
         )}
 
         {!loading && !selectedId && (
           <div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>💳</div>
-            <div>Vui lòng chọn một đại lý để xem thông tin tín dụng</div>
+            <div>Vui lòng chọn một Khách hàng để xem thông tin tín dụng</div>
           </div>
         )}
       </div>
@@ -687,3 +687,4 @@ const cancelBtn: React.CSSProperties = {
   border: '1px solid #334155', borderRadius: 8, padding: '10px 0',
   fontWeight: 600, fontSize: 14, cursor: 'pointer',
 };
+

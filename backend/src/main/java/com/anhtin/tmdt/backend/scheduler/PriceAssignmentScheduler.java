@@ -1,6 +1,6 @@
 package com.anhtin.tmdt.backend.scheduler;
 
-import com.anhtin.tmdt.backend.service.PriceAssignmentService;
+import com.anhtin.tmdt.backend.modules.price.service.PriceAssignmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

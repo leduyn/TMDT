@@ -2,7 +2,9 @@ package com.anhtin.tmdt.backend;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import com.anhtin.tmdt.backend.repository.UserRepository;
+import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
+import com.anhtin.tmdt.backend.modules.user.entity.User;
+import com.anhtin.tmdt.backend.modules.user.entity.Role;
 
 @Component
 public class TestRunner implements CommandLineRunner {

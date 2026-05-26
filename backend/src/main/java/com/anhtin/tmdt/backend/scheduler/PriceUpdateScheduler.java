@@ -1,6 +1,6 @@
 package com.anhtin.tmdt.backend.scheduler;
 
-import com.anhtin.tmdt.backend.service.PriceUpdateVoucherService;
+import com.anhtin.tmdt.backend.modules.price.service.PriceUpdateVoucherService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

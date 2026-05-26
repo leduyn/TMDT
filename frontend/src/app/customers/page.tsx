@@ -50,10 +50,10 @@ export default function CustomersPage() {
   const handleActivate = async (id: number) => {
     try {
       await customerApi.activate(id);
-      setModal({ isOpen: true, title: 'Thành công', message: 'Đã kích hoạt khách hàng thành công!', type: 'success' });
+      setModal({ isOpen: true, title: 'Thành công', message: 'Đã kích hoạt Người mua thành công!', type: 'success' });
       fetchCustomers();
     } catch (err: any) {
-      setModal({ isOpen: true, title: 'Lỗi kích hoạt', message: err.message || 'Lỗi khi duyệt khách hàng', type: 'error' });
+      setModal({ isOpen: true, title: 'Lỗi kích hoạt', message: err.message || 'Lỗi khi duyệt Người mua', type: 'error' });
     }
   };
 
@@ -74,10 +74,10 @@ export default function CustomersPage() {
     try {
       await agencyApi.convertFromUser(selectedUser.id, convertData);
       setShowConvertModal(false);
-      setModal({ isOpen: true, title: 'Thành công', message: 'Đã chuyển khách hàng thành đại lý thành công!', type: 'success' });
+      setModal({ isOpen: true, title: 'Thành công', message: 'Đã chuyển Người mua thành Khách hàng thành công!', type: 'success' });
       fetchCustomers();
     } catch (err: any) {
-      setModal({ isOpen: true, title: 'Lỗi chuyển đổi', message: err.message || 'Lỗi khi chuyển đổi đại lý', type: 'error' });
+      setModal({ isOpen: true, title: 'Lỗi chuyển đổi', message: err.message || 'Lỗi khi chuyển đổi Người mua', type: 'error' });
     }
   };
 
@@ -88,7 +88,7 @@ export default function CustomersPage() {
 
   const columns: Column<UserDTO>[] = [
     { 
-      header: 'Khách hàng', 
+      header: 'Người mua', 
       key: 'username',
       render: (c) => (
         <div>
@@ -121,7 +121,7 @@ export default function CustomersPage() {
       )
     },
     { 
-      header: 'Đại lý quản lý', 
+      header: 'Khách hàng quản lý', 
       key: 'agencyNames',
       render: (c) => (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -155,7 +155,7 @@ export default function CustomersPage() {
             className="btn-primary" 
             style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
           >
-            <ShieldCheck size={14} style={{ marginRight: 4 }} /> Đại lý
+            <ShieldCheck size={14} style={{ marginRight: 4 }} /> Khách hàng
           </button>
           <Link href={`/customers/${c.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
             <Eye size={16} />
@@ -173,7 +173,7 @@ export default function CustomersPage() {
       <Navbar />
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
-          title="Quản lý Khách hàng" 
+          title="Quản lý Người mua" 
           subtitle="Danh sách khách lẻ đăng ký trên hệ thống"
           icon="Users"
         />
@@ -181,11 +181,11 @@ export default function CustomersPage() {
         <SearchActionHeader 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          placeholder="Tìm kiếm khách hàng theo tên hoặc email..."
+          placeholder="Tìm kiếm Người mua theo tên hoặc email..."
           actions={
             <Link href="/customers/create" className="btn-primary" style={{ textDecoration: 'none' }}>
               <UserPlus size={18} />
-              Thêm khách hàng
+              Thêm Người mua
             </Link>
           }
         />
@@ -194,10 +194,10 @@ export default function CustomersPage() {
           data={filteredCustomers}
           columns={columns}
           loading={isLoading}
-          emptyMessage={searchQuery ? 'Không tìm thấy khách hàng nào phù hợp' : 'Chưa có khách hàng nào'}
+          emptyMessage={searchQuery ? 'Không tìm thấy Người mua nào phù hợp' : 'Chưa có Người mua nào'}
         />
 
-        {/* Modal Chuyển đổi thành Đại lý */}
+        {/* Modal Chuyển đổi thành Người mua */}
         {showConvertModal && selectedUser && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <GlassCard className="fade-in" style={{ width: '100%', maxWidth: 500, padding: 32 }}>
@@ -205,15 +205,15 @@ export default function CustomersPage() {
                 <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <ShieldCheck size={32} style={{ color: '#10b981' }} />
                 </div>
-                <h2 style={{ margin: 0 }}>Chuyển thành Đại lý</h2>
+                <h2 style={{ margin: 0 }}>Chuyển thành Khách hàng</h2>
                 <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>
-                  Tài khoản <strong>{selectedUser.username}</strong> sẽ được nâng cấp thành Đại lý
+                  Tài khoản <strong>{selectedUser.username}</strong> sẽ được nâng cấp thành Khách hàng
                 </p>
               </div>
 
               <form onSubmit={handleConvert}>
                 <div style={{ marginBottom: 16 }}>
-                  <label className="form-label">Tên Đại lý</label>
+                  <label className="form-label">Tên Khách hàng</label>
                   <input type="text" className="input-field" required value={convertData.name} onChange={e => setConvertData({...convertData, name: e.target.value})} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -261,3 +261,4 @@ export default function CustomersPage() {
     </>
   );
 }
+

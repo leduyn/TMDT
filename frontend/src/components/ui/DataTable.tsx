@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import GlassCard from './GlassCard';
 
 export interface Column<T> {
@@ -103,3 +103,4 @@ export default function DataTable<T extends { id?: string | number }>({
     </GlassCard>
   );
 }
+

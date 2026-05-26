@@ -1,0 +1,91 @@
+# Kế hoạch triển khai: Hiển thị giá cũ và giá mới trong vòng N ngày
+
+Tài liệu này mô tả chi tiết các bước kiểm tra, sửa lỗi biên dịch backend và tiếp tục hoàn thiện tính năng hiển thị giá cũ, giá mới của sản phẩm trong vòng n ngày (cấu hình qua hệ thống).
+
+## User Review Required
+
+> [!IMPORTANT]
+> - Thay đổi database schema: Cần bổ sung bảng `system_config_audit` trong migration file.
+> - Sửa cấu trúc entity `SystemConfig` để khớp với logic nghiệp vụ trong `SystemConfigService`.
+
+## Open Questions
+
+Không có câu hỏi mở quan trọng. Kế hoạch tập trung giải quyết các lỗi biên dịch backend hiện tại và hiển thị chính xác trên frontend.
+
+## Proposed Changes
+
+### [Backend] Sửa lỗi biên dịch và hoàn thiện logic cấu hình hệ thống
+
+---
+
+#### [MODIFY] [V20260601__create_system_config.sql](file:///d:/Java%20lean/TMDT/backend/src/main/resources/db/migration/V20260601__create_system_config.sql)
+Bổ sung câu lệnh tạo bảng `system_config_audit` vì bảng này đang được sử dụng trong Entity và Service nhưng chưa được định nghĩa trong Migration.
+
+```sql
+CREATE TABLE IF NOT EXISTS system_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    config_key VARCHAR(255) NOT NULL UNIQUE,
+    config_value VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS system_config_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    config_key VARCHAR(255) NOT NULL,
+    old_value VARCHAR(255),
+    new_value VARCHAR(255) NOT NULL,
+    changed_by BIGINT,
+    changed_at DATETIME NOT NULL
+);
+
+-- Insert default discount max days value (7 days)
+INSERT INTO system_config (config_key, config_value) VALUES ('discount.max.days', '7')
+    ON DUPLICATE KEY UPDATE config_value = config_value;
+```
+
+---
+
+#### [MODIFY] [SystemConfig.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/common/entity/SystemConfig.java)
+Đổi tên các trường `configKey` thành `key` và `configValue` thành `value` để đồng bộ với các phương thức getter/setter được gọi trong `SystemConfigService.java` (ví dụ: `config.setKey`, `config.setValue`, `config.getValue`). Đồng thời giữ nguyên ánh xạ `@Column`.
+
+```java
+    @Column(name = "config_key", unique = true, nullable = false)
+    private String key;
+
+    @Column(name = "config_value", nullable = false)
+    private String value;
+```
+
+---
+
+#### [MODIFY] [SystemConfigService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/common/service/SystemConfigService.java)
+Sửa lỗi kiểu dữ liệu gán không khớp do `configRepository.findByKey(key)` trả về `Optional<SystemConfig>` nhưng lại gán trực tiếp cho `SystemConfig`. Thêm `.orElse(null)`.
+
+- Dòng 41: `SystemConfig config = configRepository.findByKey(key).orElse(null);`
+- Dòng 75: `SystemConfig existing = configRepository.findByKey(key).orElse(null);`
+
+---
+
+#### [MODIFY] [ProductService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/ProductService.java)
+- Sửa lỗi gọi phương thức không tồn tại `findFirstByAgencyIdAndProductIdOrderByChangedAtDesc` trong `AgencyProductPriceHistoryRepository`. Thay thế bằng phương thức `findTopByAgencyIdAndProductIdOrderByChangedAtDesc` đã được khai báo sẵn.
+- Đồng bộ hóa logic lọc giá cũ / mới theo số ngày cấu hình trong phương thức `getProductById` để đảm bảo tính nhất quán trên toàn hệ thống.
+
+---
+
+### [Frontend] Hiển thị giá cũ / giá mới trên giao diện
+
+---
+
+#### [MODIFY] [page.tsx](file:///d:/Java%20lean/TMDT/frontend/src/app/orders/create/page.tsx)
+- Cập nhật hàm `handleAddToCart` sử dụng giá bán áp dụng thực tế `product.appliedPrice || product.basePrice || 0` thay vì cứng giá trị `product.basePrice`.
+- Tại danh sách sản phẩm hiển thị, kiểm tra nếu có `product.oldAppliedPrice` thì hiển thị cả giá cũ (gạch ngang) kèm theo tỉ lệ giảm phần trăm (% change), và hiển thị giá mới nổi bật hơn.
+
+## Verification Plan
+
+### Automated Tests
+- Chạy biên dịch dự án backend bằng lệnh:
+  `mvn clean compile` trong thư mục `backend/` để đảm bảo dự án không còn lỗi build.
+
+### Manual Verification
+- Khởi động backend và frontend.
+- Vào trang tạo đơn hàng, chọn một Khách hàng (Đại lý) và kiểm tra danh sách sản phẩm hiển thị.
+- Xác nhận các sản phẩm có thay đổi giá gần đây trong vòng N ngày (mặc định 7 ngày) hiển thị cả giá cũ và giá mới. Các sản phẩm thay đổi quá hạn N ngày chỉ hiển thị giá mới.

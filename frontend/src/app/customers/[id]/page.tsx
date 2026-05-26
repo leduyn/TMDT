@@ -24,7 +24,7 @@ export default function CustomerDetailPage() {
       .then(setCustomer)
       .catch(err => {
         console.error(err);
-        setError('Không thể tải thông tin khách hàng');
+        setError('Không thể tải thông tin người mua');
       })
       .finally(() => setLoading(false));
 
@@ -59,7 +59,7 @@ export default function CustomerDetailPage() {
   if (loading) return <div className="loading-spinner" />;
   if (error || !customer) return (
     <div style={{ textAlign: 'center', padding: 80 }}>
-      <p style={{ color: 'var(--error)' }}>{error || 'Không tìm thấy khách hàng'}</p>
+      <p style={{ color: 'var(--error)' }}>{error || 'Không tìm thấy người mua'}</p>
       <button onClick={() => router.back()} className="btn-outline" style={{ marginTop: 16 }}>Quay lại</button>
     </div>
   );
@@ -172,18 +172,18 @@ export default function CustomerDetailPage() {
                 <h4 style={{ margin: '0 0 16px', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Phân loại</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Nhóm khách hàng</small>
+                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Nhóm người mua</small>
                     <strong>{customer.customerGroupName || 'Vãng lai'}</strong>
                   </div>
                   <div>
-                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Đại lý quản lý</small>
+                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Người mua quản lý</small>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                       {customer.agencyNames && customer.agencyNames.length > 0 ? (
                         customer.agencyNames.map((name, i) => (
                           <span key={i} className="badge badge-outline" style={{ borderColor: 'var(--accent)', color: 'var(--accent-light)' }}>{name}</span>
                         ))
                       ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>Chưa gán đại lý</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Chưa gán khách hàng</span>
                       )}
                     </div>
                   </div>
@@ -217,7 +217,7 @@ export default function CustomerDetailPage() {
 
                 {(customer.customName || customer.customShippingAddress || customer.customPhone) && (
                   <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 32, background: 'rgba(52, 152, 219, 0.05)', padding: 24, borderRadius: 16 }}>
-                    <h3 style={{ margin: '0 0 24px', color: '#3498db' }}>Thông tin riêng của đại lý</h3>
+                    <h3 style={{ margin: '0 0 24px', color: '#3498db' }}>Thông tin riêng của khách hàng</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
                       <div>
                         <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Tên gợi nhớ</small>

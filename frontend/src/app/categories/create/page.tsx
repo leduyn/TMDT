@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import ImageUploader from '@/components/ImageUploader';
+import ImageUploader from '@/modules/common/components/ImageUploader';
 import { categoryApi, CategoryDTO } from '@/lib/api';
 
 export default function CreateCategoryPage() {
@@ -96,3 +96,4 @@ export default function CreateCategoryPage() {
     </>
   );
 }
+
