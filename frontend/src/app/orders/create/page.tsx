@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail } from '@/lib/api';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail, salesPolicyApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
-import { Plus, Trash2, ChevronRight, Check, AlertTriangle, Search, Filter, Building, User, Package } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, Check, AlertTriangle, Search, Filter, Building, User, Package, Tag } from 'lucide-react';
 
 interface CartItem {
   productId: number;
   productName: string;
   quantity: number;
   price: number;
+  basePrice: number;       // giá gốc từ bảng giá
+  policyPrice?: number;    // giá sau chính sách bán hàng
+  resolvingPrice?: boolean; // đang gọi API resolve
 }
 
 export default function CreateOrderPage() {
@@ -118,31 +121,76 @@ export default function CreateOrderPage() {
     setStep(3);
   };
 
+  // Debounce timer refs for quantity-based re-resolve
+  const resolvePriceTimers = useRef<Record<number, NodeJS.Timeout>>({});
+
+  const resolvePriceForItem = useCallback(async (productId: number, quantity: number, basePrice: number) => {
+    if (!selectedAgency) return;
+    try {
+      setCart(prev => prev.map(item =>
+        item.productId === productId ? { ...item, resolvingPrice: true } : item
+      ));
+      const resolved = await salesPolicyApi.resolvePrice(productId, selectedAgency.id, quantity);
+      setCart(prev => prev.map(item => {
+        if (item.productId !== productId) return item;
+        const hasPolicyDiscount = resolved !== null && resolved !== undefined && resolved !== basePrice;
+        return {
+          ...item,
+          price: resolved ?? basePrice,
+          policyPrice: hasPolicyDiscount ? resolved : undefined,
+          resolvingPrice: false
+        };
+      }));
+    } catch (e) {
+      console.error('Failed to resolve sales policy price', e);
+      setCart(prev => prev.map(item =>
+        item.productId === productId ? { ...item, resolvingPrice: false } : item
+      ));
+    }
+  }, [selectedAgency]);
+
   const handleAddToCart = (product: ProductDTO) => {
     const existing = cart.find(item => item.productId === product.id);
+    const basePrice = product.appliedPrice || product.basePrice || 0;
     if (existing) {
+      const newQty = existing.quantity + 1;
       setCart(cart.map(item =>
         item.productId === product.id
-          ? { ...item, quantity: item.quantity + 1 }
+          ? { ...item, quantity: newQty }
           : item
       ));
+      // Re-resolve price with new quantity
+      resolvePriceForItem(product.id, newQty, existing.basePrice);
     } else {
       setCart([...cart, {
         productId: product.id,
         productName: product.name,
         quantity: 1,
-        price: product.appliedPrice || product.basePrice || 0
+        price: basePrice,
+        basePrice: basePrice,
       }]);
+      // Resolve price for the new item
+      resolvePriceForItem(product.id, 1, basePrice);
     }
   };
 
   const updateCartQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) {
       setCart(cart.filter(item => item.productId !== productId));
-    } else {
-      setCart(cart.map(item =>
-        item.productId === productId ? { ...item, quantity } : item
-      ));
+      return;
+    }
+    setCart(cart.map(item =>
+      item.productId === productId ? { ...item, quantity } : item
+    ));
+    // Debounce re-resolve when quantity changes rapidly
+    if (resolvePriceTimers.current[productId]) {
+      clearTimeout(resolvePriceTimers.current[productId]);
+    }
+    const item = cart.find(i => i.productId === productId);
+    if (item) {
+      resolvePriceTimers.current[productId] = setTimeout(() => {
+        resolvePriceForItem(productId, quantity, item.basePrice);
+      }, 300);
     }
   };
 
@@ -911,23 +959,64 @@ export default function CreateOrderPage() {
                     <Package size={18} style={{ color: 'var(--accent-light)' }} /> Giỏ hàng ({cart.length} sản phẩm)
                   </h4>
                   <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: 4 }}>
-                    {cart.map(item => (
-                      <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <div>
-                          <div style={{ fontWeight: 500, fontSize: 13 }}>{item.productName}</div>
-                          <div style={{ color: 'var(--accent-light)', fontSize: 12 }}>{item.price.toLocaleString()}đ</div>
+                    {cart.map(item => {
+                      const hasPolicyDiscount = item.policyPrice !== undefined && item.policyPrice !== item.basePrice;
+                      return (
+                        <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {item.productName}
+                              {hasPolicyDiscount && (
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                                  background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                                  fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4
+                                }}>
+                                  <Tag size={10} /> CSBH
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                              {hasPolicyDiscount ? (
+                                <>
+                                  <span style={{ color: 'var(--text-muted)', fontSize: 11, textDecoration: 'line-through' }}>
+                                    {item.basePrice.toLocaleString()}đ
+                                  </span>
+                                  <span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>
+                                    {item.policyPrice!.toLocaleString()}đ
+                                  </span>
+                                </>
+                              ) : (
+                                <span style={{ color: 'var(--accent-light)', fontSize: 12 }}>
+                                  {item.price.toLocaleString()}đ
+                                </span>
+                              )}
+                              {item.resolvingPrice && (
+                                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>đang cập nhật...</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button onClick={() => updateCartQuantity(item.productId, item.quantity - 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>-</button>
+                            <span style={{ minWidth: 24, textAlign: 'center', fontSize: 13 }}>{item.quantity}</span>
+                            <button onClick={() => updateCartQuantity(item.productId, item.quantity + 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>+</button>
+                            <span style={{ minWidth: 70, textAlign: 'right', fontSize: 13, fontWeight: 600 }}>
+                              {(item.price * item.quantity).toLocaleString()}đ
+                            </span>
+                            <button onClick={() => removeFromCart(item.productId)} style={{ marginLeft: 4, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button onClick={() => updateCartQuantity(item.productId, item.quantity - 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>-</button>
-                          <span style={{ minWidth: 24, textAlign: 'center', fontSize: 13 }}>{item.quantity}</span>
-                          <button onClick={() => updateCartQuantity(item.productId, item.quantity + 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>+</button>
-                          <button onClick={() => removeFromCart(item.productId)} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                  {cart.some(item => item.policyPrice !== undefined && item.policyPrice !== item.basePrice) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 12px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: 8, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <Tag size={14} style={{ color: '#10b981' }} />
+                      <span style={{ fontSize: 12, color: '#6ee7b7' }}>Chính sách bán hàng đã được áp dụng cho một số sản phẩm</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
                     <span>Tổng tiền:</span>
                     <span style={{ color: 'var(--success)' }}>{getTotalAmount().toLocaleString()}đ</span>
@@ -968,12 +1057,35 @@ export default function CreateOrderPage() {
 
             <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>Sản phẩm ({cart.length})</div>
-              {cart.map(item => (
-                <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <span>{item.productName} x{item.quantity}</span>
-                  <span>{(item.price * item.quantity).toLocaleString()}đ</span>
-                </div>
-              ))}
+              {cart.map(item => {
+                const hasPolicyDiscount = item.policyPrice !== undefined && item.policyPrice !== item.basePrice;
+                return (
+                  <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{item.productName} x{item.quantity}</span>
+                      {hasPolicyDiscount && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 3,
+                          background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                          fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4
+                        }}>
+                          <Tag size={9} /> CSBH
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {hasPolicyDiscount && (
+                        <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: 12 }}>
+                          {(item.basePrice * item.quantity).toLocaleString()}đ
+                        </span>
+                      )}
+                      <span style={{ fontWeight: hasPolicyDiscount ? 600 : 400, color: hasPolicyDiscount ? '#10b981' : 'inherit' }}>
+                        {(item.price * item.quantity).toLocaleString()}đ
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', marginTop: 8, borderTop: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                 <span>Tạm tính:</span>
                 <span>{getTotalAmount().toLocaleString()}đ</span>

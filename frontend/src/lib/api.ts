@@ -9,3 +9,4 @@ export * from '../modules/order/orderApi';
 export * from '../modules/chat/chatApi';
 export * from '../modules/common/commonApi';
 export * from '../modules/region/regionApi';
+export * from '../modules/salespolicy/salesPolicyApi';

@@ -21,6 +21,7 @@ import {
   FileText,
   MapPin,
   Settings,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -52,6 +53,7 @@ export default function Sidebar() {
     { label: 'Danh mục', href: '/categories', icon: Layers, roles: ['ROLE_USER'] },
     { label: 'Bảng giá', href: '/price-lists', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Hẹn giờ giá', href: '/price-vouchers', icon: Clock, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Chính sách BH', href: '/sales-policies', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Đơn hàng', href: '/orders', icon: FileText, roles: ['ROLE_USER'] },
     { label: 'Khách hàng', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Người mua', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },

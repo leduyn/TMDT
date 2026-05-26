@@ -33,6 +33,8 @@ import com.anhtin.tmdt.backend.modules.promotion.service.PromotionService;
 import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import com.anhtin.tmdt.backend.modules.price.service.CommissionService;
 import com.anhtin.tmdt.backend.modules.order.repository.OrderRepository;
+import com.anhtin.tmdt.backend.modules.salespolicy.service.SalesPolicyService;
+import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyTier;
 
 @Service
 public class OrderService {
@@ -42,6 +44,9 @@ public class OrderService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SalesPolicyService salesPolicyService;
 
     @Autowired
     private ProductRepository productRepository;
@@ -84,7 +89,6 @@ public class OrderService {
         Long agencyId = request.getAgencyId();
         
         if (agencyId == null) {
-            // Try to find the agency assigned to this customer
             agencyId = agencyCustomerAssignmentRepository.findByCustomerId(customerId).stream()
                     .findFirst()
                     .map(a -> a.getAgency().getId())
@@ -144,10 +148,12 @@ public class OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            Double price = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
-            if (price == null || price < 0) {
-                price = product.getBasePrice();
+            Double baseResolvedPrice = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
+            if (baseResolvedPrice == null || baseResolvedPrice < 0) {
+                baseResolvedPrice = product.getBasePrice();
             }
+            
+            Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -164,6 +170,27 @@ public class OrderService {
             }
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // Tự động kiểm tra quà tặng bậc thang (hàng tặng giảm 100% đơn giá)
+            SalesPolicyTier matchedTier = salesPolicyService.getMatchedTierForOrder(product, agency, itemReq.getQuantity(), baseResolvedPrice);
+            if (matchedTier != null && matchedTier.getGiftProduct() != null && matchedTier.getGiftQuantity() != null && matchedTier.getGiftQuantity() > 0) {
+                Product giftProduct = matchedTier.getGiftProduct();
+                int giftQty = matchedTier.getGiftQuantity();
+
+                if (giftProduct.getStockQuantity() < giftQty) {
+                    throw new RuntimeException("Không đủ tồn kho cho sản phẩm quà tặng: " + giftProduct.getName());
+                }
+                giftProduct.setStockQuantity(giftProduct.getStockQuantity() - giftQty);
+                productRepository.save(giftProduct);
+
+                OrderItem giftOrderItem = new OrderItem();
+                giftOrderItem.setOrder(order);
+                giftOrderItem.setProduct(giftProduct);
+                giftOrderItem.setQuantity(giftQty);
+                giftOrderItem.setPrice(0.0); // Giảm 100%
+                giftOrderItem.setPriceListId(priceListId);
+                order.getItems().add(giftOrderItem);
+            }
         }
 
         double discountAmount = 0.0;
@@ -189,11 +216,10 @@ public class OrderService {
 
         commissionService.createTransaction(savedOrder);
 
-        // Trá»« háº¡n má»©c tÃ­n dá»¥ng cá»§a Ä‘áº¡i lÃ½
         try {
             creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
         } catch (Exception e) {
-            throw new RuntimeException("Háº¡n má»©c tÃ­n dá»¥ng khÃ´ng Ä‘á»§: " + e.getMessage());
+            throw new RuntimeException("Hạn mức tín dụng không đủ: " + e.getMessage());
         }
 
         return savedOrder;
@@ -258,10 +284,12 @@ public class OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            Double price = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
-            if (price == null || price < 0) {
-                price = product.getBasePrice();
+            Double baseResolvedPrice = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
+            if (baseResolvedPrice == null || baseResolvedPrice < 0) {
+                baseResolvedPrice = product.getBasePrice();
             }
+            
+            Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -278,6 +306,27 @@ public class OrderService {
             }
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // Tự động kiểm tra quà tặng bậc thang (hàng tặng giảm 100% đơn giá)
+            SalesPolicyTier matchedTier = salesPolicyService.getMatchedTierForOrder(product, agency, itemReq.getQuantity(), baseResolvedPrice);
+            if (matchedTier != null && matchedTier.getGiftProduct() != null && matchedTier.getGiftQuantity() != null && matchedTier.getGiftQuantity() > 0) {
+                Product giftProduct = matchedTier.getGiftProduct();
+                int giftQty = matchedTier.getGiftQuantity();
+
+                if (giftProduct.getStockQuantity() < giftQty) {
+                    throw new RuntimeException("Không đủ tồn kho cho sản phẩm quà tặng: " + giftProduct.getName());
+                }
+                giftProduct.setStockQuantity(giftProduct.getStockQuantity() - giftQty);
+                productRepository.save(giftProduct);
+
+                OrderItem giftOrderItem = new OrderItem();
+                giftOrderItem.setOrder(order);
+                giftOrderItem.setProduct(giftProduct);
+                giftOrderItem.setQuantity(giftQty);
+                giftOrderItem.setPrice(0.0); // Giảm 100%
+                giftOrderItem.setPriceListId(priceListId);
+                order.getItems().add(giftOrderItem);
+            }
         }
 
         double discountAmount = 0.0;
@@ -303,11 +352,10 @@ public class OrderService {
 
         commissionService.createTransaction(savedOrder);
 
-        // Trá»« háº¡n má»©c tÃ­n dá»¥ng cá»§a Ä‘áº¡i lÃ½
         try {
             creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
         } catch (Exception e) {
-            throw new RuntimeException("Háº¡n má»©c tÃ­n dá»¥ng khÃ´ng Ä‘á»§: " + e.getMessage());
+            throw new RuntimeException("Hạn mức tín dụng không đủ: " + e.getMessage());
         }
 
         return savedOrder;
@@ -380,10 +428,12 @@ public class OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            Double price = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
-            if (price == null || price < 0) {
-                price = product.getBasePrice();
+            Double baseResolvedPrice = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
+            if (baseResolvedPrice == null || baseResolvedPrice < 0) {
+                baseResolvedPrice = product.getBasePrice();
             }
+            
+            Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -400,6 +450,27 @@ public class OrderService {
             }
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // Tự động kiểm tra quà tặng bậc thang (hàng tặng giảm 100% đơn giá)
+            SalesPolicyTier matchedTier = salesPolicyService.getMatchedTierForOrder(product, agency, itemReq.getQuantity(), baseResolvedPrice);
+            if (matchedTier != null && matchedTier.getGiftProduct() != null && matchedTier.getGiftQuantity() != null && matchedTier.getGiftQuantity() > 0) {
+                Product giftProduct = matchedTier.getGiftProduct();
+                int giftQty = matchedTier.getGiftQuantity();
+
+                if (giftProduct.getStockQuantity() < giftQty) {
+                    throw new RuntimeException("Không đủ tồn kho cho sản phẩm quà tặng: " + giftProduct.getName());
+                }
+                giftProduct.setStockQuantity(giftProduct.getStockQuantity() - giftQty);
+                productRepository.save(giftProduct);
+
+                OrderItem giftOrderItem = new OrderItem();
+                giftOrderItem.setOrder(order);
+                giftOrderItem.setProduct(giftProduct);
+                giftOrderItem.setQuantity(giftQty);
+                giftOrderItem.setPrice(0.0); // Giảm 100%
+                giftOrderItem.setPriceListId(priceListId);
+                order.getItems().add(giftOrderItem);
+            }
         }
 
         double discountAmount = 0.0;
@@ -425,11 +496,10 @@ public class OrderService {
 
         commissionService.createTransaction(savedOrder);
 
-        // Trá»« háº¡n má»©c tÃ­n dá»¥ng cá»§a Ä‘áº¡i lÃ½
         try {
             creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
         } catch (Exception e) {
-            throw new RuntimeException("Háº¡n má»©c tÃ­n dá»¥ng khÃ´ng Ä‘á»§: " + e.getMessage());
+            throw new RuntimeException("Hạn mức tín dụng không đủ: " + e.getMessage());
         }
 
         return savedOrder;
@@ -500,9 +570,7 @@ public class OrderService {
         
         Order savedOrder = orderRepository.save(order);
         
-        // Khi Ä‘Æ¡n hÃ ng cÃ³ tráº¡ng thÃ¡i hoÃ n thÃ nh thÃ¬ cáº­p nháº­t dÆ° ná»£
         if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
-            // Cáº­p nháº­t dÆ° ná»£ cho khÃ¡ch hÃ ng (náº¿u cÃ³ assignment)
             if (order.getCustomer() != null && order.getAgency() != null) {
                 agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
                         order.getAgency().getId(), order.getCustomer().getId())
@@ -511,7 +579,6 @@ public class OrderService {
                         agencyCustomerAssignmentRepository.save(assignment);
                     });
             }
-            // Sinh 2 dÃ²ng cÃ´ng ná»£ Äáº¡i lÃ½
             agencyDebtService.createDebtsForOrder(savedOrder);
         }
         
@@ -566,5 +633,4 @@ public class OrderService {
         dto.setPrice(item.getPrice());
         return dto;
     }
-
 }
