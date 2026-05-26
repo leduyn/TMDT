@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { brandApi, BrandDTO, BrandRequest, uploadApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import ImageUploader from '@/components/ImageUploader';
+import ImageUploader from '@/modules/common/components/ImageUploader';
+
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<BrandDTO[]>([]);
@@ -175,3 +176,4 @@ export default function BrandsPage() {
     </>
   );
 }
+

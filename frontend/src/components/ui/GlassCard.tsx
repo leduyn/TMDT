@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface GlassCardProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   title?: string;
   icon?: React.ReactNode;
   style?: React.CSSProperties;
@@ -60,3 +60,4 @@ export default function GlassCard({
     </div>
   );
 }
+

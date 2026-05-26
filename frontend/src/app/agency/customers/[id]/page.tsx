@@ -35,7 +35,7 @@ export default function AgencyCustomerDetailPage() {
         return;
       }
       if (!user.roles?.includes('ROLE_AGENCY')) {
-        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Đại lý.');
+        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Người mua.');
       }
     }
   }, [user, authLoading]);
@@ -53,7 +53,7 @@ export default function AgencyCustomerDetailPage() {
       })
       .catch(err => {
         console.error(err);
-        setError('Không thể tải thông tin khách hàng');
+        setError('Không thể tải thông tin người mua');
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -89,7 +89,7 @@ export default function AgencyCustomerDetailPage() {
       });
       
       
-      setModal({ isOpen: true, title: 'Thành công', message: 'Lưu thông tin khách hàng thành công!', type: 'success' });
+      setModal({ isOpen: true, title: 'Thành công', message: 'Lưu thông tin người mua thành công!', type: 'success' });
       setShowEditModal(false);
     } catch (err: any) {
       console.error(err);
@@ -102,7 +102,7 @@ export default function AgencyCustomerDetailPage() {
   if (authLoading || loading) return <div className="loading-spinner" />;
   if (error || !customer) return (
     <div style={{ textAlign: 'center', padding: 80 }}>
-      <p style={{ color: 'var(--error)' }}>{error || 'Không tìm thấy khách hàng'}</p>
+      <p style={{ color: 'var(--error)' }}>{error || 'Không tìm thấy người mua'}</p>
       <button onClick={() => router.back()} className="btn-outline" style={{ marginTop: 16 }}>Quay lại</button>
     </div>
   );
@@ -114,7 +114,7 @@ export default function AgencyCustomerDetailPage() {
         <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800 }}>{customer.displayName || customer.username}</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Thông tin chi tiết tài khoản khách hàng</p>
+            <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Thông tin chi tiết tài khoản người mua</p>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <button onClick={() => setShowEditModal(true)} className="btn-primary">
@@ -147,7 +147,7 @@ export default function AgencyCustomerDetailPage() {
               <h4 style={{ margin: '0 0 16px', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Phân loại</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <small style={{ color: 'var(--text-muted)', display: 'block' }}>Nhóm khách hàng</small>
+                  <small style={{ color: 'var(--text-muted)', display: 'block' }}>Nhóm người mua</small>
                   <strong>{customer.customerGroupName || 'Vãng lai'}</strong>
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function AgencyCustomerDetailPage() {
                   <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>{customer.role}</p>
                 </div>
                 <div>
-                  <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Mã khách hàng (ID)</small>
+                  <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Mã người mua (ID)</small>
                   <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>#{customer.id}</p>
                 </div>
               </div>
@@ -201,7 +201,7 @@ export default function AgencyCustomerDetailPage() {
               </div>
 
               <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 32, background: 'rgba(52, 152, 219, 0.05)', padding: 24, borderRadius: 16 }}>
-                <h3 style={{ margin: '0 0 24px', color: '#3498db' }}>Thông tin riêng của đại lý</h3>
+                <h3 style={{ margin: '0 0 24px', color: '#3498db' }}>Thông tin riêng của khách hàng</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
                   <div>
                     <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Tên gợi nhớ</small>
@@ -222,7 +222,7 @@ export default function AgencyCustomerDetailPage() {
         </div>
       </main>
 
-      {/* Edit Modal cho Đại lý */}
+      {/* Edit Modal cho Người mua */}
       {showEditModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -230,7 +230,7 @@ export default function AgencyCustomerDetailPage() {
           zIndex: 9999, padding: 24
         }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: 500, padding: 32, background: 'var(--bg-primary)' }}>
-            <h2 style={{ marginTop: 0, marginBottom: 24 }}>Sửa thông tin riêng cho Đại lý</h2>
+            <h2 style={{ marginTop: 0, marginBottom: 24 }}>Sửa thông tin riêng cho Người mua</h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -262,7 +262,7 @@ export default function AgencyCustomerDetailPage() {
                   rows={3}
                   value={modalData.customShippingAddress}
                   onChange={e => setModalData({ ...modalData, customShippingAddress: e.target.value })}
-                  placeholder="Địa chỉ cụ thể cho đại lý này..."
+                  placeholder="Địa chỉ cụ thể cho khách hàng này..."
                 />
               </div>
             </div>

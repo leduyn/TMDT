@@ -28,7 +28,7 @@ export default function MyCustomersPage() {
       }
 
       if (!user.roles?.includes('ROLE_AGENCY')) {
-        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Đại lý.');
+        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Khách hàng.');
         setIsLoading(false);
         return;
       }
@@ -56,11 +56,11 @@ export default function MyCustomersPage() {
         const customersData = await agencyApi.getCustomers(agencyId);
         setCustomers(Array.isArray(customersData) ? customersData : []);
       } else {
-        setError('Không tìm thấy thông tin đại lý cho tài khoản này.');
+        setError('Không tìm thấy thông tin Khách hàng cho tài khoản này.');
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Lỗi khi tải danh sách khách hàng.');
+      setError(err.message || 'Lỗi khi tải danh sách Người mua.');
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +73,7 @@ export default function MyCustomersPage() {
 
   const columns: Column<UserDTO>[] = [
     { 
-      header: 'Khách hàng', 
+      header: 'Người mua', 
       key: 'username',
       width: '30%',
       render: (c) => (
@@ -134,8 +134,8 @@ export default function MyCustomersPage() {
       <Navbar />
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
-          title="Khách hàng của tôi" 
-          subtitle="Quản lý danh sách khách hàng đang thuộc sự phụ trách của đại lý"
+          title="Người mua của tôi" 
+          subtitle="Quản lý danh sách Người mua đang thuộc sự phụ trách của Khách hàng"
           icon="Users"
         />
 
@@ -148,11 +148,11 @@ export default function MyCustomersPage() {
         <SearchActionHeader 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          placeholder="Tìm kiếm khách hàng theo tên hoặc email..."
+          placeholder="Tìm kiếm Người mua theo tên hoặc email..."
           actions={
             <Link href="/agency/customers/create" className="btn-primary" style={{ textDecoration: 'none' }}>
               <UserPlus size={18} />
-              Tạo khách hàng mới
+              Tạo Người mua mới
             </Link>
           }
         />
@@ -161,9 +161,10 @@ export default function MyCustomersPage() {
           data={filteredCustomers}
           columns={columns}
           loading={isLoading}
-          emptyMessage={searchQuery ? 'Không tìm thấy khách hàng nào phù hợp' : 'Bạn chưa quản lý khách hàng nào'}
+          emptyMessage={searchQuery ? 'Không tìm thấy Người mua nào phù hợp' : 'Bạn chưa quản lý Người mua nào'}
         />
       </main>
     </>
   );
 }
+

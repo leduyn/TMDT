@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import com.anhtin.tmdt.backend.modules.user.entity.User;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
@@ -40,9 +41,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else if (jwt != null) {
+                System.err.println("JWT Validation failed for token: " + jwt.substring(0, Math.min(jwt.length(), 10)) + "...");
             }
         } catch (Exception e) {
-            System.err.println("Cannot set user authentication: " + e);
+            System.err.println("Cannot set user authentication: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
@@ -53,6 +56,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
+        }
+        
+        String tokenParam = request.getParameter("token");
+        if (StringUtils.hasText(tokenParam)) {
+            return tokenParam;
         }
 
         return null;

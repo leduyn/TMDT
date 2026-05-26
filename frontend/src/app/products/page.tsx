@@ -135,7 +135,41 @@ export default function ProductsPage() {
       align: 'right',
       render: (p) => {
         const price = isCompanyAdmin ? p.basePrice : (p.appliedPrice !== undefined ? p.appliedPrice : p.basePrice);
-        return <span style={{ fontWeight: 700, color: 'var(--accent-light)' }}>{formatPrice(price || 0)}</span>;
+        
+        let oldPrice = 0;
+        let ratio = 0;
+        let hasDiscount = false;
+        
+        if (!isCompanyAdmin) {
+          if (p.oldAppliedPrice && p.oldAppliedPrice > 0) {
+            oldPrice = p.oldAppliedPrice;
+            ratio = p.priceChangeRatio || 0;
+            hasDiscount = true;
+          }
+        }
+        
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+            <span style={{ fontWeight: 700, color: 'var(--accent-light)' }}>{formatPrice(price || 0)}</span>
+            {hasDiscount && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                  {formatPrice(oldPrice)}
+                </span>
+                <span style={{ 
+                  fontSize: '0.65rem', 
+                  padding: '1px 5px', 
+                  borderRadius: 4, 
+                  fontWeight: 600,
+                  background: ratio < 0 ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)',
+                  color: ratio < 0 ? '#2ecc71' : '#e74c3c'
+                }}>
+                  {ratio < 0 ? '' : '+'}{ratio.toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
+        );
       }
     },
     {
@@ -196,7 +230,7 @@ export default function ProductsPage() {
       <main style={{ padding: '20px 0' }}>
         <PageHeader 
           title="Danh sách sản phẩm" 
-          subtitle="Khám phá hàng nghìn sản phẩm từ các đối tác và đại lý uy tín"
+          subtitle="Khám phá hàng nghìn sản phẩm từ các đối tác và Người mua uy tín"
           icon="ShoppingBag"
         />
 
@@ -344,9 +378,51 @@ export default function ProductsPage() {
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
-                        {formatPrice(isCompanyAdmin ? (product.basePrice || 0) : (product.appliedPrice !== undefined ? product.appliedPrice : (product.basePrice || 0)))}
-                      </span>
+                      {(() => {
+                        const price = isCompanyAdmin ? product.basePrice : (product.appliedPrice !== undefined ? product.appliedPrice : product.basePrice);
+                        let oldPrice = 0;
+                        let ratio = 0;
+                        let hasDiscount = false;
+                        
+                        if (!isCompanyAdmin) {
+                          if (product.oldAppliedPrice && product.oldAppliedPrice > 0) {
+                            oldPrice = product.oldAppliedPrice;
+                            ratio = product.priceChangeRatio || 0;
+                            hasDiscount = true;
+                          }
+                        }
+                        
+                        if (hasDiscount) {
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: '0.8rem', textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                                  {formatPrice(oldPrice)}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '0.65rem', 
+                                  padding: '1px 5px', 
+                                  borderRadius: 4, 
+                                  fontWeight: 600,
+                                  background: ratio < 0 ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)',
+                                  color: ratio < 0 ? '#2ecc71' : '#e74c3c'
+                                }}>
+                                  {ratio < 0 ? '' : '+'}{ratio.toFixed(1)}%
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
+                                {formatPrice(price || 0)}
+                              </span>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-light)' }}>
+                            {formatPrice(price || 0)}
+                          </span>
+                        );
+                      })()}
                       
                       <div style={{ display: 'flex', gap: 8 }}>
                         {isAuthorized ? (
@@ -393,3 +469,4 @@ export default function ProductsPage() {
     </>
   );
 }
+

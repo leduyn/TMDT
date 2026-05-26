@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import GalleryUploader from '@/components/GalleryUploader';
-import RichTextEditor from '@/components/RichTextEditor';
+import GalleryUploader from '@/modules/common/components/GalleryUploader';
+import RichTextEditor from '@/modules/common/components/RichTextEditor';
 import { productApi, categoryApi, CategoryDTO, brandApi, BrandDTO, attributeApi, AttributeDTO } from '@/lib/api';
 
 export default function CreateProductPage() {
@@ -27,6 +27,7 @@ export default function CreateProductPage() {
     minPurchaseQuantity: 1,
     quantityStep: 1,
     userManual: '',
+    showDiscount: false,
   });
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
@@ -263,6 +264,10 @@ export default function CreateProductPage() {
                   <input type="checkbox" name="isWebVisible" checked={formData.isWebVisible} onChange={handleChange} id="isWebVisible" />
                   <label htmlFor="isWebVisible" style={{ fontSize: '0.9rem' }}>Hiển thị trên Web</label>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" name="showDiscount" checked={formData.showDiscount} onChange={handleChange} id="showDiscount" />
+                  <label htmlFor="showDiscount" style={{ fontSize: '0.9rem' }}>Hiển thị giá giảm / Giá trước thay đổi</label>
+                </div>
               </div>
             </div>
 
@@ -287,3 +292,4 @@ export default function CreateProductPage() {
     </>
   );
 }
+

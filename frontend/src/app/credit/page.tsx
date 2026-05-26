@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { creditApi, agencyApi, CreditDetail, AgencyDTO } from '@/lib/api';
+import { creditApi, agencyApi, agencyDebtApi, CreditDetail, AgencyDTO } from '@/lib/api';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+const fmt = (n: number | null | undefined) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n ?? 0);
 
 const fmtDate = (s?: string) =>
   s ? new Date(s).toLocaleString('vi-VN') : '—';
@@ -105,12 +105,18 @@ function CreditManagementContent() {
     }
   }, [isCompany, agencyIdFromToken, searchParams]);
 
+  const [currentDebts, setCurrentDebts] = useState<any[]>([]);
+
   const loadDetail = useCallback(async (id: number) => {
     setLoading(true);
     setError('');
     try {
-      const d = await creditApi.getDetail(id);
+      const [d, debts] = await Promise.all([
+        creditApi.getDetail(id),
+        agencyDebtApi.getByAgencyId(id)
+      ]);
       setDetail(d);
+      setCurrentDebts(debts);
     } catch (e: any) {
       setError(e.message ?? 'Không thể tải dữ liệu tín dụng');
     } finally {
@@ -127,7 +133,32 @@ function CreditManagementContent() {
     setTimeout(() => setSuccess(''), 4000);
   };
 
-  const closeModal = () => { setModal(null); setInputAmount(''); setInputOrderId(''); };
+  const closeModal = () => { 
+    setModal(null); 
+    setInputAmount(''); 
+    setInputOrderId(''); 
+    setOrderDebts([]); 
+  };
+
+  const [orderDebts, setOrderDebts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (modal === 'payment' && inputOrderId && !isNaN(parseInt(inputOrderId))) {
+      const fetchOrderDebts = async () => {
+        try {
+          const debts = await agencyDebtApi.getByOrderId(parseInt(inputOrderId));
+          setOrderDebts(debts);
+        } catch (e) {
+          console.error(e);
+          setOrderDebts([]);
+        }
+      };
+      const timer = setTimeout(fetchOrderDebts, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setOrderDebts([]);
+    }
+  }, [modal, inputOrderId]);
 
   const handleSubmitModal = async () => {
     if (!selectedId || !detail) return;
@@ -171,7 +202,7 @@ function CreditManagementContent() {
             background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
-            💳 Quản lý Tín dụng Đại lý
+            💰 Quản lý Tín dụng Khách hàng
           </h1>
           <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
             Theo dõi hạn mức khả dụng (HMKD), ví ký quỹ và lịch sử giao dịch
@@ -182,7 +213,7 @@ function CreditManagementContent() {
         {isCompany && (
           <div style={{ marginBottom: 28 }}>
             <label style={{ color: '#94a3b8', fontSize: 13, display: 'block', marginBottom: 8 }}>
-              Chọn đại lý
+              Chọn Khách hàng
             </label>
             <select
               id="credit-agency-select"
@@ -194,7 +225,7 @@ function CreditManagementContent() {
                 outline: 'none', cursor: 'pointer',
               }}
             >
-              <option value="">-- Chọn đại lý --</option>
+              <option value="">-- Chọn Khách hàng --</option>
               {agencies.map(a => (
                 <option key={a.id} value={a.id}>{a.name} (ID: {a.id})</option>
               ))}
@@ -234,18 +265,18 @@ function CreditManagementContent() {
             {/* Stats grid */}
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
               <StatCard label="Hạn mức khả dụng (HMKD)" value={fmt(detail.hmkd)}
-                sub="= Hạn mức − (Nợ + Nợ bảo lãnh) + Ký quỹ" color="#38bdf8" />
+                sub="= Hạn mức − (Dư nợ + Nợ bảo lãnh) + Ký quỹ" color="#38bdf8" />
               <StatCard label="Hạn mức tín dụng" value={fmt(detail.creditLimit)} color="#818cf8" />
-              <StatCard label="Dư nợ (Đại lý)" value={fmt(detail.totalDebt)}
+              <StatCard label="Dư nợ (Khách hàng)" value={fmt(detail.totalDebt)}
                 sub={detail.overdueDebts.length > 0 ? `${detail.overdueDebts.length} khoản quá hạn` : 'Không có nợ quá hạn'}
                 color={detail.totalDebt > 0 ? '#ef4444' : '#22c55e'} />
-              <StatCard label="Nợ bảo lãnh (Khách hàng)" value={fmt(detail.guaranteeDebt)}
+              <StatCard label="Nợ bảo lãnh (Người mua)" value={fmt(detail.guaranteeDebt)}
                 color={detail.guaranteeDebt > 0 ? '#f43f5e' : '#10b981'} />
               <StatCard label="Ví ký quỹ khả dụng" value={fmt(detail.vtcAvailable)}
                 sub="Giá trị còn lại của ví ký quỹ sau khi trừ khoản bị tạm giữ do nợ quá hạn"
                 color="#f59e0b" />
               <StatCard label="Ví ký quỹ tạm giữ" value={fmt(detail.vtcHold)}
-                sub="Tạm giữ khi đơn hàng liên quan đến đại lý bị nợ quá hạn chưa được thanh toán"
+                sub="Tạm giữ khi đơn hàng liên quan đến Người mua bị nợ quá hạn chưa được thanh toán"
                 color="#a78bfa" />
             </div>
 
@@ -260,6 +291,27 @@ function CreditManagementContent() {
                     ⚙️ Cấu hình công nợ
                   </button>
                 </Link>
+                <button 
+                  onClick={async () => {
+                    if (!selectedId) return;
+                    setLoading(true);
+                    try {
+                      const res = await creditApi.recalculate(selectedId);
+                      notify(res.message);
+                      loadDetail(selectedId);
+                    } catch (e: any) {
+                      setError(e.message || 'Lỗi khi tính toán lại');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)', color: '#f1f5f9', border: '1px solid #334155',
+                    borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  🔄 Tính lại công nợ
+                </button>
                 {[
                   { id: 'btn-update-limit',   action: () => setModal('limit'),   label: '✏️ Cập nhật hạn mức', bg: '#4f46e5' },
                   { id: 'btn-deposit-vtc',    action: () => setModal('deposit'), label: '💰 Nạp ký quỹ VTC',    bg: '#0891b2' },
@@ -324,6 +376,94 @@ function CreditManagementContent() {
               </div>
             )}
 
+            {/* Current individual debts */}
+            <div style={{
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16, padding: 24, marginBottom: 24,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h2 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 16, margin: 0 }}>
+                  📂 Danh sách công nợ chi tiết
+                </h2>
+                <Link href={`/credit/debts?agencyId=${selectedId}`}>
+                  <span style={{ fontSize: 12, color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Xem tất cả & quản lý
+                  </span>
+                </Link>
+              </div>
+              {currentDebts.length === 0 ? (
+                <div style={{ color: '#64748b', textAlign: 'center', padding: 32 }}>Không có khoản nợ nào</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ color: '#94a3b8' }}>
+                        {['Mã nợ', 'Đơn hàng', 'Hạng mục', 'Kỳ hạn', 'Giá trị nợ', 'Còn lại', 'Hạn thanh toán'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentDebts.map((d, i) => (
+                        <tr key={d.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                          <td style={{ padding: '10px 12px' }}><code>{d.debtCode}</code></td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <Link href={`/orders/${d.orderId}`}>
+                              <span style={{ color: '#38bdf8', textDecoration: 'underline' }}>#{d.orderId}</span>
+                            </Link>
+                          </td>
+                          <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{d.jobCategory}</td>
+                          <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{d.debtTermDays} ngày</td>
+                          <td style={{ padding: '10px 12px' }}>{fmt(d.value)}</td>
+                          <td style={{ padding: '10px 12px', fontWeight: 600, color: d.remainingToCollect > 0 ? '#ef4444' : '#22c55e' }}>
+                            {fmt(d.remainingToCollect)}
+                          </td>
+                          <td style={{ padding: '10px 12px', color: new Date(d.dueDate) < new Date() && d.remainingToCollect > 0 ? '#ef4444' : '#94a3b8' }}>
+                            {fmtDate(d.dueDate)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Customer debt list */}
+            <div style={{
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16, padding: 24, marginBottom: 24,
+            }}>
+              <h2 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 16, marginTop: 0, marginBottom: 16 }}>
+                👥 Dư nợ theo Người mua
+              </h2>
+              {!detail.customerDebts || detail.customerDebts.length === 0 ? (
+                <div style={{ color: '#64748b', textAlign: 'center', padding: 32 }}>Không có dữ liệu Người mua</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ color: '#94a3b8' }}>
+                        {['Người mua', 'Dư nợ hiện tại'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.customerDebts.map((c, i) => (
+                        <tr key={c.customerId} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: 500, color: '#f1f5f9' }}>{c.customerName}</td>
+                          <td style={{ padding: '10px 12px', fontWeight: 600, color: c.totalDebt > 0 ? '#f59e0b' : '#22c55e' }}>
+                            {fmt(c.totalDebt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             {/* Ledger history */}
             <div style={{
               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
@@ -339,7 +479,7 @@ function CreditManagementContent() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                       <tr style={{ color: '#94a3b8' }}>
-                        {['Loại', 'Số tiền', 'Mã tham chiếu', 'Thời gian'].map(h => (
+                        {['Loại', 'Đối tượng', 'Số tiền', 'Mã tham chiếu', 'Thời gian'].map(h => (
                           <th key={h} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
                         ))}
                       </tr>
@@ -347,6 +487,7 @@ function CreditManagementContent() {
                     <tbody>
                       {detail.ledgerHistory.map((l, i) => {
                         const meta = LEDGER_LABELS[l.type] ?? { label: l.type, color: '#94a3b8' };
+                        const isCustomer = l.receiverType === 'CUSTOMER';
                         return (
                           <tr key={l.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
                             <td style={{ padding: '10px 12px' }}>
@@ -354,6 +495,15 @@ function CreditManagementContent() {
                                 background: meta.color + '22', color: meta.color,
                                 borderRadius: 6, padding: '2px 10px', fontWeight: 600, fontSize: 12,
                               }}>{meta.label}</span>
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              <span style={{
+                                background: isCustomer ? 'rgba(245,158,11,0.1)' : 'rgba(148,163,184,0.1)',
+                                color: isCustomer ? '#f59e0b' : '#94a3b8',
+                                borderRadius: 6, padding: '2px 10px', fontWeight: 600, fontSize: 12,
+                              }}>
+                                {isCustomer ? 'Nợ bảo lãnh' : 'Nợ Khách hàng'}
+                              </span>
                             </td>
                             <td style={{ padding: '10px 12px', color: meta.color, fontWeight: 600 }}>
                               {['DEBT', 'HOLD', 'INTEREST'].includes(l.type) ? '−' : '+'}{fmt(l.amount)}
@@ -378,14 +528,14 @@ function CreditManagementContent() {
 
         {!loading && !detail && selectedId && (
           <div style={{ textAlign: 'center', color: '#64748b', padding: 60 }}>
-            Không tìm thấy tài khoản tín dụng cho đại lý này.
+            Không tìm thấy tài khoản tín dụng cho Khách hàng này.
           </div>
         )}
 
         {!loading && !selectedId && (
           <div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>💳</div>
-            <div>Vui lòng chọn một đại lý để xem thông tin tín dụng</div>
+            <div>Vui lòng chọn một Khách hàng để xem thông tin tín dụng</div>
           </div>
         )}
       </div>
@@ -455,6 +605,43 @@ function CreditManagementContent() {
             placeholder="Bỏ trống để trả nợ cũ nhất trước"
             style={inputStyle}
           />
+          {orderDebts.length > 0 && (
+            <div style={{ marginTop: 16, marginBottom: 16, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 12px', fontSize: 12, color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                Công nợ theo đơn #{inputOrderId}
+              </div>
+              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ color: '#64748b', textAlign: 'left' }}>
+                      <th style={{ padding: '6px 10px' }}>Mã nợ</th>
+                      <th style={{ padding: '6px 10px' }}>Hạng mục</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'center' }}>Kỳ hạn</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'right' }}>Còn lại</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'center' }}>Hạn</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderDebts.map(debt => (
+                      <tr 
+                        key={debt.id} 
+                        onClick={() => setInputAmount(debt.remainingToCollect.toString())}
+                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'background 0.2s' }}
+                        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: '8px 10px', color: '#38bdf8' }}>{debt.debtCode}</td>
+                        <td style={{ padding: '8px 10px', whiteSpace: 'normal', color: '#94a3b8' }}>{debt.jobCategory}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'center', color: '#94a3b8' }}>{debt.debtTermDays}n</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>{fmt(debt.remainingToCollect)}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>{new Date(debt.dueDate).toLocaleDateString('vi-VN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           {detail && (detail.totalDebt > 0 || detail.guaranteeDebt > 0) && (
             <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 6 }}>
               Dư nợ: {fmt(detail.totalDebt)} | Nợ bảo lãnh: {fmt(detail.guaranteeDebt)}
@@ -500,3 +687,4 @@ const cancelBtn: React.CSSProperties = {
   border: '1px solid #334155', borderRadius: 8, padding: '10px 0',
   fontWeight: 600, fontSize: 14, cursor: 'pointer',
 };
+

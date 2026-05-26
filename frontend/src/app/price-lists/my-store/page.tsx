@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
@@ -66,7 +66,7 @@ export default function MyStorePriceListPage() {
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>Thiết lập <span className="gradient-text">Cửa hàng</span></h1>
           <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)' }}>
-            Chọn bảng giá hiển thị cho khách hàng khi họ truy cập cửa hàng của bạn.
+            Chọn bảng giá hiển thị cho Người mua khi họ truy cập cửa hàng của bạn.
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export default function MyStorePriceListPage() {
         </div>
 
         <div className="glass-card" style={{ padding: 32 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem' }}>Chọn bảng giá cho Khách hàng của bạn</h3>
+          <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem' }}>Chọn bảng giá cho Người mua của bạn</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 20 }}>
             Hệ thống sẽ hiển thị giá sản phẩm theo bảng giá này khi khách lẻ mua hàng tại shop của bạn.
           </p>
@@ -124,3 +124,4 @@ export default function MyStorePriceListPage() {
     </>
   );
 }
+

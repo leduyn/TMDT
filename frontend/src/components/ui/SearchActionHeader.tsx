@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import GlassCard from './GlassCard';
 import { Search } from 'lucide-react';
 
@@ -45,3 +45,4 @@ export default function SearchActionHeader({
     </GlassCard>
   );
 }
+

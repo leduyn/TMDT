@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
@@ -31,3 +31,4 @@ export default function Badge({ label, type = 'info', icon, style }: BadgeProps)
     </span>
   );
 }
+
