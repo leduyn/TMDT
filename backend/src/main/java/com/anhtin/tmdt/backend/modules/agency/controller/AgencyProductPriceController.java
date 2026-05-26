@@ -27,8 +27,10 @@ public class AgencyProductPriceController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('COMPANY', 'ADMIN')")
-    public ResponseEntity<List<AgencyProductPriceDTO>> getPricesForAgency(@RequestParam Long agencyId) {
-        return ResponseEntity.ok(agencyProductPriceService.getPricesForAgency(agencyId));
+    public ResponseEntity<List<AgencyProductPriceDTO>> getPricesForAgency(
+            @RequestParam Long agencyId,
+            @RequestParam(required = false) Integer days) {
+        return ResponseEntity.ok(agencyProductPriceService.getPricesForAgency(agencyId, days));
     }
 
     @GetMapping("/history")

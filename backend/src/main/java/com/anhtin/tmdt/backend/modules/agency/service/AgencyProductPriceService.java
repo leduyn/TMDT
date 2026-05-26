@@ -27,6 +27,7 @@ import com.anhtin.tmdt.backend.modules.agency.dto.AgencyProductPriceDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyProductPriceHistoryDTO;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceList;
+import com.anhtin.tmdt.backend.modules.common.service.SystemConfigService;
 
 @Service
 public class AgencyProductPriceService {
@@ -46,8 +47,38 @@ public class AgencyProductPriceService {
     @Autowired
     private PriceListService priceListService;
 
-    public List<AgencyProductPriceDTO> getPricesForAgency(Long agencyId) {
-        return agencyProductPriceRepository.findByAgencyId(agencyId).stream().map(this::mapToDTO).collect(Collectors.toList());
+    @Autowired
+    private SystemConfigService systemConfigService;
+
+    public List<AgencyProductPriceDTO> getPricesForAgency(Long agencyId, Integer days) {
+        List<AgencyProductPrice> prices = agencyProductPriceRepository.findByAgencyId(agencyId);
+        
+        int discountDays = systemConfigService.getDiscountMaxDays();
+        
+        if (days != null && days > 0) {
+            LocalDateTime sinceDate = LocalDateTime.now().minusDays(days);
+            return prices.stream().map(p -> {
+                AgencyProductPriceDTO dto = mapToDTO(p);
+                // Find the price that was active N days ago
+                agencyProductPriceHistoryRepository.findPriceAtDate(agencyId, p.getProduct().getId(), sinceDate)
+                    .ifPresentOrElse(
+                        historyAtDate -> dto.setOldPrice(historyAtDate.getNewPrice()),
+                        () -> dto.setOldPrice(null) // No history before N days → no comparison available
+                    );
+                return dto;
+            }).collect(Collectors.toList());
+        }
+        
+        return prices.stream().map(p -> {
+            AgencyProductPriceDTO dto = mapToDTO(p);
+            if (dto.getOldPrice() != null && dto.getUpdatedAt() != null) {
+                long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(dto.getUpdatedAt(), java.time.LocalDateTime.now());
+                if (daysDiff > discountDays) {
+                    dto.setOldPrice(null);
+                }
+            }
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     public List<AgencyProductPriceHistoryDTO> getHistoryForAgencyProduct(Long agencyId, Long productId) {
@@ -200,7 +231,7 @@ public class AgencyProductPriceService {
     }
 
     public ByteArrayInputStream exportPricesToExcel(Long agencyId) {
-        List<AgencyProductPriceDTO> prices = getPricesForAgency(agencyId);
+        List<AgencyProductPriceDTO> prices = getPricesForAgency(agencyId, null);
         Agency agency = agencyRepository.findById(agencyId).orElseThrow(() -> new RuntimeException("Agency not found"));
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {

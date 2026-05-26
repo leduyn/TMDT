@@ -20,6 +20,8 @@ import com.anhtin.tmdt.backend.modules.product.repository.BrandRepository;
 import com.anhtin.tmdt.backend.modules.product.entity.ProductAttributeValue;
 import com.anhtin.tmdt.backend.modules.product.entity.AttributeValue;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
+import com.anhtin.tmdt.backend.modules.common.service.SystemConfigService;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyProductPriceHistoryRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductAttributeValueRepository;
 import com.anhtin.tmdt.backend.modules.product.entity.Brand;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductImageRepository;
@@ -51,6 +53,12 @@ public class ProductService {
     @Autowired
     private PriceListService priceListService;
 
+    @Autowired
+    private SystemConfigService systemConfigService;
+
+    @Autowired
+    private AgencyProductPriceHistoryRepository agencyProductPriceHistoryRepository;
+
     public List<ProductDTO> getAllProducts() {
         return getAllProducts(null, null);
     }
@@ -64,10 +72,31 @@ public class ProductService {
                     dto.setAppliedPrice(priceInfo.getPrice());
                     dto.setAppliedPriceListName(priceInfo.getPriceListName());
                     dto.setAppliedPriceListId(priceInfo.getPriceListId());
-                    if (priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
+                    // Determine whether to show old price based on discountMaxDays configuration
+                    Integer discountDays = systemConfigService.getDiscountMaxDays();
+                    // Fetch latest price change history for this product and agency (if agencyId provided)
+                    java.time.LocalDateTime changeAt = null;
+                    if (agencyId != null) {
+                        var latestHist = agencyProductPriceHistoryRepository
+                                .findTopByAgencyIdAndProductIdOrderByChangedAtDesc(agencyId, p.getId());
+                        if (latestHist != null) {
+                            changeAt = latestHist.getChangedAt();
+                        }
+                    }
+                    boolean showDiscount = true;
+                    if (changeAt != null) {
+                        long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(changeAt, java.time.LocalDateTime.now());
+                        if (daysDiff > discountDays) {
+                            showDiscount = false;
+                        }
+                    }
+                    if (showDiscount && priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
                         dto.setOldAppliedPrice(priceInfo.getOldPrice());
                         double diff = priceInfo.getPrice() - priceInfo.getOldPrice();
                         dto.setPriceChangeRatio((diff / priceInfo.getOldPrice()) * 100);
+                    } else {
+                        dto.setOldAppliedPrice(null);
+                        dto.setPriceChangeRatio(null);
                     }
                     return dto;
                 })
@@ -87,10 +116,31 @@ public class ProductService {
         dto.setAppliedPrice(priceInfo.getPrice());
         dto.setAppliedPriceListName(priceInfo.getPriceListName());
         dto.setAppliedPriceListId(priceInfo.getPriceListId());
-        if (priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
+        // Determine whether to show old price based on discountMaxDays configuration
+        Integer discountDays = systemConfigService.getDiscountMaxDays();
+        // Fetch latest price change history for this product and agency (if agencyId provided)
+        java.time.LocalDateTime changeAt = null;
+        if (agencyId != null) {
+            var latestHist = agencyProductPriceHistoryRepository
+                    .findTopByAgencyIdAndProductIdOrderByChangedAtDesc(agencyId, id);
+            if (latestHist != null) {
+                changeAt = latestHist.getChangedAt();
+            }
+        }
+        boolean showDiscount = true;
+        if (changeAt != null) {
+            long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(changeAt, java.time.LocalDateTime.now());
+            if (daysDiff > discountDays) {
+                showDiscount = false;
+            }
+        }
+        if (showDiscount && priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
             dto.setOldAppliedPrice(priceInfo.getOldPrice());
             double diff = priceInfo.getPrice() - priceInfo.getOldPrice();
             dto.setPriceChangeRatio((diff / priceInfo.getOldPrice()) * 100);
+        } else {
+            dto.setOldAppliedPrice(null);
+            dto.setPriceChangeRatio(null);
         }
         return dto;
     }

@@ -19,7 +19,16 @@ Tôi đã hoàn tất việc tích hợp tính năng quản lý lịch sử giá
   - Tự động tính toán tỷ lệ chênh lệch `%` tăng/giảm giá: `priceChangeRatio = ((appliedPrice - oldAppliedPrice) / oldAppliedPrice) * 100` để chuyển tiếp cho frontend.
   - Ánh xạ cờ `showDiscount` từ Request vào Entity khi Tạo (`addProduct`) / Cập nhật (`updateProduct`) sản phẩm.
 
-### 3. Frontend APIs & UI
+### 3. Áp dụng Rule N ngày cho Trang Danh sách & Chi tiết Sản phẩm
+Chúng tôi đã gỡ bỏ hoàn toàn logic tính toán chiết khấu tự động thủ công ở phía client. Điều này đảm bảo frontend hiển thị giá cũ và phần trăm thay đổi **chuẩn xác theo cấu hình số ngày `N` (discount.max.days) được thiết lập trong Cài đặt hệ thống**.
+- **[Product List Page](file:///d:/Java%20lean/TMDT/frontend/src/app/products/page.tsx)**:
+  - Loại bỏ hoàn toàn fallback so sánh giá `appliedPrice !== basePrice` trong cả hai chế độ hiển thị Lưới (Grid) và Bảng (Table).
+  - Chỉ hiển thị giá cũ gạch ngang và tỷ lệ phần trăm chênh lệch khi có `oldAppliedPrice` hợp lệ trả về trực tiếp từ Backend.
+- **[Product Detail Page](file:///d:/Java%20lean/TMDT/frontend/src/app/products/%5Bid%5D/page.tsx)**:
+  - Đồng bộ hóa logic hiển thị thông tin giá bán gạch ngang tương tự.
+  - Đảm bảo khi vượt quá thời gian `N` ngày cấu hình, thông tin giá cũ tự động ẩn hoàn toàn và chỉ hiển thị giá bán áp dụng thực tế mới nhất.
+
+### 4. Frontend APIs & UI
 - **[priceApi.ts](file:///d:/Java%20lean/TMDT/frontend/src/modules/price/priceApi.ts)**: Khai báo phương thức `getActiveHistoryForAgency(agencyId)` trong đối tượng API `priceUpdateVoucherApi`.
 - **[productApi.ts](file:///d:/Java%20lean/TMDT/frontend/src/modules/product/productApi.ts)**: Cập nhật các interface `ProductDTO` và `ProductRequest` với các trường mới (`showDiscount`, `oldAppliedPrice`, `priceChangeRatio`).
 - **Checkbox ShowDiscount trên giao diện quản trị**:
@@ -28,19 +37,20 @@ Tôi đã hoàn tất việc tích hợp tính năng quản lý lịch sử giá
 - **Nút "Lịch sử cập nhật giá" & Modal hiển thị Timeline trên UI chi tiết đại lý**:
   - **[Agency Detail Page](file:///d:/Java%20lean/TMDT/frontend/src/app/agencies/%5Bid%5D/page.tsx)**:
     - Bổ sung nút **"Lịch sử cập nhật giá"** với màu xanh dịu sky-blue và biểu tượng `History` tinh tế cạnh tên Bảng giá đang áp dụng.
-    - Xây dựng Modal Timeline hiển thị toàn bộ lịch sử cập nhật giá của khách hàng cực kỳ mượt mà sử dụng glassmorphic background.
+    - Xây dựng Modal Timeline hiển thị toàn bộ lịch sử cập nhật giá của khách hàng cực kỳ mượt mạ sử dụng glassmorphic background.
     - Trong Timeline hiển thị chi tiết tên đợt cập nhật giá (Voucher name), ghi chú (description), ngày-giờ áp dụng thành công và danh sách chi tiết các sản phẩm được cập nhật kèm giá mới tương ứng.
     - Tại cột **Giá bán đại lý** của tab **Bảng giá áp dụng**:
       - Khi `showDiscount === true` và có tồn tại `oldAppliedPrice`:
         - Hiển thị giá cũ bị gạch ngang (Màu xám).
         - Hiển thị giá mới đậm (Màu sắc nổi bật).
         - Hiển thị Badge báo tỷ lệ `%` tăng/giảm (Xanh lá khi giảm, đỏ khi tăng).
-      - Khi `showDiscount === false`, ẩn hoàn toàn giá cũ và tỷ lệ phần trăm, chỉ hiển thị giá mới như bình thường để bảo mật thông tin.
+      - Khi `showDiscount === false` hoặc khi giá cũ quá hạn `N` ngày (bị backend trả về null), ẩn hoàn toàn giá cũ và tỷ lệ phần trăm, chỉ hiển thị giá mới như bình thường để bảo mật thông tin.
 
 ## Kết quả Kiểm tra & Biên dịch
 - **Backend**: Biên dịch Maven thành công (`mvn compile`).
-- **Frontend**: Build thành công với Next.js Turbopack (`npm run build`) và không có bất kỳ lỗi TypeScript nào.
+- **Frontend**: Kiểm tra kiểu dữ liệu TypeScript thành công (`npx tsc --noEmit`) với 0 lỗi phát sinh.
 
 ---
 > [!NOTE]
-> Tính năng hiện tại đã hoàn tất cả logic đầu-cuối (End-to-End) và giao diện điều khiển. Bạn có thể mở trình duyệt và trải nghiệm ngay!
+> Các thay đổi đã được áp dụng và đồng bộ hóa thành công trên toàn bộ hệ thống! Bạn có thể trải nghiệm sự nhất quán của rule N ngày ngay trên trang Danh sách sản phẩm và Chi tiết sản phẩm.
+

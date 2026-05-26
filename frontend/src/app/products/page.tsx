@@ -145,10 +145,6 @@ export default function ProductsPage() {
             oldPrice = p.oldAppliedPrice;
             ratio = p.priceChangeRatio || 0;
             hasDiscount = true;
-          } else if (p.appliedPrice !== undefined && p.appliedPrice !== p.basePrice && p.basePrice && p.basePrice > 0) {
-            oldPrice = p.basePrice;
-            ratio = ((p.appliedPrice - p.basePrice) / p.basePrice) * 100;
-            hasDiscount = true;
           }
         }
         
@@ -392,10 +388,6 @@ export default function ProductsPage() {
                           if (product.oldAppliedPrice && product.oldAppliedPrice > 0) {
                             oldPrice = product.oldAppliedPrice;
                             ratio = product.priceChangeRatio || 0;
-                            hasDiscount = true;
-                          } else if (product.appliedPrice !== undefined && product.appliedPrice !== product.basePrice && product.basePrice && product.basePrice > 0) {
-                            oldPrice = product.basePrice;
-                            ratio = ((product.appliedPrice - product.basePrice) / product.basePrice) * 100;
                             hasDiscount = true;
                           }
                         }

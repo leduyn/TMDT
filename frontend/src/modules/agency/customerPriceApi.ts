@@ -29,8 +29,11 @@ export interface AgencyProductPriceHistoryDTO {
 }
 
 export const customerPriceApi = {
-    getPricesForAgency: (agencyId: number) => 
-        fetchJSON<AgencyProductPriceDTO[]>(`/api/customer-prices?agencyId=${agencyId}`),
+    getPricesForAgency: (agencyId: number, days?: number) => {
+        let url = `/api/customer-prices?agencyId=${agencyId}`;
+        if (days && days > 0) url += `&days=${days}`;
+        return fetchJSON<AgencyProductPriceDTO[]>(url);
+    },
     
     getHistory: (agencyId: number, productId: number) => 
         fetchJSON<AgencyProductPriceHistoryDTO[]>(`/api/customer-prices/history?agencyId=${agencyId}&productId=${productId}`),

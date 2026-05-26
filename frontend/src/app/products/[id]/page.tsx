@@ -319,10 +319,6 @@ export default function ProductDetailPage() {
                       oldPrice = product.oldAppliedPrice;
                       ratio = product.priceChangeRatio || 0;
                       hasDiscount = true;
-                    } else if (resolvedPrice !== product.basePrice && product.basePrice && product.basePrice > 0) {
-                      oldPrice = product.basePrice;
-                      ratio = ((resolvedPrice - product.basePrice) / product.basePrice) * 100;
-                      hasDiscount = true;
                     }
                     
                     if (hasDiscount) {
