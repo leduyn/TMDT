@@ -22,6 +22,7 @@ export default function SalesPoliciesPage() {
   const [policies, setPolicies] = useState<SalesPolicyDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'SALES_POLICY' | 'PROMOTION' | 'RETAIL_POLICY'>('SALES_POLICY');
 
   const isAdmin = user?.roles?.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
@@ -42,7 +43,7 @@ export default function SalesPoliciesPage() {
   };
 
   const handleOpenCreate = () => {
-    router.push('/sales-policies/new');
+    router.push(`/sales-policies/new?type=${activeTab}`);
   };
 
   const handleOpenEdit = (id: number) => {
@@ -69,6 +70,9 @@ export default function SalesPoliciesPage() {
   };
 
   const formatCondition = (p: SalesPolicyDTO) => {
+    if (p.policyType === 'RETAIL_POLICY') {
+      return `SL mua < SL tối thiểu SP`;
+    }
     if (p.targetType === 'ORDER_VALUE') {
       return `Đơn hàng theo bậc điều kiện`;
     }
@@ -82,6 +86,17 @@ export default function SalesPoliciesPage() {
   };
 
   const formatFormula = (p: SalesPolicyDTO) => {
+    if (p.policyType === 'RETAIL_POLICY' && p.tiers && p.tiers.length > 0) {
+      const t = p.tiers[0];
+      if (t.adjustmentType === 'PERCENTAGE') {
+        return `${t.adjustmentValue > 0 ? '+' : ''}${t.adjustmentValue}%`;
+      } else if (t.adjustmentType === 'FIXED_AMOUNT') {
+        return `${t.adjustmentValue > 0 ? '+' : ''}${t.adjustmentValue?.toLocaleString()}đ`;
+      } else if (t.adjustmentType === 'SPECIFIC_PRICE') {
+        return `Giá chỉ định ${t.adjustmentValue?.toLocaleString()}đ`;
+      }
+      return '';
+    }
     if (p.tiers && p.tiers.length > 0) {
       const topTier = p.tiers[p.tiers.length - 1];
       const op = formatOperator(topTier.operator || '');
@@ -107,7 +122,8 @@ export default function SalesPoliciesPage() {
     return 'Chưa cấu hình mức điều kiện';
   };
 
-  const filteredPolicies = policies.filter(p => 
+  const tabPolicies = policies.filter(p => (p.policyType || 'SALES_POLICY') === activeTab);
+  const filteredPolicies = tabPolicies.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -212,14 +228,39 @@ export default function SalesPoliciesPage() {
           icon="Settings"
         />
 
+        {/* TABS */}
+        <div className="flex border-b border-[var(--border)] mb-6 gap-0">
+          <button
+            onClick={() => setActiveTab('SALES_POLICY')}
+            className={`px-6 py-3 text-sm font-semibold transition-colors relative ${activeTab === 'SALES_POLICY' ? 'text-[var(--accent-light)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            Chính sách bán hàng
+            {activeTab === 'SALES_POLICY' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent)]" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('RETAIL_POLICY')}
+            className={`px-6 py-3 text-sm font-semibold transition-colors relative ${activeTab === 'RETAIL_POLICY' ? 'text-[var(--accent-light)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            Chính sách bán lẻ
+            {activeTab === 'RETAIL_POLICY' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent)]" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('PROMOTION')}
+            className={`px-6 py-3 text-sm font-semibold transition-colors relative ${activeTab === 'PROMOTION' ? 'text-[var(--accent-light)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            Chương trình khuyến mãi
+            {activeTab === 'PROMOTION' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent)]" />}
+          </button>
+        </div>
+
         <SearchActionHeader 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          placeholder="Tìm kiếm ưu đãi theo tên..."
+          placeholder={`Tìm kiếm ${activeTab === 'SALES_POLICY' ? 'chính sách bán hàng' : activeTab === 'RETAIL_POLICY' ? 'chính sách bán lẻ' : 'khuyến mãi'} theo tên...`}
           actions={
             <button className="btn-primary" onClick={handleOpenCreate}>
               <Plus size={16} />
-              Tạo ưu đãi mới
+              {activeTab === 'SALES_POLICY' ? 'Tạo CSBH mới' : activeTab === 'RETAIL_POLICY' ? 'Tạo CSBL mới' : 'Tạo KM mới'}
             </button>
           }
         />

@@ -136,8 +136,11 @@ public class CreditController {
     // ── Tạo đơn hàng dùng tín dụng ──────────────────────────────────────────
     @PostMapping("/orders")
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
-    public ResponseEntity<?> createOrder(@RequestBody CreditOrderRequest request) {
-        creditService.createCreditOrder(request.getAgentId(), request.getOrderId(), request.getAmount());
+    public ResponseEntity<?> createCreditOrder(@RequestBody CreditOrderRequest request) {
+        boolean consumed = creditService.tryConsumeCredit(request.getAgentId(), request.getOrderId(), request.getAmount());
+        if (!consumed) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Hạn mức tín dụng không đủ"));
+        }
         return ResponseEntity.ok(Map.of("message", "Đơn hàng đã tạo bằng tín dụng", "orderId", request.getOrderId()));
     }
 

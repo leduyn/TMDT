@@ -8,13 +8,18 @@ import com.anhtin.tmdt.backend.modules.product.entity.Category;
 import com.anhtin.tmdt.backend.modules.product.entity.Product;
 import com.anhtin.tmdt.backend.modules.product.repository.CategoryRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
+import com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO;
+import com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO.PolicyEffectDTO;
 import com.anhtin.tmdt.backend.modules.salespolicy.dto.SalesPolicyDTO;
 import com.anhtin.tmdt.backend.modules.salespolicy.dto.SalesPolicyRequest;
 import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicy;
 import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyAudienceFilter;
+import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyConditionType;
 import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyProductGroup;
 import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyProductGroupItem;
 import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyTier;
+import com.anhtin.tmdt.backend.modules.order.entity.PromotionUsage;
+import com.anhtin.tmdt.backend.modules.order.repository.PromotionUsageRepository;
 import com.anhtin.tmdt.backend.modules.salespolicy.repository.SalesPolicyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +51,9 @@ public class SalesPolicyService {
     @Autowired
     private AgencyRankingRepository agencyRankingRepository;
 
+    @Autowired
+    private PromotionUsageRepository promotionUsageRepository;
+
     private SalesPolicyDTO enrichDTO(SalesPolicyDTO dto) {
         if (dto != null && dto.getProductGroups() != null) {
             for (SalesPolicyDTO.ProductGroupResponse group : dto.getProductGroups()) {
@@ -52,7 +61,13 @@ public class SalesPolicyService {
                     for (SalesPolicyDTO.ProductGroupItemResponse item : group.getItems()) {
                         if ("PRODUCT".equalsIgnoreCase(item.getItemType())) {
                             productRepository.findById(item.getItemId())
-                                    .ifPresent(p -> item.setItemName(p.getName()));
+                                    .ifPresent(p -> {
+                                        item.setItemName(p.getName());
+                                        if (item.getGiftProductId() != null) {
+                                            productRepository.findById(item.getGiftProductId())
+                                                    .ifPresent(gp -> item.setGiftProductName(gp.getName()));
+                                        }
+                                    });
                         } else if ("CATEGORY".equalsIgnoreCase(item.getItemType())) {
                             categoryRepository.findById(item.getItemId())
                                     .ifPresent(c -> item.setItemName(c.getName()));
@@ -109,7 +124,18 @@ public class SalesPolicyService {
         policy.setMaxOrderCount(request.getMaxOrderCount());
         policy.setMaxApplicationPerAgency(request.getMaxApplicationPerAgency());
         policy.setTargetType(request.getTargetType() != null ? request.getTargetType() : "ORDER_VALUE");
+        if (request.getConditionType() != null) {
+            policy.setConditionType(SalesPolicyConditionType.valueOf(request.getConditionType()));
+        } else {
+            policy.setConditionType(null);
+        }
         policy.setMaxDiscountValue(request.getMaxDiscountValue());
+        policy.setPolicyType(request.getPolicyType() != null ? request.getPolicyType() : "SALES_POLICY");
+        policy.setMinOrderValue(request.getMinOrderValue());
+        policy.setMaxDiscountPerOrder(request.getMaxDiscountPerOrder());
+        policy.setMaxUsagePerCustomer(request.getMaxUsagePerCustomer());
+        policy.setApplicablePaymentMethods(request.getApplicablePaymentMethods());
+        policy.setApplicableOrderSources(request.getApplicableOrderSources());
         policy.setApplyToAllProducts(request.getApplyToAllProducts() != null ? request.getApplyToAllProducts() : true);
 
         // Date time parsing
@@ -201,6 +227,12 @@ public class SalesPolicyService {
                         item.setItemType(itemReq.getItemType());
                         item.setItemId(itemReq.getItemId());
                         item.setDescription(itemReq.getDescription());
+                        item.setOperator(itemReq.getOperator());
+                        item.setAdjustmentType(itemReq.getAdjustmentType());
+                        item.setAdjustmentValue(itemReq.getAdjustmentValue());
+                        item.setGiftProductId(itemReq.getGiftProductId());
+                        item.setGiftQuantity(itemReq.getGiftQuantity());
+                        item.setGiftNote(itemReq.getGiftNote());
                         group.getItems().add(item);
                     }
                 }
@@ -307,140 +339,336 @@ public class SalesPolicyService {
     }
 
     public Double applySalesPolicy(Product product, Agency agency, int quantity, Double currentPrice) {
+        return applySalesPolicy(product, agency, quantity, currentPrice, null, null, null, null, null, null);
+    }
+
+    public Double applySalesPolicy(Product product, Agency agency, int quantity, Double currentPrice,
+            Double totalOrderValue, String paymentMethod, String orderSource, Long customerId, Double currentDiscountAmount) {
+        return applySalesPolicy(product, agency, quantity, currentPrice, totalOrderValue, paymentMethod, orderSource, customerId, currentDiscountAmount, null);
+    }
+
+    public Double applySalesPolicy(Product product, Agency agency, int quantity, Double currentPrice,
+            Double totalOrderValue, String paymentMethod, String orderSource, Long customerId, Double currentDiscountAmount,
+            Set<Long> appliedPromotionIds) {
         if (agency == null || product == null || currentPrice == null) {
             return currentPrice;
         }
 
-        // 1. Lấy tất cả các chính sách đang hoạt động
         LocalDateTime now = LocalDateTime.now();
         List<SalesPolicy> activePolicies = salesPolicyRepository.findByActiveTrueOrderByIdDesc().stream()
                 .filter(p -> (p.getStartDate() == null || p.getStartDate().isBefore(now)) &&
                              (p.getEndDate() == null || p.getEndDate().isAfter(now)))
                 .collect(Collectors.toList());
 
+        // Phase 0: RETAIL_POLICY - ưu tiên áp dụng trước nhất (nếu qty < minPurchaseQuantity)
+        for (SalesPolicy policy : activePolicies) {
+            if (!"RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
+            if (!isPolicyApplicable(policy, product, agency, quantity, currentPrice)) continue;
+
+            double retailPrice = calculateRetailPrice(policy, product, quantity, currentPrice);
+            if (retailPrice != currentPrice) {
+                currentPrice = retailPrice;
+                // Chỉ áp dụng 1 chính sách bán lẻ đầu tiên
+                break;
+            }
+        }
+
+        // Phase 1: SALES_POLICY - logic cũ (pick lowest price)
         Double bestPrice = null;
+        List<SalesPolicy> promotions = new java.util.ArrayList<>();
 
         for (SalesPolicy policy : activePolicies) {
-            // A. Kiểm tra phạm vi sản phẩm
-            boolean isApplicable = false;
-            if (policy.isApplyToAllProducts()) {
-                isApplicable = true;
-            } else {
-                boolean matchesProduct = policy.getTargetProducts().stream().anyMatch(p -> p.getId().equals(product.getId()));
-                boolean matchesCategory = product.getCategory() != null &&
-                        policy.getTargetCategories().stream().anyMatch(c -> c.getId().equals(product.getCategory().getId()));
-                isApplicable = matchesProduct || matchesCategory;
+            if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
+                promotions.add(policy);
+                continue;
             }
 
-            // B. Kiểm tra sản phẩm bị loại trừ
-            if (isApplicable) {
-                boolean isProductExcluded = policy.getExcludedProducts().stream().anyMatch(p -> p.getId().equals(product.getId()));
-                boolean isCategoryExcluded = product.getCategory() != null &&
-                        policy.getExcludedCategories().stream().anyMatch(c -> c.getId().equals(product.getCategory().getId()));
-                if (isProductExcluded || isCategoryExcluded) {
-                    isApplicable = false; // Bị loại trừ
-                }
-            }
+            if (!isPolicyApplicable(policy, product, agency, quantity, currentPrice)) continue;
 
-            if (!isApplicable) continue;
-
-            // C. Kiểm tra đối tượng đại lý
-            boolean isExcluded = policy.getExcludedAgencies().stream().anyMatch(a -> a.getId().equals(agency.getId()));
-            if (isExcluded) continue;
-
-            boolean isIncluded = policy.getIncludedAgencies().stream().anyMatch(a -> a.getId().equals(agency.getId()));
-            boolean matchesFilter = false;
-
-            if (!isIncluded && !policy.getAudienceFilters().isEmpty()) {
-                String agencyRank = getAgencyRank(agency.getId());
-                String address = agency.getAddress() != null ? agency.getAddress().toLowerCase() : "";
-
-                for (SalesPolicyAudienceFilter filter : policy.getAudienceFilters()) {
-                    boolean rankMatch = false;
-                    boolean provinceMatch = false;
-
-                    // Lọc hạng
-                    if (filter.getRankLevels() == null || filter.getRankLevels().isBlank()) {
-                        rankMatch = true;
-                    } else {
-                        for (String r : filter.getRankLevels().split(",")) {
-                            if (r.trim().equalsIgnoreCase(agencyRank)) {
-                                rankMatch = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Lọc tỉnh thành
-                    if (filter.getProvinces() == null || filter.getProvinces().isBlank() || filter.getProvinces().equalsIgnoreCase("ALL")) {
-                        provinceMatch = true;
-                    } else {
-                        for (String p : filter.getProvinces().split(",")) {
-                            if (address.contains(p.trim().toLowerCase())) {
-                                provinceMatch = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (rankMatch && provinceMatch) {
-                        matchesFilter = true;
-                        break; // Thỏa mãn 1 bộ điều kiện OR
-                    }
-                }
-            } else if (!isIncluded) {
-                // Nếu không có bộ lọc đối tượng, mặc định áp dụng cho tất cả đại lý không bị loại trừ
-                matchesFilter = policy.getIncludedAgencies().isEmpty();
-            }
-
-            if (!isIncluded && !matchesFilter) continue;
-
-            // D. Kiểm tra các bậc điều kiện & ưu đãi thỏa mãn
-            double evaluationValue = 0.0;
-            if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
-                evaluationValue = quantity;
-            } else {
-                evaluationValue = currentPrice * quantity; // Giá trị xét dựa trên số lượng mua * đơn giá resolved gốc
-            }
-
-            // Tìm bậc cao nhất thỏa mãn
-            SalesPolicyTier matchedTier = null;
-            for (SalesPolicyTier tier : policy.getTiers()) {
-                boolean tierMet = compareQuantity(evaluationValue, tier.getThresholdValue(), tier.getOperator());
-                if (tierMet) {
-                    matchedTier = tier; // Bậc sau thỏa mãn sẽ đè lên bậc trước vì đã ORDER BY thresholdValue ASC
-                }
-            }
-
-            if (matchedTier == null) continue; // Không đạt bậc nào
-
-            // E. Tính toán đơn giá sau ưu đãi
-            double adjustedPrice = currentPrice;
-            if ("PERCENTAGE".equalsIgnoreCase(matchedTier.getAdjustmentType())) {
-                adjustedPrice = currentPrice + (currentPrice * matchedTier.getAdjustmentValue() / 100.0);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(matchedTier.getAdjustmentType())) {
-                adjustedPrice = currentPrice + matchedTier.getAdjustmentValue();
-            } else if ("SPECIFIC_PRICE".equalsIgnoreCase(matchedTier.getAdjustmentType())) {
-                adjustedPrice = matchedTier.getAdjustmentValue();
-            }
-
-            adjustedPrice = Math.max(0.0, adjustedPrice);
-
-            // Áp dụng giới hạn giảm giá tối đa trên đơn hàng nếu có
-            if (policy.getMaxDiscountValue() != null) {
-                double totalDiscount = (currentPrice - adjustedPrice) * quantity;
-                if (totalDiscount > policy.getMaxDiscountValue()) {
-                    double allowedDiscountPerItem = policy.getMaxDiscountValue() / quantity;
-                    adjustedPrice = currentPrice - allowedDiscountPerItem;
-                }
-            }
+            double adjustedPrice = calculateAdjustedPrice(policy, product, quantity, currentPrice);
+            if (adjustedPrice == currentPrice) continue;
 
             if (bestPrice == null || adjustedPrice < bestPrice) {
                 bestPrice = adjustedPrice;
             }
         }
 
-        return bestPrice != null ? bestPrice : currentPrice;
+        // Phase 2: PROMOTION - áp dụng cộng dồn
+        double promoBasePrice = bestPrice != null ? bestPrice : currentPrice;
+        double runningPrice = promoBasePrice;
+
+        for (SalesPolicy promotion : promotions) {
+            if (!isPolicyApplicable(promotion, product, agency, quantity, currentPrice)) continue;
+
+            // Kiểm tra các điều kiện bổ sung của KM
+            if (!isPromotionConditionMet(promotion, quantity, currentPrice, totalOrderValue, paymentMethod, orderSource, customerId, currentDiscountAmount)) continue;
+
+            double promoAdjusted = calculateAdjustedPrice(promotion, product, quantity, runningPrice);
+            if (promoAdjusted == runningPrice) continue;
+
+            // Giới hạn maxDiscountPerOrder
+            if (promotion.getMaxDiscountPerOrder() != null) {
+                double addDiscount = (runningPrice - promoAdjusted) * quantity;
+                if (addDiscount > promotion.getMaxDiscountPerOrder()) {
+                    double allowedDiscountPerItem = promotion.getMaxDiscountPerOrder() / quantity;
+                    promoAdjusted = runningPrice - allowedDiscountPerItem;
+                }
+            }
+
+            // Theo dõi promotion đã áp dụng
+            if (appliedPromotionIds != null) {
+                appliedPromotionIds.add(promotion.getId());
+            }
+
+            runningPrice = Math.min(runningPrice, promoAdjusted);
+            runningPrice = Math.max(0.0, runningPrice);
+        }
+
+        return runningPrice;
+    }
+
+    private boolean isPolicyApplicable(SalesPolicy policy, Product product, Agency agency, int quantity, Double currentPrice) {
+        // A. Kiểm tra phạm vi sản phẩm
+        boolean isApplicable = false;
+        if (policy.isApplyToAllProducts()) {
+            isApplicable = true;
+        } else {
+            boolean matchesProduct = policy.getTargetProducts().stream().anyMatch(p -> p.getId().equals(product.getId()));
+            boolean matchesCategory = product.getCategory() != null &&
+                    policy.getTargetCategories().stream().anyMatch(c -> c.getId().equals(product.getCategory().getId()));
+            isApplicable = matchesProduct || matchesCategory;
+        }
+
+        // B. Kiểm tra sản phẩm bị loại trừ
+        if (isApplicable) {
+            boolean isProductExcluded = policy.getExcludedProducts().stream().anyMatch(p -> p.getId().equals(product.getId()));
+            boolean isCategoryExcluded = product.getCategory() != null &&
+                    policy.getExcludedCategories().stream().anyMatch(c -> c.getId().equals(product.getCategory().getId()));
+            if (isProductExcluded || isCategoryExcluded) {
+                isApplicable = false;
+            }
+        }
+
+        if (!isApplicable) return false;
+
+        // C. Kiểm tra đối tượng đại lý
+        if (agency == null) return true;
+
+        boolean isExcluded = policy.getExcludedAgencies().stream().anyMatch(a -> a.getId().equals(agency.getId()));
+        if (isExcluded) return false;
+
+        boolean isIncluded = policy.getIncludedAgencies().stream().anyMatch(a -> a.getId().equals(agency.getId()));
+        boolean matchesFilter = false;
+
+        if (!isIncluded && !policy.getAudienceFilters().isEmpty()) {
+            String agencyRank = getAgencyRank(agency.getId());
+            String address = agency.getAddress() != null ? agency.getAddress().toLowerCase() : "";
+
+            for (SalesPolicyAudienceFilter filter : policy.getAudienceFilters()) {
+                boolean rankMatch = false;
+                boolean provinceMatch = false;
+
+                if (filter.getRankLevels() == null || filter.getRankLevels().isBlank()) {
+                    rankMatch = true;
+                } else {
+                    for (String r : filter.getRankLevels().split(",")) {
+                        if (r.trim().equalsIgnoreCase(agencyRank)) {
+                            rankMatch = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (filter.getProvinces() == null || filter.getProvinces().isBlank() || filter.getProvinces().equalsIgnoreCase("ALL")) {
+                    provinceMatch = true;
+                } else {
+                    for (String p : filter.getProvinces().split(",")) {
+                        if (address.contains(p.trim().toLowerCase())) {
+                            provinceMatch = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (rankMatch && provinceMatch) {
+                    matchesFilter = true;
+                    break;
+                }
+            }
+        } else if (!isIncluded) {
+            matchesFilter = policy.getIncludedAgencies().isEmpty();
+        }
+
+        return isIncluded || matchesFilter;
+    }
+
+    private boolean isPromotionConditionMet(SalesPolicy promotion, int quantity, Double currentPrice,
+            Double totalOrderValue, String paymentMethod, String orderSource, Long customerId, Double currentDiscountAmount) {
+        // Kiểm tra minOrderValue
+        if (promotion.getMinOrderValue() != null && totalOrderValue != null) {
+            if (totalOrderValue < promotion.getMinOrderValue()) return false;
+        }
+
+        // Kiểm tra applicablePaymentMethods
+        if (promotion.getApplicablePaymentMethods() != null && !promotion.getApplicablePaymentMethods().isBlank()) {
+            if (paymentMethod == null) return false;
+            boolean matched = false;
+            for (String pm : promotion.getApplicablePaymentMethods().split(",")) {
+                if (pm.trim().equalsIgnoreCase(paymentMethod)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) return false;
+        }
+
+        // Kiểm tra applicableOrderSources
+        if (promotion.getApplicableOrderSources() != null && !promotion.getApplicableOrderSources().isBlank()) {
+            if (orderSource == null) return false;
+            boolean matched = false;
+            for (String os : promotion.getApplicableOrderSources().split(",")) {
+                if (os.trim().equalsIgnoreCase(orderSource)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) return false;
+        }
+
+        // Kiểm tra maxUsagePerCustomer
+        if (promotion.getMaxUsagePerCustomer() != null && customerId != null) {
+            int usageCount = promotionUsageRepository.countBySalesPolicyIdAndCustomerId(promotion.getId(), customerId);
+            if (usageCount >= promotion.getMaxUsagePerCustomer()) return false;
+        }
+
+        return true;
+    }
+
+    private double calculateAdjustedPrice(SalesPolicy policy, Product product, int quantity, Double currentPrice) {
+        boolean matched = false;
+        String adjType = null;
+        Double adjValue = null;
+
+        if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
+                && policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY) {
+            double minQty = product.getMinPurchaseQuantity() != null
+                ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+            SalesPolicyTier firstTier = policy.getTiers().stream().findFirst().orElse(null);
+            if (firstTier != null && compareQuantity(quantity, minQty, firstTier.getOperator())) {
+                matched = true;
+                if (policy.isApplyToAllProducts()) {
+                    adjType = firstTier.getAdjustmentType();
+                    adjValue = firstTier.getAdjustmentValue();
+                } else {
+                    SalesPolicyProductGroupItem matchedItem = findGroupItemForProduct(policy, product.getId());
+                    if (matchedItem != null && matchedItem.getAdjustmentType() != null) {
+                        adjType = matchedItem.getAdjustmentType();
+                        adjValue = matchedItem.getAdjustmentValue();
+                    } else {
+                        adjType = firstTier.getAdjustmentType();
+                        adjValue = firstTier.getAdjustmentValue();
+                    }
+                }
+            }
+        } else {
+            double evaluationValue = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
+                ? quantity
+                : currentPrice * quantity;
+
+            SalesPolicyTier matchedTier = null;
+            for (SalesPolicyTier tier : policy.getTiers()) {
+                if (compareQuantity(evaluationValue, tier.getThresholdValue(), tier.getOperator())) {
+                    matchedTier = tier;
+                }
+            }
+            if (matchedTier != null) {
+                matched = true;
+                adjType = matchedTier.getAdjustmentType();
+                adjValue = matchedTier.getAdjustmentValue();
+            }
+        }
+
+        if (!matched) return currentPrice;
+
+        double adjustedPrice = currentPrice;
+        if ("PERCENTAGE".equalsIgnoreCase(adjType)) {
+            adjustedPrice = currentPrice + (currentPrice * adjValue / 100.0);
+        } else if ("FIXED_AMOUNT".equalsIgnoreCase(adjType)) {
+            adjustedPrice = currentPrice + adjValue;
+        } else if ("SPECIFIC_PRICE".equalsIgnoreCase(adjType)) {
+            adjustedPrice = adjValue;
+        }
+
+        adjustedPrice = Math.max(0.0, adjustedPrice);
+
+        // Giới hạn maxDiscountValue
+        if (policy.getMaxDiscountValue() != null && !"PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
+            double totalDiscount = (currentPrice - adjustedPrice) * quantity;
+            if (totalDiscount > policy.getMaxDiscountValue()) {
+                double allowedDiscountPerItem = policy.getMaxDiscountValue() / quantity;
+                adjustedPrice = currentPrice - allowedDiscountPerItem;
+            }
+        }
+
+        return adjustedPrice;
+    }
+
+    private double calculateRetailPrice(SalesPolicy policy, Product product, int quantity, Double currentPrice) {
+        double minQty = product.getMinPurchaseQuantity() != null
+            ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+
+        // Chỉ áp dụng khi số lượng mua < số lượng tối thiểu
+        if (quantity >= minQty) return currentPrice;
+
+        String adjType = null;
+        Double adjValue = null;
+
+        SalesPolicyTier firstTier = policy.getTiers().stream().findFirst().orElse(null);
+        if (firstTier == null) return currentPrice;
+
+        if (policy.isApplyToAllProducts()) {
+            adjType = firstTier.getAdjustmentType();
+            adjValue = firstTier.getAdjustmentValue();
+        } else {
+            SalesPolicyProductGroupItem matchedItem = findGroupItemForProduct(policy, product.getId());
+            if (matchedItem != null && matchedItem.getAdjustmentType() != null) {
+                adjType = matchedItem.getAdjustmentType();
+                adjValue = matchedItem.getAdjustmentValue();
+            } else {
+                adjType = firstTier.getAdjustmentType();
+                adjValue = firstTier.getAdjustmentValue();
+            }
+        }
+
+        if (adjType == null) return currentPrice;
+
+        double adjustedPrice = currentPrice;
+        if ("PERCENTAGE".equalsIgnoreCase(adjType)) {
+            adjustedPrice = currentPrice + (currentPrice * adjValue / 100.0);
+        } else if ("FIXED_AMOUNT".equalsIgnoreCase(adjType)) {
+            adjustedPrice = currentPrice + adjValue;
+        } else if ("SPECIFIC_PRICE".equalsIgnoreCase(adjType)) {
+            adjustedPrice = adjValue;
+        }
+
+        return Math.max(0.0, adjustedPrice);
+    }
+
+    private SalesPolicyProductGroupItem findGroupItemForProduct(SalesPolicy policy, Long productId) {
+        if (policy.getProductGroups() != null) {
+            for (SalesPolicyProductGroup group : policy.getProductGroups()) {
+                if (group.getItems() != null) {
+                    for (SalesPolicyProductGroupItem item : group.getItems()) {
+                        if ("PRODUCT".equalsIgnoreCase(item.getItemType())
+                                && productId.equals(item.getItemId())
+                                && item.getAdjustmentType() != null) {
+                            return item;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public SalesPolicyTier getMatchedTierForOrder(Product product, Agency agency, int quantity, Double currentPrice) {
@@ -526,38 +754,229 @@ public class SalesPolicyService {
 
             if (!isIncluded && !matchesFilter) continue;
 
-            double evaluationValue = 0.0;
-            if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
-                evaluationValue = quantity;
-            } else {
-                evaluationValue = currentPrice * quantity;
-            }
+            // Xác định matched tier dựa trên targetType
+            SalesPolicyTier resultTier = null;
 
-            SalesPolicyTier matchedTier = null;
-            for (SalesPolicyTier tier : policy.getTiers()) {
-                if (compareQuantity(evaluationValue, tier.getThresholdValue(), tier.getOperator())) {
-                    matchedTier = tier;
+            if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
+                    && policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY) {
+                // MIN_PRODUCT_QTY: So sánh số lượng mua với minPurchaseQuantity
+                double minQty = product.getMinPurchaseQuantity() != null
+                    ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+                SalesPolicyTier firstTier = policy.getTiers().stream().findFirst().orElse(null);
+                if (firstTier != null && compareQuantity(quantity, minQty, firstTier.getOperator())) {
+                    if (policy.isApplyToAllProducts()) {
+                        resultTier = firstTier;
+                    } else {
+                        // Tìm item-level adjustment cho sản phẩm này
+                        SalesPolicyProductGroupItem matchedItem = findGroupItemForProduct(policy, product.getId());
+                        if (matchedItem != null && matchedItem.getAdjustmentType() != null) {
+                            // Tạo tier ảo với adjustment từ item
+                            resultTier = new SalesPolicyTier();
+                            resultTier.setOperator(firstTier.getOperator());
+                            resultTier.setThresholdValue(minQty);
+                            resultTier.setAdjustmentType(matchedItem.getAdjustmentType());
+                            resultTier.setAdjustmentValue(matchedItem.getAdjustmentValue());
+                            resultTier.setGiftQuantity(matchedItem.getGiftQuantity());
+                            resultTier.setGiftNote(matchedItem.getGiftNote());
+                            if (matchedItem.getGiftProductId() != null) {
+                                productRepository.findById(matchedItem.getGiftProductId())
+                                    .ifPresent(resultTier::setGiftProduct);
+                            }
+                        } else {
+                            resultTier = firstTier;
+                        }
+                    }
                 }
+            } else {
+                // CUSTOM_QTY, ORDER_VALUE, hoặc các targetType khác
+                double evaluationValue = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
+                    ? quantity
+                    : currentPrice * quantity;
+
+                SalesPolicyTier matchedTier = null;
+                for (SalesPolicyTier tier : policy.getTiers()) {
+                    if (compareQuantity(evaluationValue, tier.getThresholdValue(), tier.getOperator())) {
+                        matchedTier = tier;
+                    }
+                }
+                resultTier = matchedTier;
             }
 
-            if (matchedTier == null) continue;
+            if (resultTier == null) continue;
 
             double adjustedPrice = currentPrice;
-            if ("PERCENTAGE".equalsIgnoreCase(matchedTier.getAdjustmentType())) {
-                adjustedPrice = currentPrice + (currentPrice * matchedTier.getAdjustmentValue() / 100.0);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(matchedTier.getAdjustmentType())) {
-                adjustedPrice = currentPrice + matchedTier.getAdjustmentValue();
-            } else if ("SPECIFIC_PRICE".equalsIgnoreCase(matchedTier.getAdjustmentType())) {
-                adjustedPrice = matchedTier.getAdjustmentValue();
+            if ("PERCENTAGE".equalsIgnoreCase(resultTier.getAdjustmentType())) {
+                adjustedPrice = currentPrice + (currentPrice * resultTier.getAdjustmentValue() / 100.0);
+            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resultTier.getAdjustmentType())) {
+                adjustedPrice = currentPrice + resultTier.getAdjustmentValue();
+            } else if ("SPECIFIC_PRICE".equalsIgnoreCase(resultTier.getAdjustmentType())) {
+                adjustedPrice = resultTier.getAdjustmentValue();
             }
             adjustedPrice = Math.max(0.0, adjustedPrice);
 
             if (lowestPrice == null || adjustedPrice < lowestPrice) {
                 lowestPrice = adjustedPrice;
-                bestTier = matchedTier;
+                bestTier = resultTier;
             }
         }
 
         return bestTier;
+    }
+
+    public ProductPolicyPreviewDTO previewProductPolicies(Product product, int quantity, Agency agency, Double basePrice) {
+        ProductPolicyPreviewDTO result = new ProductPolicyPreviewDTO();
+        result.setBasePrice(basePrice);
+        result.setRetailPolicies(new ArrayList<>());
+        result.setSalesPolicies(new ArrayList<>());
+        result.setPromotions(new ArrayList<>());
+
+        LocalDateTime now = LocalDateTime.now();
+        List<SalesPolicy> activePolicies = salesPolicyRepository.findByActiveTrueOrderByIdDesc().stream()
+                .filter(p -> (p.getStartDate() == null || p.getStartDate().isBefore(now)) &&
+                             (p.getEndDate() == null || p.getEndDate().isAfter(now)))
+                .collect(Collectors.toList());
+
+        Double runningPrice = basePrice;
+
+        // Phase 0: RETAIL_POLICY
+        // Use retailQty = 0 to always trigger the retail condition (qty < minPurchaseQuantity)
+        int retailQty = 0;
+        for (SalesPolicy policy : activePolicies) {
+            if (!"RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
+            if (!isPolicyApplicable(policy, product, agency, retailQty, runningPrice)) continue;
+            double retPrice = calculateRetailPrice(policy, product, retailQty, runningPrice);
+            if (retPrice != runningPrice) {
+                PolicyEffectDTO eff = new PolicyEffectDTO();
+                eff.setId(policy.getId());
+                eff.setName(policy.getName());
+                eff.setPolicyType("RETAIL_POLICY");
+                eff.setOriginalPrice(runningPrice);
+                eff.setAdjustedPrice(retPrice);
+                eff.setAdjustmentType(policy.getTiers().stream().findFirst().map(SalesPolicyTier::getAdjustmentType).orElse(null));
+                eff.setAdjustmentValue(policy.getTiers().stream().findFirst().map(SalesPolicyTier::getAdjustmentValue).orElse(null));
+                double minQty = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity() : 1;
+                eff.setConditionText("SL mua < SL tối thiểu (" + (int)minQty + " SP)");
+                SalesPolicyTier tier = policy.getTiers().stream().findFirst().orElse(null);
+                if (tier != null && tier.getGiftProduct() != null) {
+                    eff.setGiftProductName(tier.getGiftProduct().getName());
+                    eff.setGiftQuantity(tier.getGiftQuantity());
+                }
+                result.getRetailPolicies().add(eff);
+                runningPrice = retPrice;
+                break;
+            }
+        }
+
+        Double priceBeforeSales = runningPrice;
+
+        // Phase 1: SALES_POLICY
+        List<SalesPolicy> promotions = new ArrayList<>();
+        for (SalesPolicy policy : activePolicies) {
+            if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
+                promotions.add(policy);
+                continue;
+            }
+            if ("RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
+            if (!isPolicyApplicable(policy, product, agency, quantity, runningPrice)) continue;
+            double adjPrice = calculateAdjustedPrice(policy, product, quantity, runningPrice);
+            if (adjPrice == runningPrice) continue;
+            PolicyEffectDTO eff = buildPolicyEffect(policy, product, quantity, runningPrice, adjPrice);
+            result.getSalesPolicies().add(eff);
+            if (result.getSalesPolicies().size() == 1 || adjPrice < runningPrice) {
+                runningPrice = adjPrice;
+            }
+        }
+
+        // Phase 2: PROMOTION
+        double promoBase = runningPrice;
+        for (SalesPolicy promotion : promotions) {
+            if (!isPolicyApplicable(promotion, product, agency, quantity, promoBase)) continue;
+            if (!isPromotionConditionMet(promotion, quantity, promoBase, null, null, null, null, null)) continue;
+            double adjPrice = calculateAdjustedPrice(promotion, product, quantity, promoBase);
+            if (adjPrice == promoBase) continue;
+            if (promotion.getMaxDiscountPerOrder() != null) {
+                double addDiscount = (promoBase - adjPrice) * quantity;
+                if (addDiscount > promotion.getMaxDiscountPerOrder()) {
+                    double allowedDiscountPerItem = promotion.getMaxDiscountPerOrder() / quantity;
+                    adjPrice = promoBase - allowedDiscountPerItem;
+                }
+            }
+            double finalAdjPrice = Math.max(0.0, adjPrice);
+            PolicyEffectDTO eff = buildPolicyEffect(promotion, product, quantity, promoBase, finalAdjPrice);
+            result.getPromotions().add(eff);
+            promoBase = Math.min(promoBase, finalAdjPrice);
+        }
+
+        result.setFinalPrice(promoBase);
+        return result;
+    }
+
+    private PolicyEffectDTO buildPolicyEffect(SalesPolicy policy, Product product, int quantity, Double originalPrice, Double adjustedPrice) {
+        PolicyEffectDTO eff = new PolicyEffectDTO();
+        eff.setId(policy.getId());
+        eff.setName(policy.getName());
+        eff.setPolicyType(policy.getPolicyType());
+        eff.setOriginalPrice(originalPrice);
+        eff.setAdjustedPrice(adjustedPrice);
+        // Extract tier info for adjustment type/value
+        if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
+            SalesPolicyTier firstTier = policy.getTiers().iterator().next();
+            eff.setAdjustmentType(firstTier.getAdjustmentType());
+            eff.setAdjustmentValue(firstTier.getAdjustmentValue());
+            if (firstTier.getGiftProduct() != null) {
+                eff.setGiftProductName(firstTier.getGiftProduct().getName());
+                eff.setGiftQuantity(firstTier.getGiftQuantity());
+            }
+        }
+        // Build condition text
+        eff.setConditionText(buildConditionText(policy, product, quantity));
+        return eff;
+    }
+
+    private String buildConditionText(SalesPolicy policy, Product product, int quantity) {
+        if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
+            if (policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY) {
+                double minQty = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity() : 1;
+                return "SL mua >= SL tối thiểu (" + (int)minQty + " SP)";
+            } else {
+                SalesPolicyTier t = policy.getTiers().stream().findFirst().orElse(null);
+                if (t != null) {
+                    return "SL mua " + formatOperator(t.getOperator()) + " " + t.getThresholdValue().intValue() + " SP";
+                }
+            }
+        } else if ("ORDER_VALUE".equalsIgnoreCase(policy.getTargetType())) {
+            SalesPolicyTier t = policy.getTiers().stream().findFirst().orElse(null);
+            if (t != null) {
+                return "Đơn " + formatOperator(t.getOperator()) + " " + String.format("%,.0f", t.getThresholdValue()) + "đ";
+            }
+        }
+        // Fallback
+        if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
+            SalesPolicyTier t = policy.getTiers().iterator().next();
+            return "Đơn >= " + String.format("%,.0f", t.getThresholdValue()) + "đ";
+        }
+        return "Áp dụng cho tất cả";
+    }
+
+    private String formatOperator(String op) {
+        if (op == null) return "";
+        switch (op.toUpperCase()) {
+            case "GTE": case ">=": return ">=";
+            case "GT": case ">":  return ">";
+            case "LTE": case "<=": return "<=";
+            case "LT": case "<":  return "<";
+            case "EQ": case "=":  return "=";
+            default: return op;
+        }
+    }
+
+    @Transactional
+    public void recordPromotionUsage(Long promotionId, Long customerId, Long orderId) {
+        if (promotionId == null || customerId == null || orderId == null) return;
+        PromotionUsage usage = new PromotionUsage();
+        usage.setSalesPolicyId(promotionId);
+        usage.setCustomerId(customerId);
+        usage.setOrderId(orderId);
+        promotionUsageRepository.save(usage);
     }
 }

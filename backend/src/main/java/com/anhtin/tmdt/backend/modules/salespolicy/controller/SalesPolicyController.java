@@ -1,5 +1,6 @@
 package com.anhtin.tmdt.backend.modules.salespolicy.controller;
 
+import com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO;
 import com.anhtin.tmdt.backend.modules.salespolicy.dto.SalesPolicyDTO;
 import com.anhtin.tmdt.backend.modules.salespolicy.dto.SalesPolicyRequest;
 import com.anhtin.tmdt.backend.modules.salespolicy.service.SalesPolicyService;
@@ -79,5 +80,30 @@ public class SalesPolicyController {
 
         Double finalPrice = salesPolicyService.applySalesPolicy(product, agency, quantity, price);
         return ResponseEntity.ok(finalPrice);
+    }
+
+    @GetMapping("/product-preview")
+    public ResponseEntity<ProductPolicyPreviewDTO> productPreview(
+            @RequestParam Long productId,
+            @RequestParam(defaultValue = "1") Integer quantity,
+            @RequestParam(required = false) Long agencyId) {
+        
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+
+        Double basePrice = product.getBasePrice();
+        if (agencyId != null) {
+            Double resolved = priceListService.getResolvedPrice(productId, agencyId, null);
+            if (resolved != null && resolved >= 0) {
+                basePrice = resolved;
+            }
+        }
+
+        Agency agency = agencyId != null
+                ? agencyRepository.findById(agencyId).orElse(null)
+                : null;
+
+        ProductPolicyPreviewDTO result = salesPolicyService.previewProductPolicies(product, quantity, agency, basePrice);
+        return ResponseEntity.ok(result);
     }
 }

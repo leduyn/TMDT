@@ -10,3 +10,5 @@ export * from '../modules/chat/chatApi';
 export * from '../modules/common/commonApi';
 export * from '../modules/region/regionApi';
 export * from '../modules/salespolicy/salesPolicyApi';
+export * from '../modules/accumulation/accumulationApi';
+export * from '../modules/dashboard/dashboardApi';

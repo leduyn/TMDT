@@ -43,8 +43,30 @@ public class SalesPolicy {
     @Column(name = "target_type")
     private String targetType; // ORDER_VALUE, PRODUCT_QTY, PRODUCT_REVENUE
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "condition_type", length = 50)
+    private SalesPolicyConditionType conditionType; // MIN_PRODUCT_QTY, CUSTOM_QTY, PRODUCT_VALUE
+
     @Column(name = "max_discount_value")
     private Double maxDiscountValue; // Giá trị xét tối đa trên mỗi đơn
+
+    @Column(name = "policy_type", length = 20)
+    private String policyType = "SALES_POLICY"; // SALES_POLICY, RETAIL_POLICY, PROMOTION
+
+    @Column(name = "min_order_value")
+    private Double minOrderValue;
+
+    @Column(name = "max_discount_per_order")
+    private Double maxDiscountPerOrder;
+
+    @Column(name = "max_usage_per_customer")
+    private Integer maxUsagePerCustomer;
+
+    @Column(name = "applicable_payment_methods", length = 500)
+    private String applicablePaymentMethods;
+
+    @Column(name = "applicable_order_sources", length = 500)
+    private String applicableOrderSources;
 
     @Column(name = "apply_to_all_products")
     private boolean applyToAllProducts = true;
@@ -149,8 +171,29 @@ public class SalesPolicy {
     public String getTargetType() { return targetType; }
     public void setTargetType(String targetType) { this.targetType = targetType; }
 
+    public SalesPolicyConditionType getConditionType() { return conditionType; }
+    public void setConditionType(SalesPolicyConditionType conditionType) { this.conditionType = conditionType; }
+
     public Double getMaxDiscountValue() { return maxDiscountValue; }
     public void setMaxDiscountValue(Double maxDiscountValue) { this.maxDiscountValue = maxDiscountValue; }
+
+    public String getPolicyType() { return policyType; }
+    public void setPolicyType(String policyType) { this.policyType = policyType; }
+
+    public Double getMinOrderValue() { return minOrderValue; }
+    public void setMinOrderValue(Double minOrderValue) { this.minOrderValue = minOrderValue; }
+
+    public Double getMaxDiscountPerOrder() { return maxDiscountPerOrder; }
+    public void setMaxDiscountPerOrder(Double maxDiscountPerOrder) { this.maxDiscountPerOrder = maxDiscountPerOrder; }
+
+    public Integer getMaxUsagePerCustomer() { return maxUsagePerCustomer; }
+    public void setMaxUsagePerCustomer(Integer maxUsagePerCustomer) { this.maxUsagePerCustomer = maxUsagePerCustomer; }
+
+    public String getApplicablePaymentMethods() { return applicablePaymentMethods; }
+    public void setApplicablePaymentMethods(String applicablePaymentMethods) { this.applicablePaymentMethods = applicablePaymentMethods; }
+
+    public String getApplicableOrderSources() { return applicableOrderSources; }
+    public void setApplicableOrderSources(String applicableOrderSources) { this.applicableOrderSources = applicableOrderSources; }
 
     public boolean isApplyToAllProducts() { return applyToAllProducts; }
     public void setApplyToAllProducts(boolean applyToAllProducts) { this.applyToAllProducts = applyToAllProducts; }

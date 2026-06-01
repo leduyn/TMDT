@@ -11,6 +11,9 @@ public class AccumulationPayment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "program_id", nullable = false)
+    private Long programId;
+
     @Column(name = "agency_id", nullable = false)
     private Long agencyId;
 
@@ -50,6 +53,9 @@ public class AccumulationPayment {
     // ===== Getters & Setters =====
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getProgramId() { return programId; }
+    public void setProgramId(Long programId) { this.programId = programId; }
 
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }

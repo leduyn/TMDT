@@ -1,0 +1,137 @@
+# Thiết kế & Kế hoạch Phát triển Module Chương Trình Tích Lũy (Accumulation Rebate Program)
+
+Tài liệu này đề xuất phương án triển khai chi tiết cho module **Chương trình tích lũy** giúp tích lũy doanh số các đơn hàng ghi nhận công nợ (Agency Debt), xét hạn mức đạt được và tính toán hoa hồng trả thưởng chia làm 2 đợt cho đại lý.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Công thức Trả thưởng đợt 2:** 
+>   - Đợt 1 (Kết thúc chương trình): `Hoa hồng đợt 1 = Tiền thu (paidValue) của các đơn hàng tích lũy đã thanh toán tại thời điểm kết thúc * Tỷ lệ ưu đãi đạt được`.
+>   - Đợt 2 (Khi thanh toán hết): `Hoa hồng đợt 2 = (Tổng giá trị tích lũy * Tỷ lệ ưu đãi đạt được) - Hoa hồng đợt 1`.
+>   - Công thức này tương đương với: `(Tổng giá trị đơn hàng tích lũy - Tổng tiền đã thu tại đợt 1) * Tỷ lệ ưu đãi đạt được`, tức là trả nốt phần hoa hồng cho các đơn hàng nợ sau khi chúng đã được thanh toán hết hoàn toàn.
+> - **Cách xác định Đơn hàng tích lũy:** Đơn hàng được coi là ghi nhận công nợ nếu có bản ghi tương ứng trong bảng `agency_debts` và có ngày ghi nhận nằm trong khoảng hiệu lực của chương trình tích lũy.
+
+---
+
+## Open Questions (Đã giải quyết)
+
+> [!NOTE]
+> - **Thời điểm tính toán Trả thưởng đợt 1:** ✅ **Tự động tính toán** (CronJob vào ngày kết thúc chương trình) và **Admin sẽ duyệt** trước khi chốt chính thức. Flow: Hệ thống tự tính → tạo bản ghi PENDING → Admin review & approve.
+> - **Cơ chế tính lũy tiến:** ✅ Hỗ trợ **cả 2 hình thức** (HIGHEST_THRESHOLD và TIERED_PROGRESSIVE).
+
+---
+
+## Proposed Changes
+
+### 1. Database Layer (Flyway Migration)
+
+#### [NEW] [V20260604__create_accumulation_tables.sql](file:///d:/Java%20lean/TMDT/backend/src/main/resources/db/migration/V20260604__create_accumulation_tables.sql)
+- Tạo bảng `accumulation_programs` để lưu cấu hình chương trình:
+  - `id` (BIGSERIAL)
+  - `name` (VARCHAR)
+  - `start_date` (TIMESTAMP)
+  - `end_date` (TIMESTAMP)
+  - `rebate_calculation_type` (VARCHAR: `HIGHEST_THRESHOLD` hoặc `TIERED_PROGRESSIVE`)
+  - `description` (TEXT)
+  - `active` (BOOLEAN)
+- Tạo bảng `accumulation_program_tiers` để cấu hình các mốc hạn mức:
+  - `id` (BIGSERIAL)
+  - `program_id` (BIGINT, FK)
+  - `threshold_value` (DOUBLE PRECISION - Mốc doanh số)
+  - `rebate_rate` (DOUBLE PRECISION - % Hoa hồng)
+- Tạo bảng `accumulation_program_agencies` để liên kết đại lý tham gia:
+  - `program_id` (BIGINT, FK)
+  - `agency_id` (BIGINT, FK)
+- Tạo bảng `accumulation_payments` để theo dõi lịch sử trả thưởng:
+  - `id` (BIGSERIAL)
+  - `program_id` (BIGINT, FK)
+  - `agency_id` (BIGINT, FK)
+  - `payment_stage` (INT: 1 hoặc 2)
+  - `amount` (DOUBLE PRECISION)
+  - `paid_at` (TIMESTAMP)
+  - `status` (VARCHAR: PENDING, PAID)
+
+---
+
+### 2. Backend Entities
+
+#### [NEW] [AccumulationProgram.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/entity/AccumulationProgram.java)
+- Entity định nghĩa thông tin chương trình tích lũy, chứa OneToMany với Tiers và ManyToMany với Agencies.
+
+#### [NEW] [AccumulationProgramTier.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/entity/AccumulationProgramTier.java)
+- Entity lưu các bậc hạn mức tích lũy.
+
+#### [NEW] [AccumulationPayment.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/entity/AccumulationPayment.java)
+- Entity lưu vết lịch sử trả thưởng đợt 1 và đợt 2 cho từng đại lý.
+
+---
+
+### 3. Backend Repositories & DTOs
+
+#### [NEW] [AccumulationProgramRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/repository/AccumulationProgramRepository.java)
+- Repository truy vấn chương trình tích lũy.
+
+#### [NEW] [AccumulationPaymentRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/repository/AccumulationPaymentRepository.java)
+- Repository quản lý thanh toán hoa hồng.
+
+#### [NEW] [AccumulationProgramDTO.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/AccumulationProgramDTO.java)
+- Chứa thông tin chương trình và danh sách tiers kèm đại lý tham gia.
+
+#### [NEW] [AccumulationSummaryDTO.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/AccumulationSummaryDTO.java)
+- DTO báo cáo tiến độ tích lũy của 1 đại lý:
+  - `totalValue`: Tổng doanh số tích lũy (nợ gốc).
+  - `totalCollected`: Tổng số tiền đã thu/thanh toán.
+  - `currentTierRate`: Tỷ lệ hoa hồng hiện tại đạt được.
+  - `nextTierDistance`: Số tiền còn thiếu để đạt mốc tiếp theo.
+  - `estimatedCommission`: Ước tính hoa hồng.
+  - `payment1Amount`: Số tiền thưởng đợt 1 dự kiến/đã trả.
+  - `payment2Amount`: Số tiền thưởng đợt 2 dự kiến/đã trả.
+
+---
+
+### 4. Backend Service & Business Logic
+
+#### [NEW] [AccumulationProgramService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/service/AccumulationProgramService.java)
+Xử lý các nghiệp vụ cốt lõi:
+- **Tích lũy doanh số:** Lấy danh sách `AgencyDebt` của đại lý có `recordingDate` nằm trong khoảng thời gian chương trình.
+- **Tính toán hoa hồng:**
+  - *Hình thức HIGHEST_THRESHOLD:* Duyệt qua các mốc tiers, tìm mốc lớn nhất mà `totalValue` vượt qua, lấy `rebate_rate` nhân với tiền thu.
+  - *Hình thức TIERED_PROGRESSIVE:* Chia nhỏ `totalValue` thành các khoảng tương ứng với các mốc tiers và nhân tỷ lệ tương ứng của mỗi khoảng.
+- **Chốt thưởng Đợt 1 (Kết thúc chương trình):** 
+  - Tính hoa hồng dựa trên tổng tiền đã thu (`paidValue`) tại thời điểm kết thúc. Lưu bản ghi đợt 1 vào `accumulation_payments`.
+- **Chốt thưởng Đợt 2 (Thanh toán hết nợ):**
+  - Khi có sự kiện thanh toán công nợ (lắng nghe thay đổi từ Credit Ledger / AgencyDebt), kiểm tra xem toàn bộ các đơn hàng tích lũy của đại lý trong chương trình đã sạch nợ chưa (`remainingToCollect == 0`).
+  - Nếu đã thanh toán hết, tính `Hoa hồng đợt 2 = (Tổng tích lũy * Tỷ lệ ưu đãi đạt được) - Hoa hồng đợt 1` và tạo bản ghi thanh toán đợt 2.
+
+---
+
+### 5. Frontend Interfaces
+
+#### [NEW] [accumulationApi.ts](file:///d:/Java%20lean/TMDT/frontend/src/modules/accumulation/accumulationApi.ts)
+- Định nghĩa các hàm gọi API CRUD chương trình tích lũy, API lấy danh sách báo cáo tiến độ đại lý và API chốt thưởng.
+
+#### [NEW] Quản trị (Admin Dashboard Pages)
+- Trang cấu hình chương trình tích lũy mới, thiết lập mốc tiers và gán các đại lý tham gia.
+- Trang theo dõi tiến độ tích lũy thực tế của từng đại lý kèm nút hành động "Chốt thưởng đợt 1/đợt 2".
+
+#### [NEW] Portal Đại lý (Agency View Dashboard)
+- Widget hiển thị trực quan tiến độ tích lũy hiện tại (thanh progress bar mượt mà, hiển thị khoảng cách đến mốc tiếp theo, số tiền đã thu, ước tính hoa hồng đợt 1 & đợt 2).
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Tạo unit test trong Spring Boot kiểm tra tính chính xác của hai công thức tính toán:
+  - `Highest Threshold` (Tính hoa hồng trên mốc cao nhất).
+  - `Tiered Progressive` (Tính lũy tiến bậc thang).
+- Viết kịch bản tích hợp: Tạo chương trình tích lũy -> Giả lập phát sinh công nợ đơn hàng -> Giả lập thanh toán nợ từng phần -> Xác thực số tiền thưởng đợt 1 và đợt 2.
+
+### Manual Verification
+1. Admin tạo chương trình tích lũy từ ngày T đến T+70, thiết lập mốc 100M (2%), 200M (3%).
+2. Tạo đơn hàng công nợ cho đại lý A tổng giá trị 250M.
+3. Đại lý A thanh toán trước 150M công nợ.
+4. Đến ngày kết thúc chương trình: Admin kích hoạt chốt đợt 1 -> Xác thực hệ thống ghi nhận hoa hồng đợt 1 = `150M * 3% = 4.5M`.
+5. Đại lý A hoàn tất thanh toán 100M còn lại sau đó -> Hệ thống tự động kích hoạt chốt đợt 2 -> Xác thực hoa hồng đợt 2 = `(250M * 3%) - 4.5M = 3M`.

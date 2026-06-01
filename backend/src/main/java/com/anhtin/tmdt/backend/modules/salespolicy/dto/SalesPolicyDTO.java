@@ -21,7 +21,14 @@ public class SalesPolicyDTO {
     private Integer maxOrderCount;
     private Integer maxApplicationPerAgency;
     private String targetType;
+    private String conditionType;
     private Double maxDiscountValue;
+    private String policyType;
+    private Double minOrderValue;
+    private Double maxDiscountPerOrder;
+    private Integer maxUsagePerCustomer;
+    private String applicablePaymentMethods;
+    private String applicableOrderSources;
     private boolean applyToAllProducts;
     private LocalDateTime createdAt;
 
@@ -119,7 +126,14 @@ public class SalesPolicyDTO {
         this.maxOrderCount = policy.getMaxOrderCount();
         this.maxApplicationPerAgency = policy.getMaxApplicationPerAgency();
         this.targetType = policy.getTargetType();
+        this.conditionType = policy.getConditionType() != null ? policy.getConditionType().name() : null;
         this.maxDiscountValue = policy.getMaxDiscountValue();
+        this.policyType = policy.getPolicyType();
+        this.minOrderValue = policy.getMinOrderValue();
+        this.maxDiscountPerOrder = policy.getMaxDiscountPerOrder();
+        this.maxUsagePerCustomer = policy.getMaxUsagePerCustomer();
+        this.applicablePaymentMethods = policy.getApplicablePaymentMethods();
+        this.applicableOrderSources = policy.getApplicableOrderSources();
         this.applyToAllProducts = policy.isApplyToAllProducts();
         this.createdAt = policy.getCreatedAt();
 
@@ -188,7 +202,27 @@ public class SalesPolicyDTO {
     public Integer getMaxOrderCount() { return maxOrderCount; }
     public Integer getMaxApplicationPerAgency() { return maxApplicationPerAgency; }
     public String getTargetType() { return targetType; }
+    public String getConditionType() { return conditionType; }
     public Double getMaxDiscountValue() { return maxDiscountValue; }
+
+    public String getPolicyType() { return policyType; }
+    public void setPolicyType(String policyType) { this.policyType = policyType; }
+
+    public Double getMinOrderValue() { return minOrderValue; }
+    public void setMinOrderValue(Double minOrderValue) { this.minOrderValue = minOrderValue; }
+
+    public Double getMaxDiscountPerOrder() { return maxDiscountPerOrder; }
+    public void setMaxDiscountPerOrder(Double maxDiscountPerOrder) { this.maxDiscountPerOrder = maxDiscountPerOrder; }
+
+    public Integer getMaxUsagePerCustomer() { return maxUsagePerCustomer; }
+    public void setMaxUsagePerCustomer(Integer maxUsagePerCustomer) { this.maxUsagePerCustomer = maxUsagePerCustomer; }
+
+    public String getApplicablePaymentMethods() { return applicablePaymentMethods; }
+    public void setApplicablePaymentMethods(String applicablePaymentMethods) { this.applicablePaymentMethods = applicablePaymentMethods; }
+
+    public String getApplicableOrderSources() { return applicableOrderSources; }
+    public void setApplicableOrderSources(String applicableOrderSources) { this.applicableOrderSources = applicableOrderSources; }
+
     public boolean isApplyToAllProducts() { return applyToAllProducts; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
@@ -254,6 +288,13 @@ public class SalesPolicyDTO {
         private Long itemId;
         private String itemName;
         private String description;
+        private String operator;
+        private String adjustmentType;
+        private Double adjustmentValue;
+        private Long giftProductId;
+        private String giftProductName;
+        private Integer giftQuantity;
+        private String giftNote;
 
         public ProductGroupItemResponse() {}
 
@@ -262,6 +303,12 @@ public class SalesPolicyDTO {
             this.itemType = item.getItemType();
             this.itemId = item.getItemId();
             this.description = item.getDescription();
+            this.operator = item.getOperator();
+            this.adjustmentType = item.getAdjustmentType();
+            this.adjustmentValue = item.getAdjustmentValue();
+            this.giftProductId = item.getGiftProductId();
+            this.giftQuantity = item.getGiftQuantity();
+            this.giftNote = item.getGiftNote();
         }
 
         public Long getId() { return id; }
@@ -278,5 +325,26 @@ public class SalesPolicyDTO {
 
         public String getDescription() { return description; }
         public void setDescription(String description) { this.description = description; }
+
+        public String getOperator() { return operator; }
+        public void setOperator(String operator) { this.operator = operator; }
+
+        public String getAdjustmentType() { return adjustmentType; }
+        public void setAdjustmentType(String adjustmentType) { this.adjustmentType = adjustmentType; }
+
+        public Double getAdjustmentValue() { return adjustmentValue; }
+        public void setAdjustmentValue(Double adjustmentValue) { this.adjustmentValue = adjustmentValue; }
+
+        public Long getGiftProductId() { return giftProductId; }
+        public void setGiftProductId(Long giftProductId) { this.giftProductId = giftProductId; }
+
+        public String getGiftProductName() { return giftProductName; }
+        public void setGiftProductName(String giftProductName) { this.giftProductName = giftProductName; }
+
+        public Integer getGiftQuantity() { return giftQuantity; }
+        public void setGiftQuantity(Integer giftQuantity) { this.giftQuantity = giftQuantity; }
+
+        public String getGiftNote() { return giftNote; }
+        public void setGiftNote(String giftNote) { this.giftNote = giftNote; }
     }
 }

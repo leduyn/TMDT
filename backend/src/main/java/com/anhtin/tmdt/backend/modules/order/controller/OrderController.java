@@ -119,4 +119,15 @@ public class OrderController {
         String cleanStatus = status.replace("\"", "");
         return ResponseEntity.ok(orderService.updateOrderStatus(id, cleanStatus));
     }
+
+    @PostMapping("/{id}/confirm-payment")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN') or hasRole('AGENCY')")
+    public ResponseEntity<?> confirmPayment(@PathVariable Long id) {
+        try {
+            orderService.confirmPayment(id);
+            return ResponseEntity.ok(new MessageResponse("Xác nhận thanh toán thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
+    }
 }

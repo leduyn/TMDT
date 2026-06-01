@@ -11,7 +11,14 @@ export interface SalesPolicyDTO {
   maxOrderCount?: number;
   maxApplicationPerAgency?: number;
   targetType?: string;
+  conditionType?: string;
   maxDiscountValue?: number;
+  policyType?: string;
+  minOrderValue?: number;
+  maxDiscountPerOrder?: number;
+  maxUsagePerCustomer?: number;
+  applicablePaymentMethods?: string;
+  applicableOrderSources?: string;
   applyToAllProducts: boolean;
   createdAt: string;
 
@@ -61,6 +68,13 @@ export interface ProductGroupItemResponse {
   itemId: number;
   itemName?: string;
   description?: string;
+  operator?: string;
+  adjustmentType?: string;
+  adjustmentValue?: number;
+  giftProductId?: number;
+  giftProductName?: string;
+  giftQuantity?: number;
+  giftNote?: string;
 }
 
 export interface ProductGroupResponse {
@@ -74,6 +88,12 @@ export interface ProductGroupItemRequest {
   itemType: 'PRODUCT' | 'CATEGORY';
   itemId: number;
   description?: string;
+  operator?: string;
+  adjustmentType?: string;
+  adjustmentValue?: number;
+  giftProductId?: number;
+  giftQuantity?: number;
+  giftNote?: string;
 }
 
 export interface ProductGroupRequest {
@@ -91,8 +111,16 @@ export interface SalesPolicyRequest {
   maxOrderCount?: number;
   maxApplicationPerAgency?: number;
   targetType?: string;
+  conditionType?: string;
   maxDiscountValue?: number;
+  policyType?: string;
+  minOrderValue?: number;
+  maxDiscountPerOrder?: number;
+  maxUsagePerCustomer?: number;
+  applicablePaymentMethods?: string;
+  applicableOrderSources?: string;
   applyToAllProducts: boolean;
+
   includedAgencyIds: number[];
   excludedAgencyIds: number[];
   targetProductIds?: number[];

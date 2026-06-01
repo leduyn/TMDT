@@ -34,6 +34,7 @@ export default function CreateOrderPage() {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [creditDetail, setCreditDetail] = useState<CreditDetail | null>(null);
   const [orderDebtTerm, setOrderDebtTerm] = useState(30);
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomerInfo, setNewCustomerInfo] = useState({
@@ -210,8 +211,9 @@ export default function CreateOrderPage() {
 
     const totalAmount = getTotalAmount();
     if (creditDetail && totalAmount > creditDetail.hmkd) {
-      setError('Hạn mức tín dụng không đủ. Khả dụng: ' + creditDetail.hmkd.toLocaleString() + 'đ, Cần: ' + totalAmount.toLocaleString() + 'đ');
-      return;
+      if (!window.confirm('Hạn mức tín dụng không đủ (' + creditDetail.hmkd.toLocaleString() + 'đ). Đơn hàng sẽ được tạo ở trạng thái chờ thanh toán (PENDING_PAYMENT). Bạn có muốn tiếp tục?')) {
+        return;
+      }
     }
     if (cart.length === 0) {
       setError('Vui lòng chọn ít nhất 1 sản phẩm');
@@ -222,6 +224,8 @@ export default function CreateOrderPage() {
     setError('');
 
     try {
+      const orderSource = user?.roles.includes('ROLE_AGENCY') ? 'Web' : 'NVKD';
+
       const orderData: any = {
         agencyId: selectedAgency.id,
         items: cart.map(item => ({
@@ -230,7 +234,9 @@ export default function CreateOrderPage() {
         })),
         shippingAddress,
         deliveryFee,
-        debtTermDays: orderDebtTerm
+        debtTermDays: orderDebtTerm,
+        paymentMethod,
+        orderSource
       };
 
       if (selectedCustomer) {
@@ -1100,7 +1106,7 @@ export default function CreateOrderPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
               <div>
                 <label className="form-label">Kỳ hạn nợ (ngày)</label>
                 <input
@@ -1120,6 +1126,15 @@ export default function CreateOrderPage() {
                   onChange={e => setDeliveryFee(Number(e.target.value))}
                   min="0"
                 />
+              </div>
+              <div>
+                <label className="form-label">Phương thức thanh toán</label>
+                <select className="form-input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                  <option value="">-- Chọn --</option>
+                  <option value="Tiền mặt">Tiền mặt</option>
+                  <option value="Chuyển khoản">Chuyển khoản</option>
+                  <option value="Thẻ tín dụng">Thẻ tín dụng</option>
+                </select>
               </div>
               <div>
                 <label className="form-label">Địa chỉ giao hàng</label>

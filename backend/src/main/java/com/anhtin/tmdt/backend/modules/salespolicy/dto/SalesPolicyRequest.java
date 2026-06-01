@@ -15,7 +15,14 @@ public class SalesPolicyRequest {
     private Integer maxOrderCount;
     private Integer maxApplicationPerAgency;
     private String targetType; // ORDER_VALUE, PRODUCT_QTY, PRODUCT_REVENUE
+    private String conditionType; // MIN_PRODUCT_QTY, CUSTOM_QTY, PRODUCT_VALUE
     private Double maxDiscountValue;
+    private String policyType;
+    private Double minOrderValue;
+    private Double maxDiscountPerOrder;
+    private Integer maxUsagePerCustomer;
+    private String applicablePaymentMethods;
+    private String applicableOrderSources;
     private Boolean applyToAllProducts;
 
     private Set<Long> includedAgencyIds = new HashSet<>();
@@ -108,8 +115,29 @@ public class SalesPolicyRequest {
     public String getTargetType() { return targetType; }
     public void setTargetType(String targetType) { this.targetType = targetType; }
 
+    public String getConditionType() { return conditionType; }
+    public void setConditionType(String conditionType) { this.conditionType = conditionType; }
+
     public Double getMaxDiscountValue() { return maxDiscountValue; }
     public void setMaxDiscountValue(Double maxDiscountValue) { this.maxDiscountValue = maxDiscountValue; }
+
+    public String getPolicyType() { return policyType; }
+    public void setPolicyType(String policyType) { this.policyType = policyType; }
+
+    public Double getMinOrderValue() { return minOrderValue; }
+    public void setMinOrderValue(Double minOrderValue) { this.minOrderValue = minOrderValue; }
+
+    public Double getMaxDiscountPerOrder() { return maxDiscountPerOrder; }
+    public void setMaxDiscountPerOrder(Double maxDiscountPerOrder) { this.maxDiscountPerOrder = maxDiscountPerOrder; }
+
+    public Integer getMaxUsagePerCustomer() { return maxUsagePerCustomer; }
+    public void setMaxUsagePerCustomer(Integer maxUsagePerCustomer) { this.maxUsagePerCustomer = maxUsagePerCustomer; }
+
+    public String getApplicablePaymentMethods() { return applicablePaymentMethods; }
+    public void setApplicablePaymentMethods(String applicablePaymentMethods) { this.applicablePaymentMethods = applicablePaymentMethods; }
+
+    public String getApplicableOrderSources() { return applicableOrderSources; }
+    public void setApplicableOrderSources(String applicableOrderSources) { this.applicableOrderSources = applicableOrderSources; }
 
     public Boolean getApplyToAllProducts() { return applyToAllProducts; }
     public void setApplyToAllProducts(Boolean applyToAllProducts) { this.applyToAllProducts = applyToAllProducts; }
@@ -158,6 +186,12 @@ public class SalesPolicyRequest {
         private String itemType; // PRODUCT, CATEGORY
         private Long itemId;
         private String description;
+        private String operator;
+        private String adjustmentType;
+        private Double adjustmentValue;
+        private Long giftProductId;
+        private Integer giftQuantity;
+        private String giftNote;
 
         public ProductGroupItemRequest() {}
 
@@ -169,5 +203,23 @@ public class SalesPolicyRequest {
 
         public String getDescription() { return description; }
         public void setDescription(String description) { this.description = description; }
+
+        public String getOperator() { return operator; }
+        public void setOperator(String operator) { this.operator = operator; }
+
+        public String getAdjustmentType() { return adjustmentType; }
+        public void setAdjustmentType(String adjustmentType) { this.adjustmentType = adjustmentType; }
+
+        public Double getAdjustmentValue() { return adjustmentValue; }
+        public void setAdjustmentValue(Double adjustmentValue) { this.adjustmentValue = adjustmentValue; }
+
+        public Long getGiftProductId() { return giftProductId; }
+        public void setGiftProductId(Long giftProductId) { this.giftProductId = giftProductId; }
+
+        public Integer getGiftQuantity() { return giftQuantity; }
+        public void setGiftQuantity(Integer giftQuantity) { this.giftQuantity = giftQuantity; }
+
+        public String getGiftNote() { return giftNote; }
+        public void setGiftNote(String giftNote) { this.giftNote = giftNote; }
     }
 }

@@ -33,7 +33,7 @@ public class Product {
     private Integer stockQuantity;
 
     @Column(name = "is_dropship")
-    private boolean isDropship;
+    private Boolean isDropship = false;
 
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
@@ -89,8 +89,8 @@ public class Product {
     public void setDropshipPrice(Double dropshipPrice) { this.dropshipPrice = dropshipPrice; }
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
-    public boolean isDropship() { return isDropship; }
-    public void setDropship(boolean dropship) { isDropship = dropship; }
+    public Boolean getDropship() { return isDropship; }
+    public void setDropship(Boolean dropship) { isDropship = dropship; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Brand getBrand() { return brand; }

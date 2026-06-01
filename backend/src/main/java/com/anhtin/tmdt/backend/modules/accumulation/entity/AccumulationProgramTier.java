@@ -10,6 +10,10 @@ public class AccumulationProgramTier {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "program_id", nullable = false)
+    private AccumulationProgram program;
+
     @Column(name = "tier_index", nullable = false)
     private Integer tierIndex = 0;
 
@@ -21,7 +25,8 @@ public class AccumulationProgramTier {
 
     public AccumulationProgramTier() {}
 
-    public AccumulationProgramTier(Integer tierIndex, Double thresholdValue, Double rebateRate) {
+    public AccumulationProgramTier(AccumulationProgram program, Integer tierIndex, Double thresholdValue, Double rebateRate) {
+        this.program = program;
         this.tierIndex = tierIndex;
         this.thresholdValue = thresholdValue;
         this.rebateRate = rebateRate;
@@ -30,6 +35,9 @@ public class AccumulationProgramTier {
     // ===== Getters & Setters =====
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public AccumulationProgram getProgram() { return program; }
+    public void setProgram(AccumulationProgram program) { this.program = program; }
 
     public Integer getTierIndex() { return tierIndex; }
     public void setTierIndex(Integer tierIndex) { this.tierIndex = tierIndex; }

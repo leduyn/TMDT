@@ -39,6 +39,9 @@ public class AccumulationProgram {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "unlimited")
+    private Boolean unlimited = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -46,8 +49,7 @@ public class AccumulationProgram {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     // Các mốc hạn mức
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "program_id")
+    @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("tierIndex ASC")
     private List<AccumulationProgramTier> tiers = new ArrayList<>();
 
@@ -59,11 +61,6 @@ public class AccumulationProgram {
         inverseJoinColumns = @JoinColumn(name = "agency_id")
     )
     private Set<Agency> agencies = new HashSet<>();
-
-    // Lịch sử trả thưởng
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "program_id")
-    private List<AccumulationPayment> payments = new ArrayList<>();
 
     public AccumulationProgram() {}
 
@@ -97,6 +94,9 @@ public class AccumulationProgram {
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 
+    public boolean isUnlimited() { return unlimited != null && unlimited; }
+    public void setUnlimited(Boolean unlimited) { this.unlimited = unlimited; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -108,9 +108,6 @@ public class AccumulationProgram {
 
     public Set<Agency> getAgencies() { return agencies; }
     public void setAgencies(Set<Agency> agencies) { this.agencies = agencies; }
-
-    public List<AccumulationPayment> getPayments() { return payments; }
-    public void setPayments(List<AccumulationPayment> payments) { this.payments = payments; }
 
     // ===== Enums =====
     public enum RebateCalculationType {

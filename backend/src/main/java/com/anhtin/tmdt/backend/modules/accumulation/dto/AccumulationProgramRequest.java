@@ -10,6 +10,7 @@ public class AccumulationProgramRequest {
     private LocalDateTime endDate;
     private String rebateCalculationType; // HIGHEST_THRESHOLD | TIERED_PROGRESSIVE
     private boolean active = true;
+    private boolean unlimited = false;
     private List<TierRequest> tiers;
     private List<Long> agencyIds;
 
@@ -39,6 +40,8 @@ public class AccumulationProgramRequest {
     public void setRebateCalculationType(String rebateCalculationType) { this.rebateCalculationType = rebateCalculationType; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public boolean isUnlimited() { return unlimited; }
+    public void setUnlimited(boolean unlimited) { this.unlimited = unlimited; }
     public List<TierRequest> getTiers() { return tiers; }
     public void setTiers(List<TierRequest> tiers) { this.tiers = tiers; }
     public List<Long> getAgencyIds() { return agencyIds; }

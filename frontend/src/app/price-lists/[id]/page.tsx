@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 
@@ -12,6 +13,7 @@ interface PriceListItem {
   productImageUrl: string;
   price: number;
   isVisible: boolean;
+  oldPrice?: number;
 }
 
 interface PriceList {
@@ -29,7 +31,8 @@ export default function PriceListDetailPage() {
   // State
   const [priceList, setPriceList] = useState<PriceList | null>(null);
   const [items, setItems] = useState<PriceListItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'prices'>('prices');
+  const [history, setHistory] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'prices' | 'history'>('prices');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,19 +47,25 @@ export default function PriceListDetailPage() {
   // Handlers
   const fetchData = async () => {
     try {
-      const [plRes, itemsRes] = await Promise.all([
+      const [plRes, itemsRes, historyRes] = await Promise.all([
         fetch(`http://localhost:8080/api/price-lists/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`http://localhost:8080/api/price-lists/${id}/items`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`http://localhost:8080/api/price-lists/${id}/items`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`http://localhost:8080/api/price-vouchers/active-history/price-list/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       const plData = await plRes.json();
       const itemsData = await itemsRes.json();
+      const historyData = await historyRes.json();
       
       setPriceList(plData);
       if (Array.isArray(itemsData)) setItems(itemsData);
       else setItems([]);
+
+      if (Array.isArray(historyData)) setHistory(historyData);
+      else setHistory([]);
     } catch (err) {
       console.error('Failed to fetch data', err);
       setItems([]);
+      setHistory([]);
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +111,7 @@ export default function PriceListDetailPage() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-          {(['prices'] as const).map(tab => (
+          {(['prices', 'history'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -117,7 +126,7 @@ export default function PriceListDetailPage() {
                 transition: 'all 0.2s'
               }}
             >
-              Danh sách giá
+              {tab === 'prices' ? 'Danh sách giá' : 'Lịch sử cập nhật'}
             </button>
           ))}
         </div>
@@ -148,6 +157,7 @@ export default function PriceListDetailPage() {
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
                     <th style={{ padding: '16px 24px', textAlign: 'left' }}>Sản phẩm</th>
                     <th style={{ padding: '16px 24px', textAlign: 'center' }}>Giá thiết lập</th>
+                    <th style={{ padding: '16px 24px', textAlign: 'center' }}>Giá gần nhất</th>
                     <th style={{ padding: '16px 24px', textAlign: 'center' }}>Hiển thị</th>
                     <th style={{ padding: '16px 24px', textAlign: 'right' }}>Thao tác</th>
                   </tr>
@@ -178,6 +188,9 @@ export default function PriceListDetailPage() {
                         />
                         {item.price === -1 && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4 }}>Liên hệ</div>}
                       </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'center', color: item.oldPrice === undefined || item.oldPrice === -1 ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                        {item.oldPrice === undefined || item.oldPrice === -1 ? 'Liên hệ' : `${item.oldPrice.toLocaleString('vi-VN')} đ`}
+                      </td>
                       <td style={{ padding: '16px 24px', textAlign: 'center' }}>
                         <input
                           type="checkbox"
@@ -194,6 +207,55 @@ export default function PriceListDetailPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div className="fade-in">
+            {history.length === 0 ? (
+              <div className="glass-card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+                Chưa có lịch sử cập nhật giá nào cho bảng giá này.
+              </div>
+            ) : (
+              <div className="glass-card" style={{ padding: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
+                      <th style={{ padding: '16px 24px', textAlign: 'left' }}>Tên phiếu cập nhật</th>
+                      <th style={{ padding: '16px 24px', textAlign: 'left' }}>Mô tả</th>
+                      <th style={{ padding: '16px 24px', textAlign: 'center' }}>Số sản phẩm</th>
+                      <th style={{ padding: '16px 24px', textAlign: 'center' }}>Ngày áp dụng</th>
+                      <th style={{ padding: '16px 24px', textAlign: 'right' }}>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map(v => (
+                      <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '16px 24px', fontWeight: 600 }}>
+                          <Link href={`/price-update-vouchers/${v.id}`} style={{ color: 'var(--accent-light)', textDecoration: 'none' }}>
+                            {v.name}
+                          </Link>
+                        </td>
+                        <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
+                          {v.description || '—'}
+                        </td>
+                        <td style={{ padding: '16px 24px', textAlign: 'center', fontWeight: 600, color: 'var(--accent)' }}>
+                          {v.items?.length || 0}
+                        </td>
+                        <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                          {v.appliedAt ? new Date(v.appliedAt).toLocaleString('vi-VN') : '—'}
+                        </td>
+                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                          <Link href={`/price-update-vouchers/${v.id}`} className="btn-outline" style={{ padding: '6px 12px', fontSize: '0.8rem', textDecoration: 'none' }}>
+                            Xem chi tiết
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

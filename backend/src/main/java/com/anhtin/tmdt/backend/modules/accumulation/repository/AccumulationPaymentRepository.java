@@ -12,5 +12,7 @@ public interface AccumulationPaymentRepository extends JpaRepository<Accumulatio
 
     List<AccumulationPayment> findByAgencyId(Long agencyId);
 
-    Optional<AccumulationPayment> findByAgencyIdAndPaymentStage(Long agencyId, Integer paymentStage);
+    Optional<AccumulationPayment> findByProgramIdAndAgencyIdAndPaymentStage(Long programId, Long agencyId, Integer paymentStage);
+
+    List<AccumulationPayment> findByProgramIdAndAgencyId(Long programId, Long agencyId);
 }

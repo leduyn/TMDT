@@ -6,6 +6,7 @@ import com.anhtin.tmdt.backend.modules.accumulation.entity.AccumulationProgramTi
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ public class AccumulationProgramDTO {
     private String rebateCalculationType;
     private String status;
     private boolean active;
+    private boolean unlimited;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<TierDTO> tiers;
@@ -69,6 +71,7 @@ public class AccumulationProgramDTO {
 
     public static class PaymentDTO {
         private Long id;
+        private Long programId;
         private Long agencyId;
         private Integer paymentStage;
         private Double accumulatedValue;
@@ -83,6 +86,8 @@ public class AccumulationProgramDTO {
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
+        public Long getProgramId() { return programId; }
+        public void setProgramId(Long programId) { this.programId = programId; }
         public Long getAgencyId() { return agencyId; }
         public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
         public Integer getPaymentStage() { return paymentStage; }
@@ -109,6 +114,7 @@ public class AccumulationProgramDTO {
         public static PaymentDTO fromEntity(AccumulationPayment payment) {
             PaymentDTO dto = new PaymentDTO();
             dto.setId(payment.getId());
+            dto.setProgramId(payment.getProgramId());
             dto.setAgencyId(payment.getAgencyId());
             dto.setPaymentStage(payment.getPaymentStage());
             dto.setAccumulatedValue(payment.getAccumulatedValue());
@@ -135,6 +141,7 @@ public class AccumulationProgramDTO {
         dto.setRebateCalculationType(program.getRebateCalculationType().name());
         dto.setStatus(program.getStatus().name());
         dto.setActive(program.isActive());
+        dto.setUnlimited(program.isUnlimited());
         dto.setCreatedAt(program.getCreatedAt());
         dto.setUpdatedAt(program.getUpdatedAt());
 
@@ -146,9 +153,7 @@ public class AccumulationProgramDTO {
                 .map(AgencyDTO::fromEntity)
                 .collect(Collectors.toList()));
 
-        dto.setPayments(program.getPayments().stream()
-                .map(PaymentDTO::fromEntity)
-                .collect(Collectors.toList()));
+        dto.setPayments(new ArrayList<>());
 
         return dto;
     }
@@ -170,6 +175,8 @@ public class AccumulationProgramDTO {
     public void setStatus(String status) { this.status = status; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public boolean isUnlimited() { return unlimited; }
+    public void setUnlimited(boolean unlimited) { this.unlimited = unlimited; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

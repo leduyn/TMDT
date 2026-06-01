@@ -1,5 +1,7 @@
 package com.anhtin.tmdt.backend.modules.accumulation.dto;
 
+import java.util.List;
+
 /**
  * DTO báo cáo tiến độ tích lũy của 1 đại lý trong 1 chương trình.
  */
@@ -21,15 +23,20 @@ public class AccumulationSummaryDTO {
     private Double nextTierDistance;          // Khoảng cách đến mốc tiếp
 
     // Ước tính hoa hồng
-    private Double estimatedCommission;      // Tổng HH ước tính = totalAccumulatedValue * currentTierRate
-    private Double estimatedStage1;          // Đợt 1 = totalCollectedValue * currentTierRate
-    private Double estimatedStage2;          // Đợt 2 = estimatedCommission - estimatedStage1
+    private Double estimatedCommission;      // Tổng HH ước tính
+    private Double estimatedStage1;          // Đợt 1
+    private Double estimatedStage2;          // Đợt 2
 
     // Thực tế đã trả
     private Double paidStage1;               // Số tiền đã trả đợt 1 (null nếu chưa)
     private String stage1Status;             // PENDING, APPROVED, PAID
     private Double paidStage2;
     private String stage2Status;
+
+    // Tier progress cho TIERED_PROGRESSIVE
+    private String calculationType;
+    private List<TierProgressDTO> tierProgress;
+    private Double totalCommissionFromTiers;
 
     // --- Getters & Setters ---
     public Long getAgencyId() { return agencyId; }
@@ -68,4 +75,10 @@ public class AccumulationSummaryDTO {
     public void setPaidStage2(Double paidStage2) { this.paidStage2 = paidStage2; }
     public String getStage2Status() { return stage2Status; }
     public void setStage2Status(String stage2Status) { this.stage2Status = stage2Status; }
+    public String getCalculationType() { return calculationType; }
+    public void setCalculationType(String calculationType) { this.calculationType = calculationType; }
+    public List<TierProgressDTO> getTierProgress() { return tierProgress; }
+    public void setTierProgress(List<TierProgressDTO> tierProgress) { this.tierProgress = tierProgress; }
+    public Double getTotalCommissionFromTiers() { return totalCommissionFromTiers; }
+    public void setTotalCommissionFromTiers(Double totalCommissionFromTiers) { this.totalCommissionFromTiers = totalCommissionFromTiers; }
 }
