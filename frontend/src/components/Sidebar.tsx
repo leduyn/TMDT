@@ -21,6 +21,7 @@ import {
   FileText,
   MapPin,
   Settings,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -52,6 +53,7 @@ export default function Sidebar() {
     { label: 'Danh mục', href: '/categories', icon: Layers, roles: ['ROLE_USER'] },
     { label: 'Bảng giá', href: '/price-lists', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Hẹn giờ giá', href: '/price-vouchers', icon: Clock, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Chính sách BH', href: '/sales-policies', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Đơn hàng', href: '/orders', icon: FileText, roles: ['ROLE_USER'] },
     { label: 'Khách hàng', href: '/agencies', icon: Building2, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Người mua', href: '/customers', icon: Users, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
@@ -60,6 +62,7 @@ export default function Sidebar() {
     { label: 'Người mua của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
     { label: 'Tín dụng', href: '/credit', icon: CreditCard, roles: ['ROLE_COMPANY', 'ROLE_AGENCY'] },
     { label: 'Công nợ', href: '/credit/debts', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ACCOUNTANT'] },
+    { label: 'Tích lũy', href: '/accumulation-programs', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Cài đặt', href: '/settings', icon: Settings, roles: ['ROLE_COMPANY'] },
   ];
 

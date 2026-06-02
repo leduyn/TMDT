@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge, { BadgeType } from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
-import { Eye, Search, Filter, Plus, CheckCircle2, Truck } from 'lucide-react';
+import { Eye, Search, Filter, Plus, CheckCircle2, Truck, CreditCard } from 'lucide-react';
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -49,6 +49,10 @@ export default function OrdersPage() {
       case 'PROCESSING':
         type = 'primary';
         label = 'Đang xử lý';
+        break;
+      case 'PENDING_PAYMENT':
+        type = 'info';
+        label = 'Chờ thanh toán';
         break;
       case 'COMPLETED':
         type = 'success';
@@ -108,6 +112,15 @@ export default function OrdersPage() {
                 <Truck size={16} />
               </button>
             )}
+            {canUpdate && o.status === 'PENDING_PAYMENT' && (
+              <button 
+                onClick={() => handleConfirmPayment(o.id)} 
+                className="btn-quick-success" 
+                title="Xác nhận thanh toán"
+              >
+                <CreditCard size={16} />
+              </button>
+            )}
             <Link href={`/orders/${o.id}`} className="btn-icon" title="Xem chi tiết">
               <Eye size={18} />
             </Link>
@@ -124,6 +137,16 @@ export default function OrdersPage() {
       fetchOrders();
     } catch (error) {
       alert('Cập nhật thất bại: ' + error);
+    }
+  };
+
+  const handleConfirmPayment = async (id: number) => {
+    if (!confirm('Xác nhận thanh toán cho đơn hàng này?')) return;
+    try {
+      await orderApi.confirmPayment(id);
+      fetchOrders();
+    } catch (error) {
+      alert('Xác nhận thanh toán thất bại: ' + error);
     }
   };
 
@@ -167,6 +190,7 @@ export default function OrdersPage() {
               <option value="ALL">Tất cả trạng thái</option>
               <option value="NEW">Mới / Chờ xử lý</option>
               <option value="PROCESSING">Đang xử lý</option>
+              <option value="PENDING_PAYMENT">Chờ thanh toán</option>
               <option value="COMPLETED">Hoàn thành</option>
               <option value="CANCELLED">Đã hủy</option>
             </select>

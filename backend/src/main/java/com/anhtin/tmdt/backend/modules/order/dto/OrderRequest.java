@@ -15,6 +15,8 @@ public class OrderRequest {
     private Integer pointsToRedeem;
     private Double deliveryFee;
     private Integer debtTermDays;
+    private String paymentMethod;
+    private String orderSource;
 
     public static class NewCustomerInfo {
         private String name;
@@ -58,4 +60,10 @@ public class OrderRequest {
     public void setDeliveryFee(Double deliveryFee) { this.deliveryFee = deliveryFee; }
     public Integer getDebtTermDays() { return debtTermDays; }
     public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getOrderSource() { return orderSource; }
+    public void setOrderSource(String orderSource) { this.orderSource = orderSource; }
 }

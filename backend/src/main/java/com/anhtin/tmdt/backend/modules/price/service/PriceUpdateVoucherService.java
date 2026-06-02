@@ -210,4 +210,13 @@ public class PriceUpdateVoucherService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
+
+    public List<PriceUpdateVoucherDTO> getAppliedVouchersForPriceList(Long priceListId) {
+        if (priceListId == null) throw new IllegalArgumentException("PriceList ID cannot be null");
+        return voucherPriceListRepository.findByPriceListId(priceListId).stream()
+                .map(PriceUpdateVoucherPriceList::getVoucher)
+                .filter(v -> v.getStatus() == VoucherStatus.APPLIED)
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
 }
