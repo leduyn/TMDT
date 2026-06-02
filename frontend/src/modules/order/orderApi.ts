@@ -18,7 +18,7 @@ export interface OrderDTO {
   totalAmount: number;
   discountAmount: number;
   deliveryFee: number;
-  status: 'NEW' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
+  status: 'NEW' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'PENDING_PAYMENT';
   orderType?: string;
   shippingAddress?: string;
   promotionCode?: string;
@@ -27,6 +27,8 @@ export interface OrderDTO {
   items: OrderItemDTO[];
   priceListId?: number;
   receiverType?: string;
+  paymentMethod?: string;
+  orderSource?: string;
   createdByName?: string;
   updatedDate?: string;
 }
@@ -48,6 +50,8 @@ export interface OrderRequest {
   promotionCode?: string;
   pointsToRedeem?: number;
   deliveryFee?: number;
+  paymentMethod?: string;
+  orderSource?: string;
 }
 
 export const orderApi = {
@@ -71,5 +75,8 @@ export const orderApi = {
   updateStatus: (id: number, status: string) => fetchJSON<OrderDTO>(`/api/orders/${id}/status`, {
     method: 'PUT',
     body: JSON.stringify(status)
+  }),
+  confirmPayment: (id: number) => fetchJSON<{ message: string }>(`/api/orders/${id}/confirm-payment`, {
+    method: 'POST'
   }),
 };

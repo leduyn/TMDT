@@ -62,6 +62,12 @@ public class Order {
     @Column(name = "receiver_type")
     private String receiverType;
 
+    @Column(name = "payment_method", length = 100)
+    private String paymentMethod;
+
+    @Column(name = "order_source", length = 100)
+    private String orderSource;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
@@ -103,6 +109,10 @@ public class Order {
     public void setPriceListId(Long priceListId) { this.priceListId = priceListId; }
     public String getReceiverType() { return receiverType; }
     public void setReceiverType(String receiverType) { this.receiverType = receiverType; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public String getOrderSource() { return orderSource; }
+    public void setOrderSource(String orderSource) { this.orderSource = orderSource; }
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }

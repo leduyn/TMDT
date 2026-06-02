@@ -15,6 +15,7 @@ public class PriceListItemDTO {
     private String productImageUrl;
     private Double price;
     private Boolean isVisible;
+    private Double oldPrice;
 
     public PriceListItemDTO(PriceListItem item) {
         this.id = item.getId();
@@ -23,5 +24,6 @@ public class PriceListItemDTO {
         this.productImageUrl = item.getProduct().getImageUrl();
         this.price = item.getPrice();
         this.isVisible = item.getIsVisible();
+        this.oldPrice = item.getOldPrice();
     }
 }

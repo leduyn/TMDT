@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { priceUpdateVoucherApi, PriceUpdateVoucherDTO, priceListApi, PriceListDTO } from '@/lib/api';
+import { priceUpdateVoucherApi, PriceUpdateVoucherDTO, priceListApi, PriceListDTO, productApi, ProductDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 export default function PriceUpdateVoucherDetailPage() {
@@ -15,6 +15,8 @@ export default function PriceUpdateVoucherDetailPage() {
   const [voucher, setVoucher] = useState<PriceUpdateVoucherDTO | null>(null);
   const [priceLists, setPriceLists] = useState<PriceListDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultPriceListItems, setDefaultPriceListItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductDTO[]>([]);
 
   useEffect(() => {
     if (isCompany && id) {
@@ -25,17 +27,37 @@ export default function PriceUpdateVoucherDetailPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [vData, plData] = await Promise.all([
+      const [vData, plData, prodData] = await Promise.all([
         priceUpdateVoucherApi.getById(Number(id)),
-        priceListApi.getAll()
+        priceListApi.getAll(),
+        productApi.getAll()
       ]);
       setVoucher(vData);
       setPriceLists(plData);
+      setProducts(prodData);
+
+      const defaultPL = plData.find(pl => pl.isDefault);
+      if (defaultPL) {
+        const itemsData = await priceListApi.getItems(defaultPL.id);
+        setDefaultPriceListItems(itemsData);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getDefaultPrice = (productId: number) => {
+    const item = defaultPriceListItems.find(it => it.productId === productId);
+    if (!item) {
+      const prod = products.find(p => p.id === productId);
+      return prod?.basePrice !== undefined ? `${prod.basePrice.toLocaleString('vi-VN')} đ` : '—';
+    }
+    if (item.price === -1) {
+      return 'Liên hệ';
+    }
+    return `${item.price.toLocaleString('vi-VN')} đ`;
   };
 
   const handleCancel = async () => {
@@ -137,6 +159,7 @@ export default function PriceUpdateVoucherDetailPage() {
             <thead style={{ background: 'rgba(255,255,255,0.05)' }}>
               <tr>
                 <th style={{ padding: '16px 20px', textAlign: 'left' }}>Sản phẩm</th>
+                <th style={{ padding: '16px 20px', textAlign: 'right' }}>Giá mặc định</th>
                 <th style={{ padding: '16px 20px', textAlign: 'right' }}>Giá mới</th>
                 <th style={{ padding: '16px 20px', textAlign: 'center' }}>Trạng thái hiển thị</th>
               </tr>
@@ -147,6 +170,9 @@ export default function PriceUpdateVoucherDetailPage() {
                   <td style={{ padding: '16px 20px' }}>
                     <div style={{ fontWeight: 600 }}>{it.productName}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ID: {it.productId}</div>
+                  </td>
+                  <td style={{ padding: '16px 20px', textAlign: 'right', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '1rem' }}>
+                    {getDefaultPrice(it.productId)}
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right', fontWeight: 700, color: 'var(--accent-light)', fontSize: '1.1rem' }}>
                     {(it.newPrice ?? 0).toLocaleString('vi-VN')} đ

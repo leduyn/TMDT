@@ -1,0 +1,82 @@
+# Kế hoạch triển khai: Cập nhật logic tính toán và hiển thị giá, chính sách bán hàng và chương trình khuyến mãi
+
+Tài liệu này mô tả chi tiết phương án triển khai nâng cấp hệ thống tính toán giá bán, chính sách bán hàng (CSBH), và chương trình khuyến mãi (CTKM) theo cả hai luồng Giá bán (Wholesale) và Giá bán lẻ (Retail), cùng với các quy tắc áp dụng dựa trên số lượng đặt hàng tối thiểu và hiển thị chi tiết từng bước.
+
+## User Review Required
+
+> [!IMPORTANT]
+> Toàn bộ logic tính toán giá bán đơn hàng và giá hiển thị xem trước (preview) của sản phẩm sẽ được đồng bộ hóa thông qua một phương thức tính toán chung trong `SalesPolicyService.java`. Điều này giúp tránh hiện tượng lệch giá (price skew) giữa giao diện hiển thị và lúc đặt hàng thực tế.
+
+## Proposed Changes
+
+---
+
+### Backend (Java Spring Boot)
+
+#### [MODIFY] [ProductPolicyPreviewDTO.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/dto/ProductPolicyPreviewDTO.java)
+- Cập nhật cấu trúc dữ liệu trả về để hỗ trợ 2 luồng tính toán song song:
+  - Thêm thuộc tính `minPurchaseQuantity` (Số lượng tối thiểu của sản phẩm).
+  - Thêm 2 trường chứa chi tiết dòng tính toán: `wholesaleFlow` (Giá bán buôn) và `retailFlow` (Giá bán lẻ).
+  - Cấu trúc của `PriceFlowDetailsDTO` bao gồm:
+    - `originalPrice` (Giá gốc)
+    - `policyDiscount` (Giá trị ưu đãi Chính sách bán hàng)
+    - `priceAfterPolicy` (Giá sau khi áp dụng Chính sách bán hàng)
+    - `promotionDiscount` (Giá trị Khuyến mãi)
+    - `finalPrice` (Giá sau khi áp dụng Khuyến mãi)
+    - `appliedPolicies` (Danh sách chính sách đã áp dụng)
+    - `appliedPromotions` (Danh sách khuyến mãi đã áp dụng)
+
+#### [MODIFY] [SalesPolicyService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/service/SalesPolicyService.java)
+- Triển khai phương thức phụ trợ trung tâm `calculateProductPolicyFlows` để thực hiện tính toán đầy đủ 2 luồng:
+  - **Giá bán lẻ (Retail Price):**
+    - Xác định giá gốc bán lẻ bằng cách áp dụng chính sách loại `RETAIL_POLICY` lên `basePrice` (wholesale price). Nếu không có chính sách bán lẻ nào phù hợp, mặc định giá bán lẻ gốc = `basePrice`.
+  - **Áp dụng Chính sách bán hàng (CSBH):**
+    - Tính trên **Giá bán (Wholesale Price)** và **Giá bán lẻ (Retail Price)** gốc.
+    - Áp dụng quy tắc loại trừ theo số lượng:
+      - Nếu CSBH áp dụng theo số lượng (`PRODUCT_QTY`) và mức điều kiện threshold >= `minPurchaseQuantity`: **Chỉ áp dụng trên Giá bán**. Giá bán lẻ không nhận ưu đãi này (ưu đãi = 0).
+      - Nếu mức điều kiện < `minPurchaseQuantity`: Áp dụng trên **cả Giá bán và Giá bán lẻ**.
+      - Nếu CSBH áp dụng theo giá trị đơn hàng (`ORDER_VALUE`): Luôn áp dụng trên **cả hai**.
+    - Chọn chính sách bán hàng tối ưu nhất (mang lại giá sau chính sách thấp nhất) cho mỗi luồng.
+  - **Áp dụng Chương trình khuyến mãi (CTKM):**
+    - Tính toán trên kết quả sau khi đã áp dụng CSBH.
+    - Áp dụng quy tắc loại trừ tương tự CSBH:
+      - Nếu CTKM áp dụng theo số lượng và điều kiện threshold >= `minPurchaseQuantity`: **Chỉ tính trên Giá bán sau chính sách**.
+      - Nếu điều kiện < `minPurchaseQuantity`: Tính trên **cả Giá bán sau chính sách và Giá bán lẻ sau chính sách**.
+      - Nếu CTKM áp dụng theo giá trị đơn hàng: Luôn tính trên **cả hai**.
+    - Áp dụng các ưu đãi khuyến mãi cộng dồn/tuần tự cho từng luồng, tuân thủ giới hạn `maxDiscountPerOrder`.
+- Cập nhật `applySalesPolicy`:
+  - Gọi phương thức `calculateProductPolicyFlows` và trả về `wholesaleFlow.finalPrice` nếu `quantity >= minPurchaseQuantity`, hoặc `retailFlow.finalPrice` nếu `quantity < minPurchaseQuantity`.
+- Cập nhật `previewProductPolicies`:
+  - Gọi `calculateProductPolicyFlows` và trả về kết quả cấu trúc DTO mới đầy đủ thông tin.
+- Cập nhật `getMatchedTierForOrder`:
+  - Đồng bộ hóa logic lọc áp dụng chính sách theo số lượng tối thiểu để đảm bảo tính quà tặng bậc thang chính xác với luồng tương ứng.
+
+---
+
+### Frontend (React / TypeScript)
+
+#### [MODIFY] [commonApi.ts](file:///d:/Java%20lean/TMDT/frontend/src/modules/common/commonApi.ts)
+- Cập nhật interface `ProductPolicyPreviewResult` để khớp với cấu trúc dữ liệu mới từ Backend (bao gồm `minPurchaseQuantity`, `wholesaleFlow`, `retailFlow`).
+
+#### [MODIFY] [SalesPolicyForm.tsx](file:///d:/Java%20lean/TMDT/frontend/src/components/SalesPolicyForm.tsx)
+- Cải tiến giao diện tab Xem trước (Preview):
+  - **Thêm Bộ chọn số lượng (Quantity Selector):** Thiết kế nút tăng/giảm (+/-) số lượng mua trực quan ngay trong khung xem trước sản phẩm. Khi người dùng thay đổi số lượng, gọi lại API preview để hiển thị sự thay đổi giá thực tế tức thì.
+  - **Thiết kế lại vùng hiển thị chi tiết chính sách:**
+    - Hiển thị song song hoặc phân biệt rõ ràng hai luồng: **Luồng giá bán buôn (Wholesale)** và **Luồng giá bán lẻ (Retail)**.
+    - Biểu diễn trực quan dạng sơ đồ luồng từng bước cho mỗi loại giá:
+      - `Giá gốc` → `Ưu đãi CSBH (nếu có)` → `Giá sau CSBH` → `Khuyến mãi (nếu có)` → `Giá sau Khuyến mãi (Giá cuối)`.
+    - Highlight mức giá được áp dụng thực tế để đặt hàng dựa trên số lượng mua hiện tại so với số lượng tối thiểu.
+
+## Verification Plan
+
+### Automated Tests
+- Chạy các test case hiện tại trong [SalesPolicyServiceTest.java](file:///d:/Java%20lean/TMDT/backend/src/test/java/com/anhtin/tmdt/backend/modules/salespolicy/service/SalesPolicyServiceTest.java) bằng maven:
+  ```powershell
+  mvn test -Dtest=SalesPolicyServiceTest
+  ```
+- Viết thêm các unit test bổ sung kiểm tra các quy tắc tính toán theo số lượng tối thiểu cho cả hai trường hợp $Q < Q_{min}$ và $Q \ge Q_{min}$.
+
+### Manual Verification
+- Chạy ứng dụng local và mở trang quản lý chính sách bán hàng.
+- Chọn xem trước sản phẩm trong form tạo/sửa chính sách.
+- Thay đổi số lượng mua trong bộ chọn số lượng và xác nhận các bước tính toán và sơ đồ hiển thị giá Wholesale/Retail thay đổi chính xác theo các quy tắc nghiệp vụ.

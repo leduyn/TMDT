@@ -58,6 +58,19 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleConfirmPayment = async () => {
+    if (!order || !confirm('Xác nhận thanh toán cho đơn hàng này?')) return;
+    setUpdating(true);
+    try {
+      await orderApi.confirmPayment(order.id);
+      fetchOrder();
+    } catch (error) {
+      alert('Xác nhận thanh toán thất bại: ' + error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     let type: BadgeType = 'info';
     let label = status;
@@ -66,6 +79,7 @@ export default function OrderDetailPage() {
       case 'NEW':
       case 'PENDING': type = 'warning'; label = 'Chờ xử lý'; break;
       case 'PROCESSING': type = 'primary'; label = 'Đang xử lý'; break;
+      case 'PENDING_PAYMENT': type = 'info'; label = 'Chờ thanh toán'; break;
       case 'COMPLETED': type = 'success'; label = 'Hoàn thành'; break;
       case 'CANCELLED': type = 'error'; label = 'Đã hủy'; break;
     }
@@ -122,6 +136,15 @@ export default function OrderDetailPage() {
                 disabled={updating}
               >
                 Hoàn thành đơn hàng
+              </button>
+            )}
+            {order.status === 'PENDING_PAYMENT' && (
+              <button 
+                className="btn btn-primary" 
+                onClick={handleConfirmPayment}
+                disabled={updating}
+              >
+                Xác nhận thanh toán
               </button>
             )}
             <button 

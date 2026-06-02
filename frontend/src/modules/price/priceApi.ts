@@ -59,6 +59,7 @@ export const priceListApi = {
   getAll: () => fetchJSON<PriceListDTO[]>('/api/price-lists'),
   getById: (id: number) => fetchJSON<PriceListDTO>(`/api/price-lists/${id}`),
   resolveForAgency: (agencyId: number) => fetchJSON<PriceListDTO>(`/api/price-lists/resolve/agency/${agencyId}`),
+  getItems: (id: number) => fetchJSON<any[]>(`/api/price-lists/${id}/items`),
 };
 
 export const priceAssignmentVoucherApi = {

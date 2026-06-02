@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCustomerAssignmentRepository;
 import com.anhtin.tmdt.backend.modules.agency.service.AgencyService;
@@ -33,6 +35,8 @@ import com.anhtin.tmdt.backend.modules.promotion.service.PromotionService;
 import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import com.anhtin.tmdt.backend.modules.price.service.CommissionService;
 import com.anhtin.tmdt.backend.modules.order.repository.OrderRepository;
+import com.anhtin.tmdt.backend.modules.salespolicy.service.SalesPolicyService;
+import com.anhtin.tmdt.backend.modules.salespolicy.entity.SalesPolicyTier;
 
 @Service
 public class OrderService {
@@ -42,6 +46,9 @@ public class OrderService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SalesPolicyService salesPolicyService;
 
     @Autowired
     private ProductRepository productRepository;
@@ -84,7 +91,6 @@ public class OrderService {
         Long agencyId = request.getAgencyId();
         
         if (agencyId == null) {
-            // Try to find the agency assigned to this customer
             agencyId = agencyCustomerAssignmentRepository.findByCustomerId(customerId).stream()
                     .findFirst()
                     .map(a -> a.getAgency().getId())
@@ -130,6 +136,8 @@ public class OrderService {
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "Web");
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -137,6 +145,17 @@ public class OrderService {
         order.setOrderType(orderType);
 
         double totalAmount = 0.0;
+        Set<Long> appliedPromotionIds = new HashSet<>();
+
+        double preTotal = 0;
+        for (OrderItemRequest preItem : request.getItems()) {
+            if (preItem.getProductId() == null) continue;
+            Product preProduct = productRepository.findById(preItem.getProductId()).orElse(null);
+            if (preProduct == null) continue;
+            Double bp = priceListService.getResolvedPrice(preItem.getProductId(), agencyId, customerIdSelected);
+            if (bp == null || bp < 0) bp = preProduct.getBasePrice();
+            preTotal += bp * preItem.getQuantity();
+        }
 
         for (OrderItemRequest itemReq : request.getItems()) {
             Long productId = itemReq.getProductId();
@@ -144,10 +163,13 @@ public class OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            Double price = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
-            if (price == null || price < 0) {
-                price = product.getBasePrice();
+            Double baseResolvedPrice = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
+            if (baseResolvedPrice == null || baseResolvedPrice < 0) {
+                baseResolvedPrice = product.getBasePrice();
             }
+
+            Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice,
+                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver.getId(), null, appliedPromotionIds);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -164,6 +186,27 @@ public class OrderService {
             }
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // Tự động kiểm tra quà tặng bậc thang (hàng tặng giảm 100% đơn giá)
+            SalesPolicyTier matchedTier = salesPolicyService.getMatchedTierForOrder(product, agency, itemReq.getQuantity(), baseResolvedPrice);
+            if (matchedTier != null && matchedTier.getGiftProduct() != null && matchedTier.getGiftQuantity() != null && matchedTier.getGiftQuantity() > 0) {
+                Product giftProduct = matchedTier.getGiftProduct();
+                int giftQty = matchedTier.getGiftQuantity();
+
+                if (giftProduct.getStockQuantity() < giftQty) {
+                    throw new RuntimeException("Không đủ tồn kho cho sản phẩm quà tặng: " + giftProduct.getName());
+                }
+                giftProduct.setStockQuantity(giftProduct.getStockQuantity() - giftQty);
+                productRepository.save(giftProduct);
+
+                OrderItem giftOrderItem = new OrderItem();
+                giftOrderItem.setOrder(order);
+                giftOrderItem.setProduct(giftProduct);
+                giftOrderItem.setQuantity(giftQty);
+                giftOrderItem.setPrice(0.0); // Giảm 100%
+                giftOrderItem.setPriceListId(priceListId);
+                order.getItems().add(giftOrderItem);
+            }
         }
 
         double discountAmount = 0.0;
@@ -187,13 +230,20 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+        // Ghi nhận lượt sử dụng promotion
+        for (Long promoId : appliedPromotionIds) {
+            salesPolicyService.recordPromotionUsage(promoId, receiver.getId(), savedOrder.getId());
+        }
+
         commissionService.createTransaction(savedOrder);
 
-        // Trá»« háº¡n má»©c tÃ­n dá»¥ng cá»§a Ä‘áº¡i lÃ½
-        try {
-            creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
-        } catch (Exception e) {
-            throw new RuntimeException("Háº¡n má»©c tÃ­n dá»¥ng khÃ´ng Ä‘á»§: " + e.getMessage());
+        boolean creditConsumed = creditService.tryConsumeCredit(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
+
+        if (!creditConsumed) {
+            savedOrder.setStatus("PENDING_PAYMENT");
+            orderRepository.save(savedOrder);
+        } else {
+            agencyDebtService.createDebtsForOrder(savedOrder);
         }
 
         return savedOrder;
@@ -244,6 +294,8 @@ public class OrderService {
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "NVKD");
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -251,6 +303,17 @@ public class OrderService {
         order.setOrderType(orderType);
 
         double totalAmount = 0.0;
+        Set<Long> appliedPromotionIds = new HashSet<>();
+
+        double preTotal = 0;
+        for (OrderItemRequest preItem : request.getItems()) {
+            if (preItem.getProductId() == null) continue;
+            Product preProduct = productRepository.findById(preItem.getProductId()).orElse(null);
+            if (preProduct == null) continue;
+            Double bp = priceListService.getResolvedPrice(preItem.getProductId(), agencyId, customerIdSelected);
+            if (bp == null || bp < 0) bp = preProduct.getBasePrice();
+            preTotal += bp * preItem.getQuantity();
+        }
 
         for (OrderItemRequest itemReq : request.getItems()) {
             Long productId = itemReq.getProductId();
@@ -258,10 +321,13 @@ public class OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            Double price = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
-            if (price == null || price < 0) {
-                price = product.getBasePrice();
+            Double baseResolvedPrice = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
+            if (baseResolvedPrice == null || baseResolvedPrice < 0) {
+                baseResolvedPrice = product.getBasePrice();
             }
+            
+            Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice,
+                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver.getId(), null, appliedPromotionIds);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -278,6 +344,27 @@ public class OrderService {
             }
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // Tự động kiểm tra quà tặng bậc thang (hàng tặng giảm 100% đơn giá)
+            SalesPolicyTier matchedTier = salesPolicyService.getMatchedTierForOrder(product, agency, itemReq.getQuantity(), baseResolvedPrice);
+            if (matchedTier != null && matchedTier.getGiftProduct() != null && matchedTier.getGiftQuantity() != null && matchedTier.getGiftQuantity() > 0) {
+                Product giftProduct = matchedTier.getGiftProduct();
+                int giftQty = matchedTier.getGiftQuantity();
+
+                if (giftProduct.getStockQuantity() < giftQty) {
+                    throw new RuntimeException("Không đủ tồn kho cho sản phẩm quà tặng: " + giftProduct.getName());
+                }
+                giftProduct.setStockQuantity(giftProduct.getStockQuantity() - giftQty);
+                productRepository.save(giftProduct);
+
+                OrderItem giftOrderItem = new OrderItem();
+                giftOrderItem.setOrder(order);
+                giftOrderItem.setProduct(giftProduct);
+                giftOrderItem.setQuantity(giftQty);
+                giftOrderItem.setPrice(0.0); // Giảm 100%
+                giftOrderItem.setPriceListId(priceListId);
+                order.getItems().add(giftOrderItem);
+            }
         }
 
         double discountAmount = 0.0;
@@ -301,13 +388,19 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+        for (Long promoId : appliedPromotionIds) {
+            salesPolicyService.recordPromotionUsage(promoId, receiver.getId(), savedOrder.getId());
+        }
+
         commissionService.createTransaction(savedOrder);
 
-        // Trá»« háº¡n má»©c tÃ­n dá»¥ng cá»§a Ä‘áº¡i lÃ½
-        try {
-            creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
-        } catch (Exception e) {
-            throw new RuntimeException("Háº¡n má»©c tÃ­n dá»¥ng khÃ´ng Ä‘á»§: " + e.getMessage());
+        boolean creditConsumed = creditService.tryConsumeCredit(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
+
+        if (!creditConsumed) {
+            savedOrder.setStatus("PENDING_PAYMENT");
+            orderRepository.save(savedOrder);
+        } else {
+            agencyDebtService.createDebtsForOrder(savedOrder);
         }
 
         return savedOrder;
@@ -366,6 +459,8 @@ public class OrderService {
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "Web");
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -373,6 +468,17 @@ public class OrderService {
         order.setOrderType(orderType);
 
         double totalAmount = 0.0;
+        Set<Long> appliedPromotionIds = new HashSet<>();
+
+        double preTotal = 0;
+        for (OrderItemRequest preItem : request.getItems()) {
+            if (preItem.getProductId() == null) continue;
+            Product preProduct = productRepository.findById(preItem.getProductId()).orElse(null);
+            if (preProduct == null) continue;
+            Double bp = priceListService.getResolvedPrice(preItem.getProductId(), agencyId, customerIdSelected);
+            if (bp == null || bp < 0) bp = preProduct.getBasePrice();
+            preTotal += bp * preItem.getQuantity();
+        }
 
         for (OrderItemRequest itemReq : request.getItems()) {
             Long productId = itemReq.getProductId();
@@ -380,10 +486,13 @@ public class OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            Double price = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
-            if (price == null || price < 0) {
-                price = product.getBasePrice();
+            Double baseResolvedPrice = priceListService.getResolvedPrice(productId, agencyId, customerIdSelected);
+            if (baseResolvedPrice == null || baseResolvedPrice < 0) {
+                baseResolvedPrice = product.getBasePrice();
             }
+            
+            Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice,
+                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver.getId(), null, appliedPromotionIds);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -400,6 +509,27 @@ public class OrderService {
             }
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // Tự động kiểm tra quà tặng bậc thang (hàng tặng giảm 100% đơn giá)
+            SalesPolicyTier matchedTier = salesPolicyService.getMatchedTierForOrder(product, agency, itemReq.getQuantity(), baseResolvedPrice);
+            if (matchedTier != null && matchedTier.getGiftProduct() != null && matchedTier.getGiftQuantity() != null && matchedTier.getGiftQuantity() > 0) {
+                Product giftProduct = matchedTier.getGiftProduct();
+                int giftQty = matchedTier.getGiftQuantity();
+
+                if (giftProduct.getStockQuantity() < giftQty) {
+                    throw new RuntimeException("Không đủ tồn kho cho sản phẩm quà tặng: " + giftProduct.getName());
+                }
+                giftProduct.setStockQuantity(giftProduct.getStockQuantity() - giftQty);
+                productRepository.save(giftProduct);
+
+                OrderItem giftOrderItem = new OrderItem();
+                giftOrderItem.setOrder(order);
+                giftOrderItem.setProduct(giftProduct);
+                giftOrderItem.setQuantity(giftQty);
+                giftOrderItem.setPrice(0.0); // Giảm 100%
+                giftOrderItem.setPriceListId(priceListId);
+                order.getItems().add(giftOrderItem);
+            }
         }
 
         double discountAmount = 0.0;
@@ -423,13 +553,19 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+        for (Long promoId : appliedPromotionIds) {
+            salesPolicyService.recordPromotionUsage(promoId, receiver.getId(), savedOrder.getId());
+        }
+
         commissionService.createTransaction(savedOrder);
 
-        // Trá»« háº¡n má»©c tÃ­n dá»¥ng cá»§a Ä‘áº¡i lÃ½
-        try {
-            creditService.createCreditOrder(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
-        } catch (Exception e) {
-            throw new RuntimeException("Háº¡n má»©c tÃ­n dá»¥ng khÃ´ng Ä‘á»§: " + e.getMessage());
+        boolean creditConsumed = creditService.tryConsumeCredit(agencyId, savedOrder.getId(), savedOrder.getTotalAmount());
+
+        if (!creditConsumed) {
+            savedOrder.setStatus("PENDING_PAYMENT");
+            orderRepository.save(savedOrder);
+        } else {
+            agencyDebtService.createDebtsForOrder(savedOrder);
         }
 
         return savedOrder;
@@ -500,9 +636,7 @@ public class OrderService {
         
         Order savedOrder = orderRepository.save(order);
         
-        // Khi Ä‘Æ¡n hÃ ng cÃ³ tráº¡ng thÃ¡i hoÃ n thÃ nh thÃ¬ cáº­p nháº­t dÆ° ná»£
         if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
-            // Cáº­p nháº­t dÆ° ná»£ cho khÃ¡ch hÃ ng (náº¿u cÃ³ assignment)
             if (order.getCustomer() != null && order.getAgency() != null) {
                 agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
                         order.getAgency().getId(), order.getCustomer().getId())
@@ -511,11 +645,59 @@ public class OrderService {
                         agencyCustomerAssignmentRepository.save(assignment);
                     });
             }
-            // Sinh 2 dÃ²ng cÃ´ng ná»£ Äáº¡i lÃ½
-            agencyDebtService.createDebtsForOrder(savedOrder);
         }
         
         return convertToDTO(savedOrder);
+    }
+
+    @Transactional
+    public void confirmPayment(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!"PENDING_PAYMENT".equals(order.getStatus())) {
+            throw new RuntimeException("Order is not in PENDING_PAYMENT status");
+        }
+
+        boolean creditConsumed = creditService.tryConsumeCredit(
+                order.getAgency().getId(), orderId, order.getTotalAmount());
+
+        if (!creditConsumed) {
+            throw new RuntimeException("Hạn mức tín dụng không đủ");
+        }
+
+        agencyDebtService.createDebtsForOrder(order);
+    }
+
+    @Transactional
+    public void cancelPendingPaymentOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!"PENDING_PAYMENT".equals(order.getStatus())) {
+            throw new RuntimeException("Order is not in PENDING_PAYMENT status");
+        }
+
+        order.setStatus("CANCELLED");
+        order.setUpdatedDate(LocalDateTime.now());
+
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            productRepository.save(product);
+        }
+
+        orderRepository.save(order);
+    }
+
+    @Transactional
+    public void autoCancelExpiredPendingPayments() {
+        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(60);
+        List<Order> expiredOrders = orderRepository.findPendingPaymentOrdersBefore(expiryTime);
+
+        for (Order order : expiredOrders) {
+            cancelPendingPaymentOrder(order.getId());
+        }
     }
 
     private OrderDTO convertToDTO(Order order) {
@@ -541,6 +723,8 @@ public class OrderService {
         dto.setOrderDate(order.getOrderDate());
         dto.setPriceListId(order.getPriceListId());
         dto.setReceiverType(order.getReceiverType());
+        dto.setPaymentMethod(order.getPaymentMethod());
+        dto.setOrderSource(order.getOrderSource());
         dto.setDebtTermDays(order.getDebtTermDays());
         
         if (order.getCreatedBy() != null) {
@@ -566,5 +750,4 @@ public class OrderService {
         dto.setPrice(item.getPrice());
         return dto;
     }
-
 }

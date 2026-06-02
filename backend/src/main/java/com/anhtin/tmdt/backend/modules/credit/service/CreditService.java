@@ -98,12 +98,11 @@ public class CreditService {
         return credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable();
     }
 
-    @Transactional
-    public void createCreditOrder(Long agencyId, Long orderId, Double amount) {
+    public boolean tryConsumeCredit(Long agencyId, Long orderId, Double amount) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        int updated = 0;
+        int updated;
         if ("CUSTOMER".equals(order.getReceiverType())) {
             updated = agentCreditRepository.consumeGuaranteeCredit(agencyId, amount);
         } else {
@@ -111,13 +110,14 @@ public class CreditService {
         }
 
         if (updated == 0) {
-            throw new RuntimeException("Hạn mức tín dụng không đủ");
+            return false;
         }
 
         order.setStatus("NEW");
         orderRepository.save(order);
 
         saveLedger(agencyId, CreditLedger.LedgerType.DEBT, amount, orderId.toString());
+        return true;
     }
 
     @Transactional

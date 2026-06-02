@@ -1,5 +1,6 @@
 package com.anhtin.tmdt.backend.modules.user.repository;
 
+import com.anhtin.tmdt.backend.modules.user.entity.Role;
 import com.anhtin.tmdt.backend.modules.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
@@ -12,4 +13,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByTaxCode(String taxCode);
     @org.springframework.data.jpa.repository.Query("SELECT u FROM User u JOIN u.assignments a WHERE a.agency.id = :agencyId")
     java.util.List<User> findByAgenciesId(Long agencyId);
+    long countByRole(Role role);
 }
