@@ -15,12 +15,25 @@ export interface PolicyEffect {
   giftQuantity: number | null;
 }
 
+export interface PriceFlowDetails {
+  originalPrice: number;
+  policyDiscount: number;
+  priceAfterPolicy: number;
+  promotionDiscount: number;
+  finalPrice: number;
+  appliedPolicies: PolicyEffect[];
+  appliedPromotions: PolicyEffect[];
+}
+
 export interface ProductPolicyPreviewResult {
   basePrice: number;
+  minPurchaseQuantity?: number;
   finalPrice: number;
   retailPolicies: PolicyEffect[];
   salesPolicies: PolicyEffect[];
   promotions: PolicyEffect[];
+  wholesaleFlow?: PriceFlowDetails;
+  retailFlow?: PriceFlowDetails;
 }
 
 export const productPreviewApi = {

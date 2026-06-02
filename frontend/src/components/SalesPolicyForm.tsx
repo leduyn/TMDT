@@ -137,6 +137,7 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
   const [trendConfig, setTrendConfig] = useState<RetailTrendConfig | null>(null);
   const [productPreview, setProductPreview] = useState<ProductPolicyPreviewResult | null>(null);
   const [productPreviewLoading, setProductPreviewLoading] = useState(false);
+  const [previewQuantity, setPreviewQuantity] = useState(1);
 
   const getGiftProductName = (id: number | string | null | undefined): string => {
     if (!id) return '';
@@ -823,18 +824,18 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
     retailTrendApi.get().then(setTrendConfig).catch(() => {});
   }, []);
 
-  // Fetch product policy preview when preview product changes
+  // Fetch product policy preview when preview product or quantity changes
   useEffect(() => {
     if (previewProduct && previewProduct.id) {
       setProductPreviewLoading(true);
-      productPreviewApi.get(previewProduct.id, 1)
+      productPreviewApi.get(previewProduct.id, previewQuantity)
         .then(setProductPreview)
         .catch(() => setProductPreview(null))
         .finally(() => setProductPreviewLoading(false));
     } else {
       setProductPreview(null);
     }
-  }, [previewProduct]);
+  }, [previewProduct, previewQuantity]);
 
   // Select a representative product for preview
   useEffect(() => {
@@ -2466,117 +2467,243 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
 
             {/* 📋 PRODUCT POLICY PREVIEW: ALL APPLICABLE POLICIES */}
             {previewProduct && productPreview && (
-              <div className="mt-10">
-                <div className="flex items-center gap-2 mb-5">
-                  <ListChecks size={16} className="text-[var(--accent-light)]" />
-                  <h3 className="text-sm font-bold text-[var(--accent-light)] uppercase tracking-wider">Các chính sách sản phẩm đang tham gia</h3>
+              <div className="mt-8 w-full col-span-1 md:col-span-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <ListChecks size={18} className="text-indigo-400" />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Xem trước luồng tính toán giá</h3>
+                  </div>
+                  
+                  {/* Quantity Selector Control */}
+                  <div className="flex items-center gap-3 bg-slate-950/40 px-3 py-1.5 rounded-xl border border-slate-800/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Số lượng xem thử:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewQuantity(prev => Math.max(1, prev - 1))}
+                        className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-bold text-xs transition-all"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={previewQuantity}
+                        onChange={e => setPreviewQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-12 text-center bg-transparent border-0 text-white font-bold text-xs focus:ring-0 focus:outline-none p-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPreviewQuantity(prev => prev + 1)}
+                        className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center font-bold text-xs transition-all"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Base price */}
-                <div className="glass-card p-3 mb-3 flex items-center justify-between" style={{ borderRadius: 10 }}>
-                  <span className="text-[10px] text-[var(--text-secondary)] font-medium">Giá gốc</span>
-                  <span className="text-sm font-bold text-white">{Math.round(productPreview.basePrice).toLocaleString()}đ</span>
-                </div>
-
-                {/* Phase 0: RETAIL */}
-                {productPreview.retailPolicies.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                      <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider">Chính sách bán lẻ</span>
-                    </div>
-                    {productPreview.retailPolicies.map(p => (
-                      <PolicyEffectCard key={p.id} effect={p} isCurrent={p.id === initialId} />
-                    ))}
-                  </div>
-                )}
-
-                {/* Phase 1: SALES_POLICY */}
-                {productPreview.salesPolicies.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                      <span className="text-[9px] font-bold text-amber-300 uppercase tracking-wider">Chính sách bán hàng</span>
-                    </div>
-                    {productPreview.salesPolicies.map(p => (
-                      <PolicyEffectCard key={p.id} effect={p} isCurrent={p.id === initialId} />
-                    ))}
-                  </div>
-                )}
-
-                {/* Phase 2: PROMOTION */}
-                {productPreview.promotions.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">Chương trình khuyến mãi</span>
-                    </div>
-                    {(() => {
-                      const grouped: { [key: string]: PolicyEffect[] } = {};
-                      productPreview.promotions.forEach(p => {
-                        const key = `${p.id}-${p.name}`;
-                        if (!grouped[key]) grouped[key] = [];
-                        grouped[key].push(p);
-                      });
-                      return Object.entries(grouped).map(([key, effects]) => {
-                        const first = effects[0];
-                        const retailEffect = effects.find(e => e.conditionText.includes('giá bán lẻ') || e.conditionText.includes('< SL tối thiểu'));
-                        const normalEffect = effects.find(e => e.conditionText.includes('giá bán thường') || e.conditionText.includes('>= SL tối thiểu')) || first;
-                        const formatPrice = (pr: number) => Math.round(pr).toLocaleString() + 'đ';
-                        return (
-                          <div key={key} className="glass-card p-3 mb-2" style={{ borderRadius: 10, borderColor: first.id === initialId ? 'rgba(99,102,241,0.5)' : 'var(--border)', background: first.id === initialId ? 'rgba(99,102,241,0.05)' : undefined }}>
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                              <span className="text-[10px] font-bold text-white truncate">{first.name}</span>
-                              {first.id === initialId && <span className="text-[7px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Đang soạn</span>}
-                            </div>
-                            {/* Normal price effect */}
-                            <div className="flex items-center justify-between py-1 border-b border-slate-800/60 last:border-b-0">
-                              <span className="text-[8px] text-[var(--text-muted)]">{normalEffect.conditionText}</span>
-                              <div className="flex items-center gap-2 shrink-0 ml-2">
-                                <span className="text-[9px] font-bold" style={{ color: (normalEffect.adjustmentValue || 0) < 0 ? '#34d399' : '#f87171' }}>
-                                  {(normalEffect.adjustmentValue || 0) >= 0 ? '+' : ''}{normalEffect.adjustmentValue}%
-                                </span>
-                                <span className="text-[9px] text-[var(--text-muted)] line-through">{formatPrice(normalEffect.originalPrice)}</span>
-                                <span className="text-[9px] font-bold text-white">→ {formatPrice(normalEffect.adjustedPrice)}</span>
-                              </div>
-                            </div>
-                            {/* Retail price effect (if present) */}
-                            {retailEffect && (
-                              <div className="flex items-center justify-between py-1">
-                                <span className="text-[8px] text-[var(--text-muted)]">{retailEffect.conditionText}</span>
-                                <div className="flex items-center gap-2 shrink-0 ml-2">
-                                  <span className="text-[9px] font-bold" style={{ color: (retailEffect.adjustmentValue || 0) < 0 ? '#34d399' : '#f87171' }}>
-                                    {(retailEffect.adjustmentValue || 0) >= 0 ? '+' : ''}{retailEffect.adjustmentValue}%
-                                  </span>
-                                  <span className="text-[9px] text-[var(--text-muted)] line-through">{formatPrice(retailEffect.originalPrice)}</span>
-                                  <span className="text-[9px] font-bold text-white">→ {formatPrice(retailEffect.adjustedPrice)}</span>
-                                </div>
-                              </div>
-                            )}
-                            {first.giftProductName && (
-                              <div className="text-[8px] bg-emerald-950/40 text-emerald-300 px-1.5 py-0.5 rounded font-semibold mt-1 inline-block">🎁 {first.giftProductName}{first.giftQuantity ? ` x${first.giftQuantity}` : ''}</div>
-                            )}
+                {/* Displaying Wholesale and Retail flows side by side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* WHOLESALE FLOW CARD */}
+                  {productPreview.wholesaleFlow && (() => {
+                    const flow = productPreview.wholesaleFlow;
+                    const minQty = productPreview.minPurchaseQuantity || 1;
+                    const isActive = previewQuantity >= minQty;
+                    return (
+                      <div 
+                        className={`glass-card p-5 relative overflow-hidden transition-all duration-300 ${
+                          isActive ? 'border-indigo-500/60 ring-2 ring-indigo-500/20 bg-indigo-950/5' : 'opacity-50 border-slate-800/60'
+                        }`} 
+                        style={{ borderRadius: 16 }}
+                      >
+                        {isActive && (
+                          <div className="absolute top-0 right-0 bg-indigo-500 text-white px-3 py-0.5 rounded-bl-xl text-[8px] font-black uppercase tracking-widest">
+                            Đang áp dụng (SL ≥ {minQty})
                           </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                )}
+                        )}
+                        <h4 className="text-xs font-bold text-white mb-4 flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-indigo-400' : 'bg-slate-500'}`} />
+                          Giá Bán Buôn (Wholesale Price)
+                        </h4>
 
-                {/* No policies */}
-                {productPreview.retailPolicies.length === 0 && productPreview.salesPolicies.length === 0 && productPreview.promotions.length === 0 && (
-                  <div className="glass-card p-4 text-center" style={{ borderRadius: 10, background: 'rgba(255,255,255,0.02)' }}>
-                    <span className="text-[10px] text-[var(--text-muted)]">Sản phẩm chưa tham gia chính sách ưu đãi nào</span>
-                  </div>
-                )}
+                        <div className="flex flex-col gap-3.5 text-xs">
+                          {/* Step 1: Base Price */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">1. Giá gốc</span>
+                            <span className="font-bold text-white">{Math.round(flow.originalPrice).toLocaleString()}đ</span>
+                          </div>
 
-                {/* Final price */}
-                {productPreview.finalPrice !== productPreview.basePrice && (
-                  <div className="glass-card p-3 flex items-center justify-between mt-3" style={{ borderRadius: 10, borderColor: 'rgba(99,102,241,0.4)' }}>
-                    <span className="text-[10px] text-[var(--accent-light)] font-bold">Giá sau ưu đãi</span>
-                    <span className="text-base font-black text-white">{Math.round(productPreview.finalPrice).toLocaleString()}đ</span>
+                          {/* Arrow down icon */}
+                          <div className="flex justify-center text-slate-600 my-[-6px]">↓</div>
+
+                          {/* Step 2: Sales Policy */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-slate-400">2. Ưu đãi Chính sách bán hàng</span>
+                              {flow.appliedPolicies.map(p => (
+                                <span key={p.id} className="text-[9px] text-indigo-350 font-semibold mt-0.5">
+                                  • {p.name} ({p.adjustmentValue < 0 ? '' : '+'}{p.adjustmentValue}{p.adjustmentType === 'PERCENTAGE' ? '%' : 'đ'})
+                                </span>
+                              ))}
+                            </div>
+                            <span className={`font-bold ${flow.policyDiscount > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                              -{Math.round(flow.policyDiscount).toLocaleString()}đ
+                            </span>
+                          </div>
+
+                          {/* Arrow down icon */}
+                          <div className="flex justify-center text-slate-600 my-[-6px]">↓</div>
+
+                          {/* Step 3: Price after policy */}
+                          <div className="flex items-center justify-between border-t border-slate-900/60 pt-2.5">
+                            <span className="text-slate-400">3. Giá sau chính sách</span>
+                            <span className="font-semibold text-slate-300">{Math.round(flow.priceAfterPolicy).toLocaleString()}đ</span>
+                          </div>
+
+                          {/* Arrow down icon */}
+                          <div className="flex justify-center text-slate-600 my-[-6px]">↓</div>
+
+                          {/* Step 4: Promotion */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-slate-400">4. Chương trình khuyến mãi</span>
+                              {flow.appliedPromotions.map(p => (
+                                <span key={p.id} className="text-[9px] text-emerald-300 font-semibold mt-0.5">
+                                  • {p.name} ({p.adjustmentValue < 0 ? '' : '+'}{p.adjustmentValue}{p.adjustmentType === 'PERCENTAGE' ? '%' : 'đ'})
+                                </span>
+                              ))}
+                            </div>
+                            <span className={`font-bold ${flow.promotionDiscount > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                              -{Math.round(flow.promotionDiscount).toLocaleString()}đ
+                            </span>
+                          </div>
+
+                          {/* Border and Final Price */}
+                          <div className="border-t border-slate-800/80 pt-3 flex items-center justify-between mt-1">
+                            <span className="font-bold text-slate-300">Giá bán sau khuyến mãi</span>
+                            <span className="text-base font-extrabold text-white">{Math.round(flow.finalPrice).toLocaleString()}đ</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* RETAIL FLOW CARD */}
+                  {productPreview.retailFlow && (() => {
+                    const flow = productPreview.retailFlow;
+                    const minQty = productPreview.minPurchaseQuantity || 1;
+                    const isActive = previewQuantity < minQty;
+                    return (
+                      <div 
+                        className={`glass-card p-5 relative overflow-hidden transition-all duration-300 ${
+                          isActive ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-950/5' : 'opacity-50 border-slate-800/60'
+                        }`} 
+                        style={{ borderRadius: 16 }}
+                      >
+                        {isActive && (
+                          <div className="absolute top-0 right-0 bg-amber-500 text-white px-3 py-0.5 rounded-bl-xl text-[8px] font-black uppercase tracking-widest">
+                            Đang áp dụng (SL &lt; {minQty})
+                          </div>
+                        )}
+                        <h4 className="text-xs font-bold text-white mb-4 flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-amber-400' : 'bg-slate-500'}`} />
+                          Giá Bán Lẻ (Retail Price)
+                        </h4>
+
+                        <div className="flex flex-col gap-3.5 text-xs">
+                          {/* Step 1: Base Price */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">1. Giá gốc</span>
+                            <span className="font-bold text-white">{Math.round(flow.originalPrice).toLocaleString()}đ</span>
+                          </div>
+
+                          {/* Arrow down icon */}
+                          <div className="flex justify-center text-slate-600 my-[-6px]">↓</div>
+
+                          {/* Step 2: Sales Policy */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-slate-400">2. Ưu đãi Chính sách bán hàng</span>
+                              {flow.appliedPolicies.map(p => (
+                                <span key={p.id} className="text-[9px] text-indigo-350 font-semibold mt-0.5">
+                                  • {p.name} ({p.adjustmentValue < 0 ? '' : '+'}{p.adjustmentValue}{p.adjustmentType === 'PERCENTAGE' ? '%' : 'đ'})
+                                </span>
+                              ))}
+                              {flow.appliedPolicies.length === 0 && (
+                                <span className="text-[8px] text-slate-550 italic mt-0.5">
+                                  {productPreview.wholesaleFlow?.appliedPolicies && productPreview.wholesaleFlow.appliedPolicies.length > 0
+                                    ? `Không áp dụng (${productPreview.wholesaleFlow.appliedPolicies.map(p => p.conditionText).join(', ')} trên CSBH)`
+                                    : `Không áp dụng trên CSBH`}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`font-bold ${flow.policyDiscount > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                              -{Math.round(flow.policyDiscount).toLocaleString()}đ
+                            </span>
+                          </div>
+
+                          {/* Arrow down icon */}
+                          <div className="flex justify-center text-slate-600 my-[-6px]">↓</div>
+
+                          {/* Step 3: Price after policy */}
+                          <div className="flex items-center justify-between border-t border-slate-900/60 pt-2.5">
+                            <span className="text-slate-400">3. Giá sau chính sách</span>
+                            <span className="font-semibold text-slate-300">{Math.round(flow.priceAfterPolicy).toLocaleString()}đ</span>
+                          </div>
+
+                          {/* Arrow down icon */}
+                          <div className="flex justify-center text-slate-600 my-[-6px]">↓</div>
+
+                          {/* Step 4: Promotion */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-slate-400">4. Chương trình khuyến mãi</span>
+                              {flow.appliedPromotions.map(p => (
+                                <span key={p.id} className="text-[9px] text-emerald-300 font-semibold mt-0.5">
+                                  • {p.name} ({p.adjustmentValue < 0 ? '' : '+'}{p.adjustmentValue}{p.adjustmentType === 'PERCENTAGE' ? '%' : 'đ'})
+                                </span>
+                              ))}
+                              {flow.appliedPromotions.length === 0 && (
+                                <span className="text-[8px] text-slate-550 italic mt-0.5">
+                                  {productPreview.wholesaleFlow?.appliedPromotions && productPreview.wholesaleFlow.appliedPromotions.length > 0
+                                    ? `Không áp dụng (${productPreview.wholesaleFlow.appliedPromotions.map(p => p.conditionText).join(', ')} trên CTKM)`
+                                    : `Không áp dụng trên CTKM`}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`font-bold ${flow.promotionDiscount > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                              -{Math.round(flow.promotionDiscount).toLocaleString()}đ
+                            </span>
+                          </div>
+
+                          {/* Border and Final Price */}
+                          <div className="border-t border-slate-800/80 pt-3 flex items-center justify-between mt-1">
+                            <span className="font-bold text-slate-300">Giá bán lẻ sau khuyến mãi</span>
+                            <span className="text-base font-extrabold text-white">{Math.round(flow.finalPrice).toLocaleString()}đ</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Final calculated price notice */}
+                <div className="glass-card p-4 flex items-center justify-between mt-6 border-indigo-500/30" style={{ borderRadius: 12, background: 'rgba(99,102,241,0.02)' }}>
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={16} className="text-indigo-400" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Giá đặt hàng thực tế áp dụng (Số lượng = {previewQuantity})</span>
+                      <span className="text-[11px] text-white font-bold">
+                        {previewQuantity < (productPreview.minPurchaseQuantity || 1) 
+                          ? `Mua lẻ (SL < ${productPreview.minPurchaseQuantity || 1}) -> Áp dụng Giá bán lẻ` 
+                          : `Mua buôn (SL >= ${productPreview.minPurchaseQuantity || 1}) -> Áp dụng Giá bán`
+                        }
+                      </span>
+                    </div>
                   </div>
-                )}
+                  <span className="text-lg font-black text-indigo-300">{Math.round(productPreview.finalPrice).toLocaleString()}đ</span>
+                </div>
               </div>
             )}
           </div>

@@ -336,4 +336,118 @@ public class SalesPolicyServiceTest {
         // Assert: Chọn giá tốt nhất cho đại lý (thấp nhất) -> 80000.0
         assertEquals(80000.0, finalPrice);
     }
+
+    @Test
+    public void testCalculateProductPolicyFlows_WholesaleAndRetailRules() {
+        // Setup RETAIL_POLICY (Phase 0: Tăng 20% khi mua lẻ)
+        SalesPolicy retailPolicy = new SalesPolicy();
+        retailPolicy.setId(10L);
+        retailPolicy.setName("Retail Policy +20%");
+        retailPolicy.setActive(true);
+        retailPolicy.setPolicyType("RETAIL_POLICY");
+        retailPolicy.setTargetType("PRODUCT_QTY");
+        retailPolicy.setApplyToAllProducts(true);
+        
+        SalesPolicyTier tierRetail = new SalesPolicyTier();
+        tierRetail.setTierIndex(1);
+        tierRetail.setOperator("LT");
+        tierRetail.setThresholdValue(5.0); // min purchase qty is 5
+        tierRetail.setAdjustmentType("PERCENTAGE");
+        tierRetail.setAdjustmentValue(20.0); // +20%
+        retailPolicy.getTiers().add(tierRetail);
+
+        // Setup SALES_POLICY (CSBH: Giảm 10% theo số lượng >= 5)
+        SalesPolicy salesPolicyQty = new SalesPolicy();
+        salesPolicyQty.setId(11L);
+        salesPolicyQty.setName("CSBH Qty GTE 5");
+        salesPolicyQty.setActive(true);
+        salesPolicyQty.setPolicyType("SALES_POLICY");
+        salesPolicyQty.setTargetType("PRODUCT_QTY");
+        salesPolicyQty.setApplyToAllProducts(true);
+
+        SalesPolicyTier tierQty = new SalesPolicyTier();
+        tierQty.setTierIndex(1);
+        tierQty.setOperator("GTE");
+        tierQty.setThresholdValue(5.0); // GTE 5 (>= minPurchaseQuantity) -> Only Wholesale flow gets this!
+        tierQty.setAdjustmentType("PERCENTAGE");
+        tierQty.setAdjustmentValue(-10.0); // -10%
+        salesPolicyQty.getTiers().add(tierQty);
+
+        // Setup SALES_POLICY (CSBH: Giảm 5% theo số lượng >= 2)
+        SalesPolicy salesPolicyQty2 = new SalesPolicy();
+        salesPolicyQty2.setId(12L);
+        salesPolicyQty2.setName("CSBH Qty GTE 2");
+        salesPolicyQty2.setActive(true);
+        salesPolicyQty2.setPolicyType("SALES_POLICY");
+        salesPolicyQty2.setTargetType("PRODUCT_QTY");
+        salesPolicyQty2.setApplyToAllProducts(true);
+
+        SalesPolicyTier tierQty2 = new SalesPolicyTier();
+        tierQty2.setTierIndex(1);
+        tierQty2.setOperator("GTE");
+        tierQty2.setThresholdValue(2.0); // GTE 2 (< minPurchaseQuantity) -> BOTH flows get this!
+        tierQty2.setAdjustmentType("PERCENTAGE");
+        tierQty2.setAdjustmentValue(-5.0); // -5%
+        salesPolicyQty2.getTiers().add(tierQty2);
+
+        // Setup PROMOTION (CTKM: Giảm 1000đ fixed value)
+        SalesPolicy promotion = new SalesPolicy();
+        promotion.setId(13L);
+        promotion.setName("CTKM Fixed");
+        promotion.setActive(true);
+        promotion.setPolicyType("PROMOTION");
+        promotion.setTargetType("ORDER_VALUE"); // Order value condition -> BOTH flows get this!
+        promotion.setApplyToAllProducts(true);
+
+        SalesPolicyTier tierPromo = new SalesPolicyTier();
+        tierPromo.setTierIndex(1);
+        tierPromo.setOperator("GTE");
+        tierPromo.setThresholdValue(0.0);
+        tierPromo.setAdjustmentType("FIXED_AMOUNT");
+        tierPromo.setAdjustmentValue(-1000.0); // -1000 VND
+        promotion.getTiers().add(tierPromo);
+
+        when(salesPolicyRepository.findByActiveTrueOrderByIdDesc())
+                .thenReturn(Arrays.asList(retailPolicy, salesPolicyQty, salesPolicyQty2, promotion));
+
+        Product product = new Product();
+        product.setId(10L);
+        product.setBasePrice(10000.0);
+        product.setMinPurchaseQuantity(5); // Q_min = 5
+
+        Agency agency = new Agency();
+        agency.setId(100L);
+
+        // Case A: Buy quantity = 2 (quantity < Q_min)
+        com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO details = 
+                salesPolicyService.calculateProductPolicyFlows(product, agency, 2, 10000.0, null, null, null, null, null);
+
+        assertNotNull(details);
+        assertEquals(5.0, details.getMinPurchaseQuantity());
+        
+        // Retail Flow checks
+        assertEquals(12000.0, details.getRetailFlow().getOriginalPrice());
+        assertEquals(600.0, details.getRetailFlow().getPolicyDiscount());
+        assertEquals(11400.0, details.getRetailFlow().getPriceAfterPolicy());
+        assertEquals(1000.0, details.getRetailFlow().getPromotionDiscount());
+        assertEquals(10400.0, details.getRetailFlow().getFinalPrice());
+
+        // Wholesale Flow checks
+        assertEquals(10000.0, details.getWholesaleFlow().getOriginalPrice());
+        assertEquals(500.0, details.getWholesaleFlow().getPolicyDiscount());
+        assertEquals(9500.0, details.getWholesaleFlow().getPriceAfterPolicy());
+        assertEquals(1000.0, details.getWholesaleFlow().getPromotionDiscount());
+        assertEquals(8500.0, details.getWholesaleFlow().getFinalPrice());
+
+        // Since quantity = 2 < 5, final price should be retail final price (10400.0)
+        assertEquals(10400.0, details.getFinalPrice());
+
+        // Case B: Buy quantity = 5 (quantity >= Q_min)
+        com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO detailsB = 
+                salesPolicyService.calculateProductPolicyFlows(product, agency, 5, 10000.0, null, null, null, null, null);
+        
+        assertEquals(9000.0, detailsB.getWholesaleFlow().getPriceAfterPolicy());
+        assertEquals(8000.0, detailsB.getWholesaleFlow().getFinalPrice());
+        assertEquals(8000.0, detailsB.getFinalPrice()); // quantity = 5 >= 5
+    }
 }
