@@ -107,7 +107,7 @@ public class ProductDTO {
         this.basePrice = product.getBasePrice();
         this.dropshipPrice = product.getDropshipPrice();
         this.stockQuantity = product.getStockQuantity();
-        this.isDropship = product.isDropship();
+        this.isDropship = product.getDropship() != null ? product.getDropship() : false;
         this.imageUrl = product.getImageUrl();
         this.isAppVisible = product.getIsAppVisible() != null ? product.getIsAppVisible() : true;
         this.isWebVisible = product.getIsWebVisible() != null ? product.getIsWebVisible() : true;

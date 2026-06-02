@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
+import { retailTrendApi, RetailTrendConfig } from '@/lib/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -16,6 +17,19 @@ export default function SettingsPage() {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Retail trend config state
+  const [trendConfig, setTrendConfig] = useState<RetailTrendConfig>({
+    increaseLabel: 'Tăng thêm',
+    increaseColor: '#ef4444',
+    decreaseLabel: 'Giảm đi',
+    decreaseColor: '#10b981',
+    neutralLabel: 'Giữ nguyên',
+    neutralColor: '#94a3b8',
+  });
+  const [trendLoading, setTrendLoading] = useState(true);
+  const [trendSaving, setTrendSaving] = useState(false);
+  const [trendMessage, setTrendMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Redirect if not COMPANY role
   useEffect(() => {
@@ -47,9 +61,26 @@ export default function SettingsPage() {
     }
   }, [token]);
 
+  // Load retail trend config
+  const loadTrendConfig = useCallback(async () => {
+    try {
+      setTrendLoading(true);
+      const cfg = await retailTrendApi.get();
+      setTrendConfig(cfg);
+    } catch {
+      // use defaults
+    } finally {
+      setTrendLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (user && token) loadConfig();
   }, [user, token, loadConfig]);
+
+  useEffect(() => {
+    if (user && token) loadTrendConfig();
+  }, [user, token, loadTrendConfig]);
 
   const handleSave = async () => {
     const days = parseInt(inputDays, 10);
@@ -82,6 +113,19 @@ export default function SettingsPage() {
       setMessage({ type: 'error', text: '❌ Không thể kết nối đến máy chủ.' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveTrend = async () => {
+    setTrendSaving(true);
+    setTrendMessage(null);
+    try {
+      await retailTrendApi.update(trendConfig);
+      setTrendMessage({ type: 'success', text: '✅ Đã cập nhật cấu hình xu hướng giá bán lẻ.' });
+    } catch (e: any) {
+      setTrendMessage({ type: 'error', text: `❌ Lỗi: ${e.message || 'Không thể lưu'}` });
+    } finally {
+      setTrendSaving(false);
     }
   };
 
@@ -280,6 +324,182 @@ export default function SettingsPage() {
             }}>
               {message.text}
             </div>
+          )}
+        </div>
+
+        {/* Retail Trend Config Card */}
+        <div className="glass-card fade-in-up" style={{ padding: 32, marginBottom: 24, animationDelay: '0.1s' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 10,
+              background: 'rgba(99,102,241,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, border: '1px solid rgba(99,102,241,0.3)', flexShrink: 0,
+            }}>📈</div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>
+                Hiển thị xu hướng giá bán lẻ
+              </h2>
+              <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                Cấu hình nhãn và màu sắc hiển thị xu hướng giá khi áp dụng chính sách bán lẻ.
+                Hiển thị trong phần <strong>Xem trước</strong> của form tạo chính sách bán lẻ.
+              </p>
+            </div>
+          </div>
+
+          {trendLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+              <div style={{
+                width: 24, height: 24,
+                border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
+                borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+              }} />
+            </div>
+          ) : (
+            <>
+              {/* Increase */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Khi giá tăng
+                </label>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: trendConfig.increaseColor, flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    value={trendConfig.increaseLabel}
+                    onChange={e => setTrendConfig({ ...trendConfig, increaseLabel: e.target.value })}
+                    placeholder="Tăng thêm"
+                    style={{
+                      flex: 1, padding: '10px 14px', borderRadius: 8,
+                      border: '1.5px solid var(--border)', background: 'var(--surface)',
+                      color: 'var(--text)', fontSize: '0.95rem', outline: 'none',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  />
+                  <input
+                    type="color"
+                    value={trendConfig.increaseColor}
+                    onChange={e => setTrendConfig({ ...trendConfig, increaseColor: e.target.value })}
+                    style={{ width: 44, height: 44, borderRadius: 8, cursor: 'pointer', border: '1.5px solid var(--border)', background: 'none', padding: 2 }}
+                  />
+                  <span style={{
+                    padding: '8px 14px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600,
+                    color: trendConfig.increaseColor, background: `${trendConfig.increaseColor}15`,
+                    border: `1px solid ${trendConfig.increaseColor}40`, whiteSpace: 'nowrap',
+                  }}>
+                    {trendConfig.increaseLabel || 'Tăng thêm'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Decrease */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Khi giá giảm
+                </label>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: trendConfig.decreaseColor, flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    value={trendConfig.decreaseLabel}
+                    onChange={e => setTrendConfig({ ...trendConfig, decreaseLabel: e.target.value })}
+                    placeholder="Giảm đi"
+                    style={{
+                      flex: 1, padding: '10px 14px', borderRadius: 8,
+                      border: '1.5px solid var(--border)', background: 'var(--surface)',
+                      color: 'var(--text)', fontSize: '0.95rem', outline: 'none',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  />
+                  <input
+                    type="color"
+                    value={trendConfig.decreaseColor}
+                    onChange={e => setTrendConfig({ ...trendConfig, decreaseColor: e.target.value })}
+                    style={{ width: 44, height: 44, borderRadius: 8, cursor: 'pointer', border: '1.5px solid var(--border)', background: 'none', padding: 2 }}
+                  />
+                  <span style={{
+                    padding: '8px 14px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600,
+                    color: trendConfig.decreaseColor, background: `${trendConfig.decreaseColor}15`,
+                    border: `1px solid ${trendConfig.decreaseColor}40`, whiteSpace: 'nowrap',
+                  }}>
+                    {trendConfig.decreaseLabel || 'Giảm đi'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Neutral */}
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Khi giá không đổi
+                </label>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: trendConfig.neutralColor, flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    value={trendConfig.neutralLabel}
+                    onChange={e => setTrendConfig({ ...trendConfig, neutralLabel: e.target.value })}
+                    placeholder="Giữ nguyên"
+                    style={{
+                      flex: 1, padding: '10px 14px', borderRadius: 8,
+                      border: '1.5px solid var(--border)', background: 'var(--surface)',
+                      color: 'var(--text)', fontSize: '0.95rem', outline: 'none',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  />
+                  <input
+                    type="color"
+                    value={trendConfig.neutralColor}
+                    onChange={e => setTrendConfig({ ...trendConfig, neutralColor: e.target.value })}
+                    style={{ width: 44, height: 44, borderRadius: 8, cursor: 'pointer', border: '1.5px solid var(--border)', background: 'none', padding: 2 }}
+                  />
+                  <span style={{
+                    padding: '8px 14px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600,
+                    color: trendConfig.neutralColor, background: `${trendConfig.neutralColor}15`,
+                    border: `1px solid ${trendConfig.neutralColor}40`, whiteSpace: 'nowrap',
+                  }}>
+                    {trendConfig.neutralLabel || 'Giữ nguyên'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Save button */}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <button
+                  onClick={handleSaveTrend}
+                  disabled={trendSaving}
+                  style={{
+                    padding: '10px 28px', borderRadius: 8, cursor: 'pointer',
+                    border: 'none',
+                    background: trendSaving
+                      ? 'rgba(99,102,241,0.5)'
+                      : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    color: 'white', fontWeight: 600, fontSize: '0.95rem',
+                    boxShadow: trendSaving ? 'none' : '0 4px 14px rgba(99,102,241,0.4)',
+                    transition: 'all 0.2s ease', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {trendSaving ? '⏳ Đang lưu...' : '💾 Lưu cài đặt'}
+                </button>
+              </div>
+
+              {/* Message */}
+              {trendMessage && (
+                <div style={{
+                  marginTop: 16, padding: '12px 16px', borderRadius: 8,
+                  background: trendMessage.type === 'success'
+                    ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                  border: `1px solid ${trendMessage.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                  color: trendMessage.type === 'success' ? '#10b981' : '#ef4444',
+                  fontSize: '0.9rem', fontWeight: 500,
+                  animation: 'fadeIn 0.3s ease',
+                }}>
+                  {trendMessage.text}
+                </div>
+              )}
+            </>
           )}
         </div>
 

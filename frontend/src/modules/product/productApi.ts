@@ -58,6 +58,7 @@ export interface ProductDTO {
   showDiscount?: boolean;
   oldAppliedPrice?: number;
   priceChangeRatio?: number;
+  sku?: string;
 }
 
 export interface ProductRequest {

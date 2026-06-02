@@ -52,4 +52,9 @@ public class PriceUpdateVoucherController {
     public List<PriceUpdateVoucherDTO> getActiveHistoryForAgency(@PathVariable Long agencyId) {
         return voucherService.getAppliedVouchersForAgency(agencyId);
     }
+
+    @GetMapping("/active-history/price-list/{priceListId}")
+    public List<PriceUpdateVoucherDTO> getActiveHistoryForPriceList(@PathVariable Long priceListId) {
+        return voucherService.getAppliedVouchersForPriceList(priceListId);
+    }
 }

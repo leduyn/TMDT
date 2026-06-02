@@ -1,0 +1,7 @@
+ALTER TABLE sales_policies 
+  ADD COLUMN IF NOT EXISTS policy_type VARCHAR(20) NOT NULL DEFAULT 'SALES_POLICY',
+  ADD COLUMN IF NOT EXISTS min_order_value DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS max_discount_per_order DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS max_usage_per_customer INTEGER,
+  ADD COLUMN IF NOT EXISTS applicable_payment_methods VARCHAR(500),
+  ADD COLUMN IF NOT EXISTS applicable_order_sources VARCHAR(500);
