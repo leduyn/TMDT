@@ -2286,17 +2286,24 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
                           }
 
                           return (
-                            <div className="text-[10px] text-amber-400 mt-1 font-semibold flex items-center gap-1 flex-wrap">
-                              <span>Mua lẻ (SL mua &lt; SLTT SP):</span>
-                              {trendLabel && (
-                                <span className="flex items-center gap-0.5 font-bold" style={{ color: trendColor }}>
-                                  {trendLabel}
-                                  {trendIcon}
-                                </span>
-                              )}
-                              <span className="text-[9px] text-[var(--text-secondary)] font-medium">{valText}</span>
-                              <span className="text-white font-bold ml-0.5">{Math.round(retailPrice).toLocaleString()}đ</span>
-                            </div>
+                            <>
+                              <div className="text-[10px] text-amber-400 mt-1 font-semibold flex items-center gap-1 flex-wrap">
+                                <span>Mua lẻ (SL mua &lt; SLTT SP):</span>
+                                {trendLabel && (
+                                  <span className="flex items-center gap-0.5 font-bold" style={{ color: trendColor }}>
+                                    {trendLabel}
+                                    {trendIcon}
+                                  </span>
+                                )}
+                                <span className="text-[9px] text-[var(--text-secondary)] font-medium">{valText}</span>
+                                <span className="text-white font-bold ml-0.5">{Math.round(retailPrice).toLocaleString()}đ</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-1 font-medium flex items-center gap-1 flex-wrap">
+                                <span>Mua buôn (SL mua &gt;= SLTT SP):</span>
+                                <span className="text-[9px] text-[var(--text-muted)] line-through">{Math.round(basePrice).toLocaleString()}đ</span>
+                                <span className="text-white font-bold">{Math.round(basePrice).toLocaleString()}đ</span>
+                              </div>
+                            </>
                           );
                         })()}
                       </>
@@ -2504,9 +2511,55 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       <span className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">Chương trình khuyến mãi</span>
                     </div>
-                    {productPreview.promotions.map(p => (
-                      <PolicyEffectCard key={p.id} effect={p} isCurrent={p.id === initialId} />
-                    ))}
+                    {(() => {
+                      const grouped: { [key: string]: PolicyEffect[] } = {};
+                      productPreview.promotions.forEach(p => {
+                        const key = `${p.id}-${p.name}`;
+                        if (!grouped[key]) grouped[key] = [];
+                        grouped[key].push(p);
+                      });
+                      return Object.entries(grouped).map(([key, effects]) => {
+                        const first = effects[0];
+                        const retailEffect = effects.find(e => e.conditionText.includes('giá bán lẻ') || e.conditionText.includes('< SL tối thiểu'));
+                        const normalEffect = effects.find(e => e.conditionText.includes('giá bán thường') || e.conditionText.includes('>= SL tối thiểu')) || first;
+                        const formatPrice = (pr: number) => Math.round(pr).toLocaleString() + 'đ';
+                        return (
+                          <div key={key} className="glass-card p-3 mb-2" style={{ borderRadius: 10, borderColor: first.id === initialId ? 'rgba(99,102,241,0.5)' : 'var(--border)', background: first.id === initialId ? 'rgba(99,102,241,0.05)' : undefined }}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-[10px] font-bold text-white truncate">{first.name}</span>
+                              {first.id === initialId && <span className="text-[7px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Đang soạn</span>}
+                            </div>
+                            {/* Normal price effect */}
+                            <div className="flex items-center justify-between py-1 border-b border-slate-800/60 last:border-b-0">
+                              <span className="text-[8px] text-[var(--text-muted)]">{normalEffect.conditionText}</span>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span className="text-[9px] font-bold" style={{ color: (normalEffect.adjustmentValue || 0) < 0 ? '#34d399' : '#f87171' }}>
+                                  {(normalEffect.adjustmentValue || 0) >= 0 ? '+' : ''}{normalEffect.adjustmentValue}%
+                                </span>
+                                <span className="text-[9px] text-[var(--text-muted)] line-through">{formatPrice(normalEffect.originalPrice)}</span>
+                                <span className="text-[9px] font-bold text-white">→ {formatPrice(normalEffect.adjustedPrice)}</span>
+                              </div>
+                            </div>
+                            {/* Retail price effect (if present) */}
+                            {retailEffect && (
+                              <div className="flex items-center justify-between py-1">
+                                <span className="text-[8px] text-[var(--text-muted)]">{retailEffect.conditionText}</span>
+                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                  <span className="text-[9px] font-bold" style={{ color: (retailEffect.adjustmentValue || 0) < 0 ? '#34d399' : '#f87171' }}>
+                                    {(retailEffect.adjustmentValue || 0) >= 0 ? '+' : ''}{retailEffect.adjustmentValue}%
+                                  </span>
+                                  <span className="text-[9px] text-[var(--text-muted)] line-through">{formatPrice(retailEffect.originalPrice)}</span>
+                                  <span className="text-[9px] font-bold text-white">→ {formatPrice(retailEffect.adjustedPrice)}</span>
+                                </div>
+                              </div>
+                            )}
+                            {first.giftProductName && (
+                              <div className="text-[8px] bg-emerald-950/40 text-emerald-300 px-1.5 py-0.5 rounded font-semibold mt-1 inline-block">🎁 {first.giftProductName}{first.giftQuantity ? ` x${first.giftQuantity}` : ''}</div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
 

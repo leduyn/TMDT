@@ -823,6 +823,43 @@ public class SalesPolicyService {
         return bestTier;
     }
 
+    private int getWholesaleQuantity(SalesPolicy policy, Product product, Double basePrice) {
+        double minQtyVal = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+        int minQty = (int) Math.ceil(minQtyVal);
+        if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
+            if (policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY) {
+                return minQty;
+            } else {
+                // CUSTOM_QTY
+                if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
+                    double minThreshold = policy.getTiers().stream()
+                        .mapToDouble(t -> t.getThresholdValue() != null ? t.getThresholdValue() : 0.0)
+                        .min()
+                        .orElse(minQtyVal);
+                    return (int) Math.ceil(minThreshold);
+                }
+                return minQty;
+            }
+        } else if ("ORDER_VALUE".equalsIgnoreCase(policy.getTargetType())) {
+            // Với ORDER_VALUE: evaluationValue = price * qty phải đạt thresholdValue của tier
+            // Tính số lượng tối thiểu để đạt threshold thấp nhất
+            int baseQty = Math.max(1, minQty - 1);
+            if (basePrice != null && basePrice > 0 && policy.getTiers() != null && !policy.getTiers().isEmpty()) {
+                double lowestThreshold = policy.getTiers().stream()
+                    .mapToDouble(t -> t.getThresholdValue() != null ? t.getThresholdValue() : 0.0)
+                    .min()
+                    .orElse(0.0);
+                if (lowestThreshold > 0) {
+                    int qtyNeeded = (int) Math.ceil(lowestThreshold / basePrice);
+                    // Dùng qty lớn hơn để đảm bảo đạt threshold
+                    baseQty = Math.max(baseQty, qtyNeeded);
+                }
+            }
+            return baseQty;
+        }
+        return minQty;
+    }
+
     public ProductPolicyPreviewDTO previewProductPolicies(Product product, int quantity, Agency agency, Double basePrice) {
         ProductPolicyPreviewDTO result = new ProductPolicyPreviewDTO();
         result.setBasePrice(basePrice);
@@ -836,78 +873,117 @@ public class SalesPolicyService {
                              (p.getEndDate() == null || p.getEndDate().isAfter(now)))
                 .collect(Collectors.toList());
 
-        Double runningPrice = basePrice;
+        // Separate promotions from other policies first
+        List<SalesPolicy> promotions = new ArrayList<>();
+        for (SalesPolicy policy : activePolicies) {
+            if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
+                promotions.add(policy);
+            }
+        }
 
-        // Phase 0: RETAIL_POLICY
-        // Use retailQty = 0 to always trigger the retail condition (qty < minPurchaseQuantity)
-        int retailQty = 0;
+        // Determine quantities for previewing
+        double minQtyVal = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+        int minQty = (int) Math.ceil(minQtyVal);
+        int retailQty = Math.max(0, minQty - 1);
+
+        // Phase 0: RETAIL_POLICY (always computed from basePrice independently)
+        Double retailPrice = basePrice;
         for (SalesPolicy policy : activePolicies) {
             if (!"RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
-            if (!isPolicyApplicable(policy, product, agency, retailQty, runningPrice)) continue;
-            double retPrice = calculateRetailPrice(policy, product, retailQty, runningPrice);
-            if (retPrice != runningPrice) {
+            if (!isPolicyApplicable(policy, product, agency, retailQty, basePrice)) continue;
+            double retPrice = calculateRetailPrice(policy, product, retailQty, basePrice);
+            if (retPrice != basePrice) {
                 PolicyEffectDTO eff = new PolicyEffectDTO();
                 eff.setId(policy.getId());
                 eff.setName(policy.getName());
                 eff.setPolicyType("RETAIL_POLICY");
-                eff.setOriginalPrice(runningPrice);
+                eff.setOriginalPrice(basePrice);
                 eff.setAdjustedPrice(retPrice);
                 eff.setAdjustmentType(policy.getTiers().stream().findFirst().map(SalesPolicyTier::getAdjustmentType).orElse(null));
                 eff.setAdjustmentValue(policy.getTiers().stream().findFirst().map(SalesPolicyTier::getAdjustmentValue).orElse(null));
-                double minQty = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity() : 1;
-                eff.setConditionText("SL mua < SL tối thiểu (" + (int)minQty + " SP)");
+                eff.setConditionText("SL mua < SL tối thiểu (" + minQty + " SP)");
                 SalesPolicyTier tier = policy.getTiers().stream().findFirst().orElse(null);
                 if (tier != null && tier.getGiftProduct() != null) {
                     eff.setGiftProductName(tier.getGiftProduct().getName());
                     eff.setGiftQuantity(tier.getGiftQuantity());
                 }
                 result.getRetailPolicies().add(eff);
-                runningPrice = retPrice;
+                retailPrice = retPrice;
                 break;
             }
         }
 
-        Double priceBeforeSales = runningPrice;
-
-        // Phase 1: SALES_POLICY
-        List<SalesPolicy> promotions = new ArrayList<>();
+        // Phase 1: SALES_POLICY (always computed from basePrice independently — NOT cascaded from retail)
+        Double normalPrice = basePrice;
         for (SalesPolicy policy : activePolicies) {
-            if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
-                promotions.add(policy);
-                continue;
-            }
+            if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) continue;
             if ("RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
-            if (!isPolicyApplicable(policy, product, agency, quantity, runningPrice)) continue;
-            double adjPrice = calculateAdjustedPrice(policy, product, quantity, runningPrice);
-            if (adjPrice == runningPrice) continue;
-            PolicyEffectDTO eff = buildPolicyEffect(policy, product, quantity, runningPrice, adjPrice);
+
+            int policyWholesaleQty = getWholesaleQuantity(policy, product, basePrice);
+
+            if (!isPolicyApplicable(policy, product, agency, policyWholesaleQty, basePrice)) continue;
+            double adjPrice = calculateAdjustedPrice(policy, product, policyWholesaleQty, basePrice);
+            if (adjPrice == basePrice) continue;
+            PolicyEffectDTO eff = buildPolicyEffect(policy, product, policyWholesaleQty, basePrice, adjPrice);
             result.getSalesPolicies().add(eff);
-            if (result.getSalesPolicies().size() == 1 || adjPrice < runningPrice) {
-                runningPrice = adjPrice;
+            if (result.getSalesPolicies().size() == 1 || adjPrice < normalPrice) {
+                normalPrice = adjPrice;
             }
         }
 
-        // Phase 2: PROMOTION
-        double promoBase = runningPrice;
+        // Final running price is the lower of retail and normal
+        Double runningPrice = Math.min(retailPrice, normalPrice);
+        result.setFinalPrice(runningPrice);
+
+        // Phase 2: PROMOTION on BOTH normalPrice and retailPrice
         for (SalesPolicy promotion : promotions) {
-            if (!isPolicyApplicable(promotion, product, agency, quantity, promoBase)) continue;
-            if (!isPromotionConditionMet(promotion, quantity, promoBase, null, null, null, null, null)) continue;
-            double adjPrice = calculateAdjustedPrice(promotion, product, quantity, promoBase);
-            if (adjPrice == promoBase) continue;
-            if (promotion.getMaxDiscountPerOrder() != null) {
-                double addDiscount = (promoBase - adjPrice) * quantity;
-                if (addDiscount > promotion.getMaxDiscountPerOrder()) {
-                    double allowedDiscountPerItem = promotion.getMaxDiscountPerOrder() / quantity;
-                    adjPrice = promoBase - allowedDiscountPerItem;
+            int promoWholesaleQty = getWholesaleQuantity(promotion, product, normalPrice);
+
+            // Compute promotion on normalPrice
+            if (isPolicyApplicable(promotion, product, agency, promoWholesaleQty, basePrice) &&
+                isPromotionConditionMet(promotion, promoWholesaleQty, basePrice, null, null, null, null, null)) {
+
+                double adjNormal = calculateAdjustedPrice(promotion, product, promoWholesaleQty, normalPrice);
+                if (adjNormal != normalPrice) {
+                    if (promotion.getMaxDiscountPerOrder() != null) {
+                        double addDiscount = (normalPrice - adjNormal) * promoWholesaleQty;
+                        if (addDiscount > promotion.getMaxDiscountPerOrder()) {
+                            double allowedDiscountPerItem = promotion.getMaxDiscountPerOrder() / promoWholesaleQty;
+                            adjNormal = normalPrice - allowedDiscountPerItem;
+                        }
+                    }
+                    double finalAdjNormal = Math.max(0.0, adjNormal);
+                    PolicyEffectDTO effNormal = buildPolicyEffect(promotion, product, promoWholesaleQty, normalPrice, finalAdjNormal);
+                    effNormal.setConditionText("Số lượng mua >= SL tối thiểu (giá bán thường)");
+                    result.getPromotions().add(effNormal);
                 }
             }
-            double finalAdjPrice = Math.max(0.0, adjPrice);
-            PolicyEffectDTO eff = buildPolicyEffect(promotion, product, quantity, promoBase, finalAdjPrice);
-            result.getPromotions().add(eff);
-            promoBase = Math.min(promoBase, finalAdjPrice);
+
+            // Compute promotion on retailPrice (only if different from normalPrice)
+            if (!retailPrice.equals(normalPrice)) {
+                int promoRetailQty = Math.max(1, retailQty);
+
+                if (isPolicyApplicable(promotion, product, agency, promoRetailQty, basePrice) &&
+                    isPromotionConditionMet(promotion, promoRetailQty, basePrice, null, null, null, null, null)) {
+
+                    double adjRetail = calculateAdjustedPrice(promotion, product, promoRetailQty, retailPrice);
+                    if (adjRetail != retailPrice) {
+                        if (promotion.getMaxDiscountPerOrder() != null) {
+                            double addDiscount = (retailPrice - adjRetail) * promoRetailQty;
+                            if (addDiscount > promotion.getMaxDiscountPerOrder()) {
+                                double allowedDiscountPerItem = promotion.getMaxDiscountPerOrder() / promoRetailQty;
+                                adjRetail = retailPrice - allowedDiscountPerItem;
+                            }
+                        }
+                        double finalAdjRetail = Math.max(0.0, adjRetail);
+                        PolicyEffectDTO effRetail = buildPolicyEffect(promotion, product, promoRetailQty, retailPrice, finalAdjRetail);
+                        effRetail.setConditionText("Số lượng mua < SL tối thiểu (giá bán lẻ)");
+                        result.getPromotions().add(effRetail);
+                    }
+                }
+            }
         }
 
-        result.setFinalPrice(promoBase);
         return result;
     }
 
