@@ -633,7 +633,7 @@ public class SalesPolicyService {
         for (ProductPolicyPreviewDTO.PolicyEffectDTO eff : retail.getAppliedPromotions()) {
             boolean alreadyAdded = false;
             for (ProductPolicyPreviewDTO.PolicyEffectDTO existing : dto.getPromotions()) {
-                if (existing.getId().equals(eff.getId()) && existing.getConditionText().equals(eff.getConditionText())) {
+                if (existing.getId().equals(eff.getId())) {
                     alreadyAdded = true;
                     break;
                 }
