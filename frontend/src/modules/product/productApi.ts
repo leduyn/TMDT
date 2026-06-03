@@ -27,6 +27,42 @@ export interface BrandRequest {
   logoUrl?: string;
 }
 
+export interface PolicyEffectDTO {
+  id: number;
+  name: string;
+  policyType: string;
+  conditionText: string;
+  adjustmentType: string;
+  adjustmentValue: number;
+  originalPrice: number;
+  adjustedPrice: number;
+  giftProductName?: string;
+  giftQuantity?: number;
+  conditionMet?: boolean | null;
+  conditionNote?: string;
+}
+
+export interface PriceFlowDetailsDTO {
+  originalPrice: number;
+  policyDiscount: number;
+  priceAfterPolicy: number;
+  promotionDiscount: number;
+  finalPrice: number;
+  appliedPolicies: PolicyEffectDTO[];
+  appliedPromotions: PolicyEffectDTO[];
+}
+
+export interface ProductPolicyPreviewDTO {
+  basePrice: number;
+  minPurchaseQuantity: number;
+  finalPrice: number;
+  retailPolicies: PolicyEffectDTO[];
+  salesPolicies: PolicyEffectDTO[];
+  promotions: PolicyEffectDTO[];
+  wholesaleFlow: PriceFlowDetailsDTO;
+  retailFlow: PriceFlowDetailsDTO;
+}
+
 export interface ProductDTO {
   id: number;
   name: string;
@@ -59,6 +95,8 @@ export interface ProductDTO {
   oldAppliedPrice?: number;
   priceChangeRatio?: number;
   sku?: string;
+  retailPriceEligible?: boolean;
+  policyPreview?: ProductPolicyPreviewDTO;
 }
 
 export interface ProductRequest {

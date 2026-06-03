@@ -6,6 +6,7 @@ import com.anhtin.tmdt.backend.modules.product.entity.ProductImage;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.anhtin.tmdt.backend.modules.product.entity.Brand;
+import com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO;
 
 /**
  * Response DTO for product information.
@@ -29,6 +30,14 @@ public class ProductDTO {
     private Boolean showDiscount;
     private Double oldAppliedPrice;
     private Double priceChangeRatio;
+
+    private Boolean retailPriceEligible;
+    private ProductPolicyPreviewDTO policyPreview;
+
+    public Boolean getRetailPriceEligible() { return retailPriceEligible; }
+    public void setRetailPriceEligible(Boolean v) { this.retailPriceEligible = v; }
+    public ProductPolicyPreviewDTO getPolicyPreview() { return policyPreview; }
+    public void setPolicyPreview(ProductPolicyPreviewDTO v) { this.policyPreview = v; }
 
     private Boolean isAppVisible;
     private Boolean isWebVisible;

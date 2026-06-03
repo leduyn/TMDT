@@ -396,6 +396,11 @@ public class SalesPolicyService {
         }
     }
 
+    public boolean isAgencyEligibleForRetailPrice(Product product, Agency agency, Double basePrice) {
+        Double retailPrice = getOriginalRetailPrice(product, agency, basePrice);
+        return retailPrice != null && !retailPrice.equals(basePrice);
+    }
+
     public Double getOriginalRetailPrice(Product product, Agency agency, Double basePrice) {
         LocalDateTime now = LocalDateTime.now();
         List<SalesPolicy> activePolicies = salesPolicyRepository.findByActiveTrueOrderByIdDesc().stream()
@@ -519,16 +524,6 @@ public class SalesPolicyService {
             if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) continue;
             if ("RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
             
-            boolean isQuantityApplied = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType());
-            if (isQuantityApplied) {
-                SalesPolicyTier tier = policy.getTiers().stream().findFirst().orElse(null);
-                if (tier != null && tier.getThresholdValue() != null) {
-                    if (tier.getThresholdValue() >= minQty) {
-                        continue;
-                    }
-                }
-            }
-            
             if (!isPolicyApplicable(policy, product, agency, quantity, retailPrice)) continue;
             
             double adjustedPrice = calculateAdjustedPrice(policy, product, quantity, retailPrice, true, minQty);
@@ -553,16 +548,6 @@ public class SalesPolicyService {
         Double runningRetailPrice = retailPriceAfterPolicy;
         for (SalesPolicy promotion : activePolicies) {
             if (!"PROMOTION".equalsIgnoreCase(promotion.getPolicyType())) continue;
-            
-            boolean isQuantityApplied = "PRODUCT_QTY".equalsIgnoreCase(promotion.getTargetType());
-            if (isQuantityApplied) {
-                SalesPolicyTier tier = promotion.getTiers().stream().findFirst().orElse(null);
-                if (tier != null && tier.getThresholdValue() != null) {
-                    if (tier.getThresholdValue() >= minQty) {
-                        continue;
-                    }
-                }
-            }
             
             if (!isPolicyApplicable(promotion, product, agency, quantity, retailPrice)) continue;
             if (!isPromotionConditionMet(promotion, quantity, retailPrice, totalOrderValue, paymentMethod, orderSource, customerId, null)) continue;
@@ -615,6 +600,8 @@ public class SalesPolicyService {
                 eff.setAdjustmentType(policy.getTiers().stream().findFirst().map(SalesPolicyTier::getAdjustmentType).orElse(null));
                 eff.setAdjustmentValue(policy.getTiers().stream().findFirst().map(SalesPolicyTier::getAdjustmentValue).orElse(null));
                 eff.setConditionText("SL mua < SL tối thiểu (" + minQty + " SP)");
+                eff.setConditionMet(true);
+                eff.setConditionNote("SL mua (" + quantity + ") < SL tối thiểu (" + minQty + " SP) → áp dụng giá bán lẻ");
                 SalesPolicyTier tier = policy.getTiers().stream().findFirst().orElse(null);
                 if (tier != null && tier.getGiftProduct() != null) {
                     eff.setGiftProductName(tier.getGiftProduct().getName());
@@ -771,68 +758,69 @@ public class SalesPolicyService {
         return true;
     }
 
-    private double calculateAdjustedPrice(SalesPolicy policy, Product product, int quantity, Double currentPrice, boolean isRetailFlow, int minQty) {
-        boolean matched = false;
-        String adjType = null;
-        Double adjValue = null;
-
-        // MIN_PRODUCT_QTY conditionType: chỉ dành cho SALES_POLICY, block retail flow.
-        // PROMOTION với bất kỳ conditionType nào đều dùng tier threshold thực tế (nánh else).
-        boolean isSalesPolicyMinQty = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
-                && policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY
-                && !"PROMOTION".equalsIgnoreCase(policy.getPolicyType());
-
-        if (isSalesPolicyMinQty) {
-            if (isRetailFlow) {
-                // CSBH dựa trên SL tối thiểu của sản phẩm: không áp dụng cho giá bán lẻ
-                return currentPrice;
-            }
-            double minQtyVal = product.getMinPurchaseQuantity() != null
-                ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
-            SalesPolicyTier firstTier = policy.getTiers().stream().findFirst().orElse(null);
-            if (firstTier != null && compareQuantity(quantity, minQtyVal, firstTier.getOperator())) {
-                matched = true;
-                if (policy.isApplyToAllProducts()) {
-                    adjType = firstTier.getAdjustmentType();
-                    adjValue = firstTier.getAdjustmentValue();
-                } else {
-                    SalesPolicyProductGroupItem matchedItem = findGroupItemForProduct(policy, product.getId());
-                    if (matchedItem != null && matchedItem.getAdjustmentType() != null) {
-                        adjType = matchedItem.getAdjustmentType();
-                        adjValue = matchedItem.getAdjustmentValue();
-                    } else {
-                        adjType = firstTier.getAdjustmentType();
-                        adjValue = firstTier.getAdjustmentValue();
-                    }
-                }
-            }
-        } else {
-            // Thường: CTKM hoặc CSBH theo giá trị đơn hàng / số lượng tùy chỉnh
-            double evaluationValue = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
-                ? quantity
-                : currentPrice * quantity;
-
-            SalesPolicyTier matchedTier = null;
+    private SalesPolicyTier findBestTier(SalesPolicy policy, Product product, int quantity, Double currentPrice, int minQty, boolean wholesale) {
+        if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
+            // PRODUCT_QTY: retail xét mốc threshold <= minQty, wholesale xét mốc threshold > minQty, chọn threshold cao nhất
+            SalesPolicyTier best = null;
             for (SalesPolicyTier tier : policy.getTiers()) {
-                // Với retail flow và PRODUCT_QTY: bỏ qua tier có threshold >= minQty
-                // (chỉ áp dụng với CSBH; CTKM cũng cần lọc nếu yêu cầu SL buôn)
-                if (isRetailFlow && "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
-                    if (tier.getThresholdValue() != null && tier.getThresholdValue() >= minQty) {
-                        continue;
+                if (tier.getThresholdValue() != null) {
+                    if (wholesale) {
+                        // Pass 1: ưu tiên mốc > minQty
+                        if (tier.getThresholdValue() > minQty && (best == null || tier.getThresholdValue() > best.getThresholdValue())) {
+                            best = tier;
+                        }
+                    } else {
+                        if (tier.getThresholdValue() <= minQty && (best == null || tier.getThresholdValue() > best.getThresholdValue())) {
+                            best = tier;
+                        }
                     }
                 }
-                if (compareQuantity(evaluationValue, tier.getThresholdValue(), tier.getOperator())) {
-                    matchedTier = tier;
+            }
+            // Wholesale fallback: nếu không có mốc nào > minQty, lấy mốc cao nhất
+            if (wholesale && best == null) {
+                for (SalesPolicyTier tier : policy.getTiers()) {
+                    if (tier.getThresholdValue() != null && (best == null || tier.getThresholdValue() > best.getThresholdValue())) {
+                        best = tier;
+                    }
                 }
             }
-            if (matchedTier != null) {
-                matched = true;
-                adjType = matchedTier.getAdjustmentType();
-                adjValue = matchedTier.getAdjustmentValue();
+            return best;
+        } else if ("ORDER_VALUE".equalsIgnoreCase(policy.getTargetType())) {
+            // ORDER_VALUE: mốc thỏa khi expectedOrderValue ≥ threshold, chọn threshold cao nhất
+            double expectedOrderValue = currentPrice * quantity;
+            SalesPolicyTier best = null;
+            for (SalesPolicyTier tier : policy.getTiers()) {
+                if (tier.getThresholdValue() != null && expectedOrderValue >= tier.getThresholdValue()) {
+                    best = tier;
+                }
+            }
+            return best;
+        }
+        return null;
+    }
+
+    private double calculateAdjustedPrice(SalesPolicy policy, Product product, int quantity, Double currentPrice, boolean isRetailFlow, int minQty) {
+        SalesPolicyTier bestTier = findBestTier(policy, product, quantity, currentPrice, minQty, !isRetailFlow);
+        if (bestTier == null) return currentPrice;
+
+        String adjType;
+        Double adjValue;
+
+        if (policy.isApplyToAllProducts()) {
+            adjType = bestTier.getAdjustmentType();
+            adjValue = bestTier.getAdjustmentValue();
+        } else {
+            SalesPolicyProductGroupItem matchedItem = findGroupItemForProduct(policy, product.getId());
+            if (matchedItem != null && matchedItem.getAdjustmentType() != null) {
+                adjType = matchedItem.getAdjustmentType();
+                adjValue = matchedItem.getAdjustmentValue();
+            } else {
+                adjType = bestTier.getAdjustmentType();
+                adjValue = bestTier.getAdjustmentValue();
             }
         }
 
-        if (!matched) return currentPrice;
+        if (adjType == null) return currentPrice;
 
         double adjustedPrice = currentPrice;
         if ("PERCENTAGE".equalsIgnoreCase(adjType)) {
@@ -921,7 +909,6 @@ public class SalesPolicyService {
 
         double minQtyVal = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
         int minQty = (int) Math.ceil(minQtyVal);
-        boolean isRetail = quantity < minQty;
 
         LocalDateTime now = LocalDateTime.now();
         List<SalesPolicy> activePolicies = salesPolicyRepository.findByActiveTrueOrderByIdDesc().stream()
@@ -933,89 +920,48 @@ public class SalesPolicyService {
         Double lowestPrice = null;
 
         Double priceToUse = basePrice;
-        if (isRetail) {
-            priceToUse = getOriginalRetailPrice(product, agency, basePrice);
-        }
 
         for (SalesPolicy policy : activePolicies) {
             if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) continue;
             if ("RETAIL_POLICY".equalsIgnoreCase(policy.getPolicyType())) continue;
 
-            if (isRetail) {
-                if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
-                    SalesPolicyTier tier = policy.getTiers().stream().findFirst().orElse(null);
-                    if (tier != null && tier.getThresholdValue() != null && tier.getThresholdValue() >= minQty) {
-                        continue;
-                    }
-                }
-            }
-
             if (!isPolicyApplicable(policy, product, agency, quantity, priceToUse)) continue;
 
-            SalesPolicyTier resultTier = null;
-
-            if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
-                    && policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY
-                    && !"PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
-                if (isRetail) continue;
-
-                SalesPolicyTier firstTier = policy.getTiers().stream().findFirst().orElse(null);
-                if (firstTier != null && compareQuantity(quantity, minQtyVal, firstTier.getOperator())) {
-                    if (policy.isApplyToAllProducts()) {
-                        resultTier = firstTier;
-                    } else {
-                        SalesPolicyProductGroupItem matchedItem = findGroupItemForProduct(policy, product.getId());
-                        if (matchedItem != null && matchedItem.getAdjustmentType() != null) {
-                            resultTier = new SalesPolicyTier();
-                            resultTier.setOperator(firstTier.getOperator());
-                            resultTier.setThresholdValue(minQtyVal);
-                            resultTier.setAdjustmentType(matchedItem.getAdjustmentType());
-                            resultTier.setAdjustmentValue(matchedItem.getAdjustmentValue());
-                            resultTier.setGiftQuantity(matchedItem.getGiftQuantity());
-                            resultTier.setGiftNote(matchedItem.getGiftNote());
-                            if (matchedItem.getGiftProductId() != null) {
-                                productRepository.findById(matchedItem.getGiftProductId())
-                                    .ifPresent(resultTier::setGiftProduct);
-                            }
-                        } else {
-                            resultTier = firstTier;
-                        }
-                    }
-                }
-            } else {
-                double evaluationValue = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())
-                    ? quantity
-                    : priceToUse * quantity;
-
-                SalesPolicyTier matchedTier = null;
-                for (SalesPolicyTier tier : policy.getTiers()) {
-                    if (isRetail && "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
-                        if (tier.getThresholdValue() != null && tier.getThresholdValue() >= minQty) {
-                            continue;
-                        }
-                    }
-                    if (compareQuantity(evaluationValue, tier.getThresholdValue(), tier.getOperator())) {
-                        matchedTier = tier;
-                    }
-                }
-                resultTier = matchedTier;
-            }
-
-            if (resultTier == null) continue;
+            SalesPolicyTier matchedTier = findBestTier(policy, product, quantity, priceToUse, minQty, true);
+            if (matchedTier == null) continue;
 
             double adjustedPrice = priceToUse;
-            if ("PERCENTAGE".equalsIgnoreCase(resultTier.getAdjustmentType())) {
-                adjustedPrice = priceToUse + (priceToUse * resultTier.getAdjustmentValue() / 100.0);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resultTier.getAdjustmentType())) {
-                adjustedPrice = priceToUse + resultTier.getAdjustmentValue();
-            } else if ("SPECIFIC_PRICE".equalsIgnoreCase(resultTier.getAdjustmentType())) {
-                adjustedPrice = resultTier.getAdjustmentValue();
+            String adjType;
+            Double adjValue;
+
+            if (policy.isApplyToAllProducts()) {
+                adjType = matchedTier.getAdjustmentType();
+                adjValue = matchedTier.getAdjustmentValue();
+            } else {
+                SalesPolicyProductGroupItem item = findGroupItemForProduct(policy, product.getId());
+                if (item != null && item.getAdjustmentType() != null) {
+                    adjType = item.getAdjustmentType();
+                    adjValue = item.getAdjustmentValue();
+                } else {
+                    adjType = matchedTier.getAdjustmentType();
+                    adjValue = matchedTier.getAdjustmentValue();
+                }
+            }
+
+            if (adjType == null) continue;
+
+            if ("PERCENTAGE".equalsIgnoreCase(adjType)) {
+                adjustedPrice = priceToUse + (priceToUse * adjValue / 100.0);
+            } else if ("FIXED_AMOUNT".equalsIgnoreCase(adjType)) {
+                adjustedPrice = priceToUse + adjValue;
+            } else if ("SPECIFIC_PRICE".equalsIgnoreCase(adjType)) {
+                adjustedPrice = adjValue;
             }
             adjustedPrice = Math.max(0.0, adjustedPrice);
 
             if (lowestPrice == null || adjustedPrice < lowestPrice) {
                 lowestPrice = adjustedPrice;
-                bestTier = resultTier;
+                bestTier = matchedTier;
             }
         }
 
@@ -1026,19 +972,9 @@ public class SalesPolicyService {
         double minQtyVal = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
         int minQty = (int) Math.ceil(minQtyVal);
         if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
-            if (policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY
-                    && !"PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
-                return minQty;
-            } else {
-                if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
-                    double minThreshold = policy.getTiers().stream()
-                        .mapToDouble(t -> t.getThresholdValue() != null ? t.getThresholdValue() : 0.0)
-                        .min()
-                        .orElse(minQtyVal);
-                    return (int) Math.ceil(minThreshold);
-                }
-                return minQty;
-            }
+            // Với quy tắc mới: mốc thỏa khi threshold ≤ minQty,
+            // số lượng bán buôn luôn là minQty (SL mua tối thiểu của sản phẩm)
+            return minQty;
         } else if ("ORDER_VALUE".equalsIgnoreCase(policy.getTargetType())) {
             int baseQty = Math.max(1, minQty - 1);
             if (basePrice != null && basePrice > 0 && policy.getTiers() != null && !policy.getTiers().isEmpty()) {
@@ -1067,17 +1003,21 @@ public class SalesPolicyService {
         eff.setPolicyType(policy.getPolicyType());
         eff.setOriginalPrice(originalPrice);
         eff.setAdjustedPrice(adjustedPrice);
-        if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
-            SalesPolicyTier firstTier = policy.getTiers().iterator().next();
-            eff.setAdjustmentType(firstTier.getAdjustmentType());
-            eff.setAdjustmentValue(firstTier.getAdjustmentValue());
-            if (firstTier.getGiftProduct() != null) {
-                eff.setGiftProductName(firstTier.getGiftProduct().getName());
-                eff.setGiftQuantity(firstTier.getGiftQuantity());
+
+        double minQty = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+        int minQtyInt = (int) Math.ceil(minQty);
+        SalesPolicyTier bestTier = findBestTier(policy, product, quantity, originalPrice, minQtyInt, !isRetailFlow);
+
+        if (bestTier != null) {
+            eff.setAdjustmentType(bestTier.getAdjustmentType());
+            eff.setAdjustmentValue(bestTier.getAdjustmentValue());
+            if (bestTier.getGiftProduct() != null) {
+                eff.setGiftProductName(bestTier.getGiftProduct().getName());
+                eff.setGiftQuantity(bestTier.getGiftQuantity());
             }
         }
         
-        String cond = buildConditionText(policy, product, quantity);
+        String cond = buildConditionText(policy, product, quantity, bestTier);
         if ("PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
             if (isRetailFlow) {
                 cond += " (giá bán lẻ)";
@@ -1086,6 +1026,35 @@ public class SalesPolicyService {
             }
         }
         eff.setConditionText(cond);
+
+        // Build condition satisfaction info
+        boolean isProductQty = "PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType());
+        boolean isOrderValue = "ORDER_VALUE".equalsIgnoreCase(policy.getTargetType());
+
+        if (bestTier != null && isProductQty) {
+            eff.setConditionMet(true);
+            String flowLabel = isRetailFlow ? "bán lẻ (threshold ≤ " + minQtyInt + " SP min)" : "bán buôn (threshold > " + minQtyInt + " SP min)";
+            eff.setConditionNote("Mốc cao nhất thỏa: " + bestTier.getThresholdValue().intValue()
+                    + " SP (" + flowLabel + ")");
+        } else if (isProductQty) {
+            eff.setConditionMet(false);
+            String flowLabel = isRetailFlow ? "bán lẻ" : "bán buôn";
+            eff.setConditionNote("Không có mốc nào thỏa cho " + flowLabel
+                    + " (SL hiện tại " + quantity + " SP, min " + minQtyInt + " SP)");
+        } else if (isOrderValue) {
+            double expectedOrderValue = originalPrice * quantity;
+            if (bestTier != null) {
+                eff.setConditionMet(null);
+                eff.setConditionNote("Mốc cao nhất thỏa: "
+                        + String.format("%,.0f", bestTier.getThresholdValue()) + "đ (giá trị đơn "
+                        + String.format("%,.0f", expectedOrderValue) + "đ ≥ "
+                        + String.format("%,.0f", bestTier.getThresholdValue()) + "đ)");
+            } else {
+                eff.setConditionMet(null);
+                eff.setConditionNote("Ưu đãi dự kiến theo giá trị đơn hàng");
+            }
+        }
+
         return eff;
     }
 
@@ -1094,24 +1063,42 @@ public class SalesPolicyService {
     }
 
     private String buildConditionText(SalesPolicy policy, Product product, int quantity) {
+        SalesPolicyTier bestTier = null;
+        double minQty = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity().doubleValue() : 1.0;
+        int minQtyInt = (int) Math.ceil(minQty);
+        if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
+            bestTier = findBestTier(policy, product, quantity, 0.0, minQtyInt, true);
+        }
+        return buildConditionText(policy, product, quantity, bestTier);
+    }
+
+    private String buildConditionText(SalesPolicy policy, Product product, int quantity, SalesPolicyTier selectedTier) {
         if ("PRODUCT_QTY".equalsIgnoreCase(policy.getTargetType())) {
             if (policy.getConditionType() == SalesPolicyConditionType.MIN_PRODUCT_QTY
                     && !"PROMOTION".equalsIgnoreCase(policy.getPolicyType())) {
                 double minQty = product.getMinPurchaseQuantity() != null ? product.getMinPurchaseQuantity() : 1;
                 return "SL mua >= SL tối thiểu (" + (int)minQty + " SP)";
             } else {
+                if (selectedTier != null) {
+                    return "SL mua >= " + selectedTier.getThresholdValue().intValue() + " SP (mốc cao nhất thỏa)";
+                }
                 SalesPolicyTier t = policy.getTiers().stream().findFirst().orElse(null);
                 if (t != null) {
                     return "SL mua " + formatOperator(t.getOperator()) + " " + t.getThresholdValue().intValue() + " SP";
                 }
             }
         } else if ("ORDER_VALUE".equalsIgnoreCase(policy.getTargetType())) {
+            if (selectedTier != null) {
+                return "Đơn >= " + String.format("%,.0f", selectedTier.getThresholdValue()) + "đ (mốc cao nhất thỏa)";
+            }
             SalesPolicyTier t = policy.getTiers().stream().findFirst().orElse(null);
             if (t != null) {
                 return "Đơn " + formatOperator(t.getOperator()) + " " + String.format("%,.0f", t.getThresholdValue()) + "đ";
             }
         }
-        // Fallback
+        if (selectedTier != null) {
+            return "Đơn >= " + String.format("%,.0f", selectedTier.getThresholdValue()) + "đ";
+        }
         if (policy.getTiers() != null && !policy.getTiers().isEmpty()) {
             SalesPolicyTier t = policy.getTiers().iterator().next();
             return "Đơn >= " + String.format("%,.0f", t.getThresholdValue()) + "đ";

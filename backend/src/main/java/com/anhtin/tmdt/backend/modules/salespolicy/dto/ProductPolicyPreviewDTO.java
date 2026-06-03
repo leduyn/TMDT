@@ -65,6 +65,8 @@ public class ProductPolicyPreviewDTO {
         private Double adjustedPrice;
         private String giftProductName;
         private Integer giftQuantity;
+        private Boolean conditionMet;
+        private String conditionNote;
 
         public Long getId() { return id; }
         public void setId(Long v) { this.id = v; }
@@ -86,5 +88,9 @@ public class ProductPolicyPreviewDTO {
         public void setGiftProductName(String v) { this.giftProductName = v; }
         public Integer getGiftQuantity() { return giftQuantity; }
         public void setGiftQuantity(Integer v) { this.giftQuantity = v; }
+        public Boolean getConditionMet() { return conditionMet; }
+        public void setConditionMet(Boolean v) { this.conditionMet = v; }
+        public String getConditionNote() { return conditionNote; }
+        public void setConditionNote(String v) { this.conditionNote = v; }
     }
 }

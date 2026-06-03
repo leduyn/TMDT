@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { productApi, facetedSearchApi, attributeApi, ProductDTO, AttributeValueDTO } from '@/lib/api';
+import { productApi, facetedSearchApi, attributeApi, ProductDTO, AttributeValueDTO, ProductPolicyPreviewDTO, PolicyEffectDTO, PriceFlowDetailsDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
@@ -366,6 +366,18 @@ export default function ProductDetailPage() {
               )}
             </div>
 
+            {product.policyPreview && (
+              <PricingBreakdown
+                preview={product.policyPreview}
+                retailEligible={!!(
+                  product.retailPriceEligible ||
+                  (product.policyPreview.retailFlow?.originalPrice !== undefined &&
+                   product.policyPreview.retailFlow.originalPrice !== product.policyPreview.wholesaleFlow.originalPrice)
+                )}
+                formatPrice={formatPrice}
+              />
+            )}
+
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
               <span className={`badge ${product.stockQuantity && product.stockQuantity > 0 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.9rem', padding: '8px 16px' }}>
                 {product.stockQuantity && product.stockQuantity > 0 ? `Còn hàng (${product.stockQuantity})` : 'Hết hàng'}
@@ -494,5 +506,246 @@ export default function ProductDetailPage() {
         }
       `}</style>
     </>
+  );
+}
+
+function PricingBreakdown({ preview, retailEligible, formatPrice: fmt }: {
+  preview: ProductPolicyPreviewDTO;
+  retailEligible: boolean;
+  formatPrice: (p: number) => string;
+}) {
+  const wf = preview.wholesaleFlow;
+  const rf = preview.retailFlow;
+  const allPromotions = preview.promotions || [];
+
+  const policyNames = (list: PolicyEffectDTO[]) => list.map(p => p.name).join(', ');
+
+  return (
+    <div className="glass-card" style={{ marginTop: 16, padding: '20px 24px', background: 'rgba(16,185,129,0.03)', borderColor: 'rgba(16,185,129,0.15)' }}>
+      <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Chi tiết giá &amp; ưu đãi
+      </div>
+
+      <PriceFlow
+        title="GIÁ BÁN (Bán buôn)"
+        titleColor="var(--accent-light)"
+        icon="📦"
+        flow={wf}
+        fmt={fmt}
+        policyNames={policyNames}
+      />
+
+      {retailEligible && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20, marginTop: 20 }}>
+          <PriceFlow
+            title="GIÁ BÁN LẺ (Bán lẻ)"
+            titleColor="#f59e0b"
+            icon="🏪"
+            flow={rf}
+            fmt={fmt}
+            policyNames={policyNames}
+          />
+        </div>
+      )}
+
+      {/* Section Chương trình khuyến mãi riêng */}
+      {allPromotions.length > 0 && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20, marginTop: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: '1rem', color: '#f59e0b', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🏷️</span> Chương trình khuyến mãi
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {allPromotions.map((p, i) => (
+              <PolicyDetailCard key={`prom-${p.id}-${i}`} policy={p} fmt={fmt} type="CTKM" />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PriceFlow({ title, titleColor, icon, flow, fmt, policyNames }: {
+  title: string;
+  titleColor: string;
+  icon: string;
+  flow: PriceFlowDetailsDTO;
+  fmt: (p: number) => string;
+  policyNames: (list: PolicyEffectDTO[]) => string;
+}) {
+  const hasPolicy = flow.appliedPolicies.length > 0;
+  const hasPromotion = flow.appliedPromotions.length > 0;
+
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: '1rem', color: titleColor, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>{icon}</span> {title}
+      </div>
+      <PriceFlowRow label="Giá" value={flow.originalPrice} fmt={fmt} isBold />
+      {hasPolicy && (
+        <PriceFlowRow
+          label="→ Ưu đãi CSBH"
+          value={flow.policyDiscount}
+          fmt={fmt}
+          color="#10b981"
+          note={policyNames(flow.appliedPolicies)}
+        />
+      )}
+      <PriceFlowRow label="→ Sau CSBH" value={flow.priceAfterPolicy} fmt={fmt} isSub />
+      {hasPromotion && (
+        <PriceFlowRow
+          label="→ Khuyến mãi"
+          value={flow.promotionDiscount}
+          fmt={fmt}
+          color="#f59e0b"
+          note={policyNames(flow.appliedPromotions)}
+        />
+      )}
+      <PriceFlowRow label="→ Sau CTKM" value={flow.finalPrice} fmt={fmt} isBold accent />
+
+      {/* Mốc áp dụng - visible policy milestones */}
+      {(hasPolicy || hasPromotion) && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 4 }}>
+            Mốc áp dụng
+          </div>
+          {flow.appliedPolicies.map((p: PolicyEffectDTO, i: number) => (
+            <PolicyDetailCard key={`p-${p.id}-${i}`} policy={p} fmt={fmt} type="CSBH" />
+          ))}
+          {flow.appliedPromotions.map((p: PolicyEffectDTO, i: number) => (
+            <PolicyDetailCard key={`prom-${p.id}-${i}`} policy={p} fmt={fmt} type="CTKM" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PriceFlowRow({ label, value, fmt, color, note, isBold, isSub, accent }: {
+  label: string;
+  value: number;
+  fmt: (p: number) => string;
+  color?: string;
+  note?: string;
+  isBold?: boolean;
+  isSub?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '6px 0', fontSize: isBold ? '1rem' : '0.9rem',
+      fontWeight: isBold ? 700 : 400,
+      color: accent ? 'var(--accent-light)' : isSub ? 'var(--text-secondary)' : 'var(--text-primary)',
+      borderBottom: '1px solid rgba(255,255,255,0.04)'
+    }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {label}
+        {note && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({note})</span>}
+      </span>
+      <span style={{ color: color || undefined }}>
+        {fmt(value)}
+      </span>
+    </div>
+  );
+}
+
+function PolicyDetailCard({ policy: p, fmt, type }: { policy: PolicyEffectDTO; fmt: (p: number) => string; type: string }) {
+  const adjDisplay = p.adjustmentType === 'PERCENTAGE'
+    ? `${p.adjustmentValue}%`
+    : p.adjustmentType === 'FIXED_AMOUNT'
+      ? fmt(p.adjustmentValue)
+      : p.adjustmentType === 'SPECIFIC_PRICE'
+        ? fmt(p.adjustmentValue)
+        : `${p.adjustmentValue}`;
+
+  const isMet = p.conditionMet === true;
+  const isNotMet = p.conditionMet === false;
+  const isPending = p.conditionMet === null || p.conditionMet === undefined;
+
+  return (
+    <div style={{
+      padding: '12px 14px',
+      borderRadius: 10,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+      border: '1px solid',
+      borderColor: isMet ? 'rgba(16,185,129,0.35)' : isNotMet ? 'rgba(239,68,68,0.25)' : 'rgba(148,163,184,0.2)',
+      background: isMet ? 'rgba(16,185,129,0.06)' : isNotMet ? 'rgba(239,68,68,0.04)' : 'rgba(148,163,184,0.03)',
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: isMet ? '#10b981' : isNotMet ? '#ef4444' : '#94a3b8',
+            flexShrink: 0,
+          }} />
+          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: isMet ? '#10b981' : isNotMet ? '#ef4444' : 'var(--text-secondary)' }}>
+            {type}
+          </span>
+          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+            {p.name}
+          </span>
+        </div>
+        <span style={{
+          fontWeight: 700, fontSize: '0.8rem',
+          color: isMet ? '#10b981' : isNotMet ? '#ef4444' : '#94a3b8',
+        }}>
+          {isMet ? 'Đã đạt' : isNotMet ? 'Chưa đạt' : 'Chờ xét'}
+        </span>
+      </div>
+
+      {/* Details grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 12px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        <span style={{ color: 'var(--text-muted)' }}>Loại ưu đãi:</span>
+        <span>{p.adjustmentType === 'PERCENTAGE' ? 'Phần trăm' : p.adjustmentType === 'FIXED_AMOUNT' ? 'Số tiền cố định' : p.adjustmentType === 'SPECIFIC_PRICE' ? 'Giá cụ thể' : p.adjustmentType || 'N/A'}</span>
+
+        <span style={{ color: 'var(--text-muted)' }}>Giá trị:</span>
+        <span style={{ fontWeight: 600, color: (p.adjustmentValue || 0) < 0 ? '#10b981' : '#f59e0b' }}>
+          {p.adjustmentValue < 0 ? 'Giảm ' : 'Tăng '}{adjDisplay}
+        </span>
+
+        {p.conditionText && (
+          <>
+            <span style={{ color: 'var(--text-muted)' }}>Điều kiện:</span>
+            <span>{p.conditionText}</span>
+          </>
+        )}
+
+        {p.conditionNote && (
+          <>
+            <span style={{ color: 'var(--text-muted)' }}>Ghi chú:</span>
+            <span>{p.conditionNote}</span>
+          </>
+        )}
+
+        {p.giftProductName && (
+          <>
+            <span style={{ color: 'var(--text-muted)' }}>🎁 Quà tặng:</span>
+            <span style={{ fontWeight: 600, color: '#10b981' }}>{p.giftProductName} {p.giftQuantity ? `(x${p.giftQuantity})` : ''}</span>
+          </>
+        )}
+      </div>
+
+      {/* Price change row */}
+      {p.adjustedPrice !== undefined && p.originalPrice !== undefined && (
+        <div style={{
+          marginTop: 4, padding: '6px 10px', borderRadius: 6,
+          background: 'rgba(0,0,0,0.15)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          fontSize: '0.8rem',
+        }}>
+          <span style={{ color: 'var(--text-muted)' }}>
+            {fmt(p.originalPrice)}
+          </span>
+          <span style={{ color: 'var(--text-muted)' }}>→</span>
+          <span style={{ fontWeight: 700, color: isMet ? '#10b981' : 'var(--text-secondary)' }}>
+            {fmt(p.adjustedPrice)}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }

@@ -22,6 +22,10 @@ import com.anhtin.tmdt.backend.modules.product.entity.AttributeValue;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
 import com.anhtin.tmdt.backend.modules.common.service.SystemConfigService;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyProductPriceHistoryRepository;
+import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO;
+import com.anhtin.tmdt.backend.modules.salespolicy.service.SalesPolicyService;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductAttributeValueRepository;
 import com.anhtin.tmdt.backend.modules.product.entity.Brand;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductImageRepository;
@@ -58,6 +62,12 @@ public class ProductService {
 
     @Autowired
     private AgencyProductPriceHistoryRepository agencyProductPriceHistoryRepository;
+
+    @Autowired
+    private SalesPolicyService salesPolicyService;
+
+    @Autowired
+    private AgencyRepository agencyRepository;
 
     public List<ProductDTO> getAllProducts() {
         return getAllProducts(null, null);
@@ -108,6 +118,10 @@ public class ProductService {
     }
 
     public ProductDTO getProductById(@NonNull Long id, Long agencyId, Long customerId) {
+        return getProductById(id, agencyId, customerId, 1);
+    }
+
+    public ProductDTO getProductById(@NonNull Long id, Long agencyId, Long customerId, @NonNull Integer quantity) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(id);
@@ -142,6 +156,20 @@ public class ProductService {
             dto.setOldAppliedPrice(null);
             dto.setPriceChangeRatio(null);
         }
+
+        // Policy preview & retail eligibility
+        Double priceForPolicy = priceInfo.getPrice() != null && priceInfo.getPrice() >= 0
+                ? priceInfo.getPrice() : product.getBasePrice();
+        Agency agency = agencyId != null
+                ? agencyRepository.findById(agencyId).orElse(null)
+                : null;
+
+        ProductPolicyPreviewDTO preview = salesPolicyService.previewProductPolicies(product, quantity, agency, priceForPolicy);
+        dto.setPolicyPreview(preview);
+
+        boolean eligible = salesPolicyService.isAgencyEligibleForRetailPrice(product, agency, priceForPolicy);
+        dto.setRetailPriceEligible(eligible);
+
         return dto;
     }
 

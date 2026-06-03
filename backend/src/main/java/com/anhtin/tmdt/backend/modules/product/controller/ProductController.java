@@ -33,8 +33,9 @@ public class ProductController {
     public ResponseEntity<ProductDTO> getProductById(
             @PathVariable @NonNull Long id,
             @RequestParam(required = false) Long agencyId,
-            @RequestParam(required = false) Long customerId) {
-        return ResponseEntity.ok(productService.getProductById(id, agencyId, customerId));
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(defaultValue = "1") Integer quantity) {
+        return ResponseEntity.ok(productService.getProductById(id, agencyId, customerId, quantity));
     }
     
     // Yêu cầu quyền admin/company/agency để thêm sản phẩm
