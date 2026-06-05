@@ -28,7 +28,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
+
   const [variants, setVariants] = useState<VariantInfo[]>([]);
   const [availableAttributes, setAvailableAttributes] = useState<Record<string, string[]>>({});
   const [resolvedPrice, setResolvedPrice] = useState<number | null>(null);
@@ -39,7 +39,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (!productId) return;
-    
+
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
@@ -58,7 +58,7 @@ export default function ProductDetailPage() {
           facetedSearchApi.getProductAttributes(productId).catch(() => []),
           attributeApi.getAll().catch(() => [])
         ]);
-        
+
         handleProductData(prodData, attrData, allAttrs, currentAgencyId);
       } catch (err: any) {
         setError(err.message);
@@ -80,14 +80,14 @@ export default function ProductDetailPage() {
     } else if (prodData.imageUrls && prodData.imageUrls.length > 0) {
       setSelectedImage(prodData.imageUrls[0]);
     }
-    
+
     const attrMap = new Map();
     const attrVariantMap = new Map();
     allAttrs.forEach((a: any) => {
       attrMap.set(a.id, a.displayName || a.name);
       attrVariantMap.set(a.id, a.isVariant);
     });
-    
+
     const enrichedAttrs = attrData.map(val => ({
       ...val,
       attributeName: attrMap.get(val.attributeId) || `Thuộc tính ${val.attributeId}`,
@@ -112,10 +112,10 @@ export default function ProductDetailPage() {
               });
               return { id: p.id, attributes: attrDict };
             });
-            
+
             const resolvedVariants = await Promise.all(variantPromises);
             setVariants(resolvedVariants);
-            
+
             const available: Record<string, Set<string>> = {};
             resolvedVariants.forEach(v => {
               Object.entries(v.attributes).forEach(([key, val]) => {
@@ -123,7 +123,7 @@ export default function ProductDetailPage() {
                 available[key].add(val);
               });
             });
-            
+
             const availableArrays: Record<string, string[]> = {};
             Object.entries(available).forEach(([k, v]) => availableArrays[k] = Array.from(v));
             setAvailableAttributes(availableArrays);
@@ -136,18 +136,18 @@ export default function ProductDetailPage() {
   const handleVariantSelect = (attrName: string, val: string) => {
     const currentSelection: Record<string, string> = {};
     attributes.forEach(a => currentSelection[a.attributeName] = a.value);
-    
+
     const targetSelection = { ...currentSelection, [attrName]: val };
-    
+
     let bestMatch = variants.find(v => {
       if (v.attributes[attrName] !== val) return false;
       return Object.keys(targetSelection).every(key => !v.attributes[key] || v.attributes[key] === targetSelection[key]);
     });
-    
+
     if (!bestMatch) {
       bestMatch = variants.find(v => v.attributes[attrName] === val);
     }
-    
+
     if (bestMatch && bestMatch.id !== productId) {
       router.push(`/products/${bestMatch.id}`);
     }
@@ -158,8 +158,8 @@ export default function ProductDetailPage() {
       <>
         <Navbar />
         <div style={{ padding: '100px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-           <div className="spinner" style={{ margin: '0 auto 20px' }}></div>
-           Đang tải thông tin sản phẩm...
+          <div className="spinner" style={{ margin: '0 auto 20px' }}></div>
+          Đang tải thông tin sản phẩm...
         </div>
         <style jsx>{`
           .spinner {
@@ -183,11 +183,11 @@ export default function ProductDetailPage() {
       <>
         <Navbar />
         <div style={{ padding: '100px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-           <h3>Không thể tải sản phẩm</h3>
-           <p>{error}</p>
-           <Link href="/products" className="btn-outline" style={{ marginTop: 20, display: 'inline-block', textDecoration: 'none' }}>
-             Quay lại danh sách
-           </Link>
+          <h3>Không thể tải sản phẩm</h3>
+          <p>{error}</p>
+          <Link href="/products" className="btn-outline" style={{ marginTop: 20, display: 'inline-block', textDecoration: 'none' }}>
+            Quay lại danh sách
+          </Link>
         </div>
       </>
     );
@@ -202,18 +202,18 @@ export default function ProductDetailPage() {
     <>
       <Navbar />
       <main style={{ maxWidth: 1200, margin: '40px auto', padding: '0 24px' }}>
-        
+
         <div className="fade-in-up" style={{ marginBottom: 24 }}>
-           <Link href="/products" style={{ color: 'var(--accent-light)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-             ← Quay lại danh sách
-           </Link>
+          <Link href="/products" style={{ color: 'var(--accent-light)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            ← Quay lại danh sách
+          </Link>
         </div>
 
         <div className="product-detail-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start' }}>
-          
+
           {/* Left: Images */}
           <div className="product-images glass-card fade-in-up" style={{ padding: 20, borderRadius: 16 }}>
-            <div style={{ 
+            <div style={{
               width: '100%', aspectRatio: '1/1', borderRadius: 12, overflow: 'hidden',
               backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
@@ -231,23 +231,23 @@ export default function ProductDetailPage() {
                   if (img !== product.imageUrl) allImages.push(img);
                 });
               }
-              
+
               if (allImages.length > 1) {
                 return (
                   <div style={{ display: 'flex', gap: 10, marginTop: 16, overflowX: 'auto', paddingBottom: 8 }}>
                     {allImages.map((img, idx) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         onClick={() => setSelectedImage(img)}
-                        style={{ 
+                        style={{
                           width: 80, height: 80, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
-                          border: selectedImage === img ? '2px solid var(--accent)' : '2px solid transparent', 
+                          border: selectedImage === img ? '2px solid var(--accent)' : '2px solid transparent',
                           cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.05)',
                           transition: 'all 0.2s',
                           opacity: selectedImage === img ? 1 : 0.6
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => { if(selectedImage !== img) e.currentTarget.style.opacity = '0.6' }}
+                        onMouseLeave={(e) => { if (selectedImage !== img) e.currentTarget.style.opacity = '0.6' }}
                       >
                         <img src={resolveImageUrl(img)} alt={`${product.name} ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
@@ -265,41 +265,41 @@ export default function ProductDetailPage() {
               {product.categoryName && <span className="badge badge-primary" style={{ marginBottom: 12, display: 'inline-block' }}>{product.categoryName}</span>}
               <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 12px', lineHeight: 1.3 }}>{product.name}</h1>
               <div style={{ display: 'flex', gap: 16, color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 20 }}>
-                 {product.brand && <span>Thương hiệu: <strong>{product.brand.name}</strong></span>}
-                 <span>Mã SP: #{product.id}</span>
+                {product.brand && <span>Thương hiệu: <strong>{product.brand.name}</strong></span>}
+                <span>Mã SP: #{product.id}</span>
               </div>
             </div>
 
             {Object.keys(availableAttributes).length > 0 && (
               <div className="variant-selector" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
                 {Object.entries(availableAttributes).map(([attrName, values]) => (
-                   <div key={attrName}>
-                     <div style={{ fontWeight: 600, marginBottom: 10, color: 'var(--text-secondary)' }}>{attrName}</div>
-                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                       {values.map(val => {
-                          const isSelected = attributes.some(a => a.attributeName === attrName && a.value === val);
-                          return (
-                            <button
-                               key={val}
-                               onClick={() => handleVariantSelect(attrName, val)}
-                               style={{
-                                  padding: '8px 16px', borderRadius: 8,
-                                  border: isSelected ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,0.1)',
-                                  background: isSelected ? 'rgba(99,102,241,0.1)' : 'transparent',
-                                  color: isSelected ? 'var(--accent-light)' : 'var(--text-secondary)',
-                                  cursor: 'pointer',
-                                  fontWeight: isSelected ? 600 : 400,
-                                  transition: 'all 0.2s'
-                               }}
-                               onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.borderColor = 'var(--accent)' }}
-                               onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
-                            >
-                               {val}
-                            </button>
-                          );
-                       })}
-                     </div>
-                   </div>
+                  <div key={attrName}>
+                    <div style={{ fontWeight: 600, marginBottom: 10, color: 'var(--text-secondary)' }}>{attrName}</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {values.map(val => {
+                        const isSelected = attributes.some(a => a.attributeName === attrName && a.value === val);
+                        return (
+                          <button
+                            key={val}
+                            onClick={() => handleVariantSelect(attrName, val)}
+                            style={{
+                              padding: '8px 16px', borderRadius: 8,
+                              border: isSelected ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,0.1)',
+                              background: isSelected ? 'rgba(99,102,241,0.1)' : 'transparent',
+                              color: isSelected ? 'var(--accent-light)' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              fontWeight: isSelected ? 600 : 400,
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.borderColor = 'var(--accent)' }}
+                            onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                          >
+                            {val}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -314,18 +314,18 @@ export default function ProductDetailPage() {
                     let oldPrice = 0;
                     let ratio = 0;
                     let hasDiscount = false;
-                    
+
                     if (product.oldAppliedPrice && product.oldAppliedPrice > 0) {
                       oldPrice = product.oldAppliedPrice;
                       ratio = product.priceChangeRatio || 0;
                       hasDiscount = true;
                     }
-                    
+
                     if (hasDiscount) {
                       return (
                         <>
                           <span style={{ textDecoration: 'line-through' }}>{formatPrice(oldPrice)}</span>
-                          <span className="badge" style={{ 
+                          <span className="badge" style={{
                             fontSize: '0.75rem',
                             padding: '1px 5px',
                             borderRadius: 4,
@@ -338,7 +338,7 @@ export default function ProductDetailPage() {
                         </>
                       );
                     }
-                    
+
                     return null;
                   })()}
                   <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
@@ -366,51 +366,55 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {product.policyPreview && (
-              <PricingBreakdown
-                preview={product.policyPreview}
-                retailEligible={!!(
-                  product.retailPriceEligible ||
-                  (product.policyPreview.retailFlow?.originalPrice !== undefined &&
-                   product.policyPreview.retailFlow.originalPrice !== product.policyPreview.wholesaleFlow.originalPrice)
-                )}
-                formatPrice={formatPrice}
-              />
-            )}
-
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <span className={`badge ${product.stockQuantity && product.stockQuantity > 0 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.9rem', padding: '8px 16px' }}>
-                {product.stockQuantity && product.stockQuantity > 0 ? `Còn hàng (${product.stockQuantity})` : 'Hết hàng'}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 4 }}>
-                <button className="icon-btn" style={{ padding: '8px 12px' }}>-</button>
-                <input 
-                  type="number" 
-                  defaultValue={product.minPurchaseQuantity || 1} 
-                  min={product.minPurchaseQuantity || 1} 
-                  step={product.quantityStep || 1}
-                  style={{ width: 50, textAlign: 'center', background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem', fontWeight: 600 }} 
-                />
-                <button className="icon-btn" style={{ padding: '8px 12px' }}>+</button>
-              </div>
-              <button 
-                className="btn-primary" 
-                style={{ flex: 1, padding: '14px', fontSize: '1rem' }} 
-                disabled={!(product.stockQuantity && product.stockQuantity > 0) || (resolvedPrice !== null ? resolvedPrice : product.basePrice) === -1}
-              >
-                🛒 Thêm vào giỏ hàng
-              </button>
-            </div>
-
           </div>
+        </div>
+
+        {product.policyPreview && (
+          <PricingBreakdown
+            preview={product.policyPreview}
+            retailEligible={!!(
+              product.retailPriceEligible ||
+              (product.policyPreview.retailFlow?.originalPrice !== undefined &&
+                product.policyPreview.retailFlow.originalPrice !== product.policyPreview.wholesaleFlow.originalPrice)
+            )}
+            formatPrice={formatPrice}
+          />
+        )}
+
+        <div className="product-info fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 20, animationDelay: '0.1s' }}>
+
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <span className={`badge ${product.stockQuantity && product.stockQuantity > 0 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.9rem', padding: '8px 16px' }}>
+              {product.stockQuantity && product.stockQuantity > 0 ? `Còn hàng (${product.stockQuantity})` : 'Hết hàng'}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 4 }}>
+              <button className="icon-btn" style={{ padding: '8px 12px' }}>-</button>
+              <input
+                type="number"
+                defaultValue={product.minPurchaseQuantity || 1}
+                min={product.minPurchaseQuantity || 1}
+                step={product.quantityStep || 1}
+                style={{ width: 50, textAlign: 'center', background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem', fontWeight: 600 }}
+              />
+              <button className="icon-btn" style={{ padding: '8px 12px' }}>+</button>
+            </div>
+            <button
+              className="btn-primary"
+              style={{ flex: 1, padding: '14px', fontSize: '1rem' }}
+              disabled={!(product.stockQuantity && product.stockQuantity > 0) || (resolvedPrice !== null ? resolvedPrice : product.basePrice) === -1}
+            >
+              🛒 Thêm vào giỏ hàng
+            </button>
+          </div>
+
         </div>
 
         <div className="fade-in-up" style={{ marginTop: 48, animationDelay: '0.2s' }}>
           {/* Tab Headers */}
           <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 24, overflowX: 'auto' }}>
-            <button 
+            <button
               onClick={() => setActiveTab('DESCRIPTION')}
-              style={{ 
+              style={{
                 padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
                 color: activeTab === 'DESCRIPTION' ? 'var(--accent-light)' : 'var(--text-muted)',
                 fontWeight: 700, fontSize: '1.1rem',
@@ -422,9 +426,9 @@ export default function ProductDetailPage() {
               Mô tả sản phẩm
             </button>
             {product.userManual && (
-              <button 
+              <button
                 onClick={() => setActiveTab('MANUAL')}
-                style={{ 
+                style={{
                   padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
                   color: activeTab === 'MANUAL' ? 'var(--accent-light)' : 'var(--text-muted)',
                   fontWeight: 700, fontSize: '1.1rem',
@@ -437,9 +441,9 @@ export default function ProductDetailPage() {
               </button>
             )}
             {attributes.length > 0 && (
-              <button 
+              <button
                 onClick={() => setActiveTab('SPECIFICATIONS')}
-                style={{ 
+                style={{
                   padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
                   color: activeTab === 'SPECIFICATIONS' ? 'var(--accent-light)' : 'var(--text-muted)',
                   fontWeight: 700, fontSize: '1.1rem',
@@ -458,10 +462,10 @@ export default function ProductDetailPage() {
             {activeTab === 'DESCRIPTION' && (
               <div className="product-description">
                 {product.description ? (
-                  <div 
+                  <div
                     className="rich-text-content"
                     style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1.05rem' }}
-                    dangerouslySetInnerHTML={{ __html: product.description }} 
+                    dangerouslySetInnerHTML={{ __html: product.description }}
                   />
                 ) : (
                   <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -473,10 +477,10 @@ export default function ProductDetailPage() {
 
             {activeTab === 'MANUAL' && product.userManual && (
               <div className="product-manual">
-                <div 
+                <div
                   className="rich-text-content"
                   style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '1.05rem' }}
-                  dangerouslySetInnerHTML={{ __html: product.userManual }} 
+                  dangerouslySetInnerHTML={{ __html: product.userManual }}
                 />
               </div>
             )}
@@ -521,22 +525,22 @@ function PricingBreakdown({ preview, retailEligible, formatPrice: fmt }: {
   const policyNames = (list: PolicyEffectDTO[]) => list.map(p => p.name).join(', ');
 
   return (
-    <div className="glass-card" style={{ marginTop: 16, padding: '20px 24px', background: 'rgba(16,185,129,0.03)', borderColor: 'rgba(16,185,129,0.15)' }}>
-      <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 16 }}>
+    <div className="glass-card" style={{ marginTop: 24, padding: '24px 28px', background: 'rgba(16,185,129,0.03)', borderColor: 'rgba(16,185,129,0.15)', width: '100%' }}>
+      <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 20 }}>
         Chi tiết giá &amp; ưu đãi
       </div>
 
-      <PriceFlow
-        title="GIÁ BÁN (Bán buôn)"
-        titleColor="var(--accent-light)"
-        icon="📦"
-        flow={wf}
-        fmt={fmt}
-        policyNames={policyNames}
-      />
+      <div style={{ display: 'grid', gridTemplateColumns: retailEligible ? '1fr 1fr' : '1fr', gap: 28 }}>
+        <PriceFlow
+          title="GIÁ BÁN (Bán buôn)"
+          titleColor="var(--accent-light)"
+          icon="📦"
+          flow={wf}
+          fmt={fmt}
+          policyNames={policyNames}
+        />
 
-      {retailEligible && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20, marginTop: 20 }}>
+        {retailEligible && (
           <PriceFlow
             title="GIÁ BÁN LẺ (Bán lẻ)"
             titleColor="#f59e0b"
@@ -545,10 +549,9 @@ function PricingBreakdown({ preview, retailEligible, formatPrice: fmt }: {
             fmt={fmt}
             policyNames={policyNames}
           />
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Section Chương trình khuyến mãi riêng */}
       {allPromotions.length > 0 && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20, marginTop: 20 }}>
           <div style={{ fontWeight: 700, fontSize: '1rem', color: '#f59e0b', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -693,7 +696,7 @@ function PolicyDetailCard({ policy: p, fmt, type }: { policy: PolicyEffectDTO; f
           fontWeight: 700, fontSize: '0.8rem',
           color: isMet ? '#10b981' : isNotMet ? '#ef4444' : '#94a3b8',
         }}>
-          {isMet ? 'Đã đạt' : isNotMet ? 'Chưa đạt' : 'Chờ xét'}
+          {isMet ? 'Áp dụng' : isNotMet ? 'Chưa đạt' : 'Chờ xét'}
         </span>
       </div>
 
