@@ -86,6 +86,23 @@ export interface ProductDTO {
   oldAppliedPrice?: number;
   priceChangeRatio?: number;
   sku?: string;
+  userManual?: string;
+}
+
+export interface AttributeValueDTO {
+  id: number;
+  value: string;
+  attributeId: number;
+}
+
+export interface AttributeDTO {
+  id: number;
+  name: string;
+  displayName: string;
+  categoryId?: number;
+  categoryName?: string;
+  isVariant?: boolean;
+  values: AttributeValueDTO[];
 }
 
 export interface OrderDTO {

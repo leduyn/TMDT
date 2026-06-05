@@ -20,7 +20,7 @@ interface VariantInfo {
 
 export default function ProductDetailPage() {
   const { id } = useParams() as { id: string };
-  const productId = Number(id);
+  const [activeProductId, setActiveProductId] = useState<number>(Number(id));
   const router = useRouter();
 
   const [product, setProduct] = useState<ProductDTO | null>(null);
@@ -37,8 +37,19 @@ export default function ProductDetailPage() {
   const { user } = useAuth();
   const isCompanyAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
+  // Sync state when URL parameter changes (e.g. browser back/forward)
   useEffect(() => {
-    if (!productId) return;
+    if (id) {
+      const newId = Number(id);
+      if (newId !== activeProductId) {
+        setProduct(null);
+        setActiveProductId(newId);
+      }
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!activeProductId) return;
 
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
@@ -46,6 +57,9 @@ export default function ProductDetailPage() {
     let currentAgencyId: number | undefined = undefined;
 
     const fetchAllData = async () => {
+      if (!product) {
+        setLoading(true);
+      }
       try {
         const storedAgencyId = localStorage.getItem('agencyId');
         if (storedAgencyId) {
@@ -54,8 +68,8 @@ export default function ProductDetailPage() {
         }
 
         const [prodData, attrData, allAttrs] = await Promise.all([
-          productApi.getById(productId, currentAgencyId),
-          facetedSearchApi.getProductAttributes(productId).catch(() => []),
+          productApi.getById(activeProductId, currentAgencyId),
+          facetedSearchApi.getProductAttributes(activeProductId).catch(() => []),
           attributeApi.getAll().catch(() => [])
         ]);
 
@@ -68,7 +82,7 @@ export default function ProductDetailPage() {
     };
 
     fetchAllData();
-  }, [productId]);
+  }, [activeProductId]);
 
   const handleProductData = (prodData: ProductDTO, attrData: any[], allAttrs: any[], curAgencyId?: number) => {
     setProduct(prodData);
@@ -95,7 +109,9 @@ export default function ProductDetailPage() {
     }));
     setAttributes(enrichedAttrs);
 
-    if (prodData.categoryId) {
+    const hasVariantAttrs = enrichedAttrs.some(a => a.isVariant);
+
+    if (hasVariantAttrs && prodData.categoryId) {
       facetedSearchApi.search({ categoryId: prodData.categoryId, size: 50, agencyId: curAgencyId })
         .then(async (searchRes) => {
           const categoryProducts = searchRes.products || [];
@@ -127,9 +143,15 @@ export default function ProductDetailPage() {
             const availableArrays: Record<string, string[]> = {};
             Object.entries(available).forEach(([k, v]) => availableArrays[k] = Array.from(v));
             setAvailableAttributes(availableArrays);
+          } else {
+            setVariants([]);
+            setAvailableAttributes({});
           }
         })
         .catch(e => console.error("Failed to load variants", e));
+    } else {
+      setVariants([]);
+      setAvailableAttributes({});
     }
   };
 
@@ -148,8 +170,9 @@ export default function ProductDetailPage() {
       bestMatch = variants.find(v => v.attributes[attrName] === val);
     }
 
-    if (bestMatch && bestMatch.id !== productId) {
-      router.push(`/products/${bestMatch.id}`);
+    if (bestMatch && bestMatch.id !== activeProductId) {
+      setActiveProductId(bestMatch.id);
+      window.history.pushState(null, '', `/products/${bestMatch.id}`);
     }
   };
 

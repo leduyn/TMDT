@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Dimensions, Platform, Share
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { productApi } from '../../api/product';
+import { productApi, attributeApi, facetedSearchApi } from '../../api/product';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
@@ -18,27 +18,51 @@ export function ProductDetailScreen({ route, navigation }: any) {
   const { addItem, items } = useCart();
   const [product, setProduct] = useState<ProductDTO | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeProductId, setActiveProductId] = useState<number>(productId);
   
   // Selected Variations
   const [qty, setQty] = useState(1);
-  const [selectedColor, setSelectedColor] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(1); // Default size index 1 (40)
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  // Mock colors & sizes
-  const colors = ['#dc2626', '#1e293b', '#e2e8f0'];
-  const sizes = [39, 40, 41, 42, 43, 44];
+  const [activeTab, setActiveTab] = useState(0);
+
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
+
+  const hasContent = (val: string | undefined | null) => val && stripHtml(val).length > 0;
+
+  // Dynamic Product Attributes & Variants State
+  const [attributes, setAttributes] = useState<any[]>([]);
+  const [variants, setVariants] = useState<any[]>([]);
+  const [availableAttributes, setAvailableAttributes] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (productId && productId !== activeProductId) {
+      setProduct(null);
+      setActiveProductId(productId);
+      setActiveTab(0);
+    }
+  }, [productId]);
 
   useEffect(() => {
     loadProduct();
-  }, []);
+  }, [activeProductId]);
 
   const loadProduct = async () => {
+    if (!product) {
+      setLoading(true);
+    }
     try {
-      const data = await productApi.getById(productId, agencyId ?? undefined);
-      setProduct(data);
+      const [prodData, attrData, allAttrs] = await Promise.all([
+        productApi.getById(activeProductId, agencyId ?? undefined),
+        facetedSearchApi.getProductAttributes(activeProductId).catch(() => []),
+        attributeApi.getAll().catch(() => [])
+      ]);
+
+      setProduct(prodData);
+      
+      // Update header options
       navigation.setOptions({
-        headerTitle: 'Chi tiết sản phẩm',
+        headerTitle: prodData.name || 'Chi tiết sản phẩm',
         headerRight: () => (
           <View style={styles.headerRightActions}>
             <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
@@ -55,10 +79,98 @@ export function ProductDetailScreen({ route, navigation }: any) {
           </View>
         ),
       });
+
+      // Build attribute maps
+      const attrMap = new Map();
+      const attrVariantMap = new Map();
+      allAttrs.forEach((a: any) => {
+        attrMap.set(a.id, a.displayName || a.name);
+        attrVariantMap.set(a.id, a.isVariant);
+      });
+
+      const enrichedAttrs = attrData.map((val: any) => ({
+        ...val,
+        attributeName: attrMap.get(val.attributeId) || `Thuộc tính ${val.attributeId}`,
+        isVariant: attrVariantMap.get(val.attributeId)
+      }));
+      setAttributes(enrichedAttrs);
+
+      const hasVariantAttrs = enrichedAttrs.some(a => a.isVariant);
+
+      // Load variants from the same category only if product has variant attributes
+      if (hasVariantAttrs && prodData.categoryId) {
+        try {
+          const categoryProducts = await productApi.getByCategory(prodData.categoryId, agencyId ?? undefined);
+          if (categoryProducts && categoryProducts.length > 0) {
+            const variantPromises = categoryProducts.map(async (p) => {
+              const pAttrs = await facetedSearchApi.getProductAttributes(p.id).catch(() => []);
+              const attrDict: Record<string, string> = {};
+              pAttrs.forEach(a => {
+                const isVar = attrVariantMap.get(a.attributeId);
+                if (isVar) {
+                  const name = attrMap.get(a.attributeId) || `Thuộc tính ${a.attributeId}`;
+                  attrDict[name] = a.value;
+                }
+              });
+              return { id: p.id, attributes: attrDict };
+            });
+
+            const resolvedVariants = await Promise.all(variantPromises);
+            setVariants(resolvedVariants);
+
+            const available: Record<string, Set<string>> = {};
+            resolvedVariants.forEach(v => {
+              Object.entries(v.attributes).forEach(([key, val]) => {
+                if (!available[key]) available[key] = new Set();
+                available[key].add(val);
+              });
+            });
+
+            const availableArrays: Record<string, string[]> = {};
+            Object.entries(available).forEach(([k, v]) => {
+              availableArrays[k] = Array.from(v);
+            });
+            setAvailableAttributes(availableArrays);
+          } else {
+            setVariants([]);
+            setAvailableAttributes({});
+          }
+        } catch (variantErr) {
+          console.log('Error loading product variants:', variantErr);
+        }
+      } else {
+        setVariants([]);
+        setAvailableAttributes({});
+      }
     } catch (err) {
       console.log('Error loading product detail:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVariantSelect = (attrName: string, val: string) => {
+    const currentSelection: Record<string, string> = {};
+    attributes.forEach(a => {
+      if (a.isVariant) {
+        currentSelection[a.attributeName] = a.value;
+      }
+    });
+
+    const targetSelection = { ...currentSelection, [attrName]: val };
+
+    let bestMatch = variants.find(v => {
+      if (v.attributes[attrName] !== val) return false;
+      return Object.keys(targetSelection).every(key => !v.attributes[key] || v.attributes[key] === targetSelection[key]);
+    });
+
+    if (!bestMatch) {
+      bestMatch = variants.find(v => v.attributes[attrName] === val);
+    }
+
+    if (bestMatch && bestMatch.id !== activeProductId) {
+      setActiveProductId(bestMatch.id);
+      navigation.setParams({ productId: bestMatch.id });
     }
   };
 
@@ -183,57 +295,56 @@ export function ProductDetailScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        {/* Color Variations */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Màu sắc</Text>
-          <View style={styles.colorsRow}>
-            {colors.map((color, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={[
-                  styles.colorBtn,
-                  selectedColor === idx && styles.colorBtnActive
-                ]}
-                onPress={() => setSelectedColor(idx)}
-              >
-                <View style={[styles.colorInner, { backgroundColor: color }]} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        {/* Dynamic Attribute Variations Selectors */}
+        {Object.entries(availableAttributes).map(([attrName, values]) => {
+          return (
+            <View key={attrName} style={styles.section}>
+              <View style={styles.sizeHeader}>
+                <Text style={styles.sectionTitle}>{attrName}</Text>
+                {(attrName.toLowerCase().includes('size') || attrName.toLowerCase().includes('kích thước') || attrName.toLowerCase().includes('cỡ')) && (
+                  <TouchableOpacity>
+                    <Text style={styles.sizeGuideText}>Hướng dẫn chọn size</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.attributesRow}>
+                {values.map((val) => {
+                  const isSelected = attributes.some(
+                    (a) => a.attributeName === attrName && a.value === val
+                  );
+                  const isHex = val.startsWith('#');
 
-        {/* Size Variations */}
-        <View style={styles.section}>
-          <View style={styles.sizeHeader}>
-            <Text style={styles.sectionTitle}>Kích thước (EU)</Text>
-            <TouchableOpacity>
-              <Text style={styles.sizeGuideText}>Hướng dẫn chọn size</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.sizesGrid}>
-            {sizes.map((size, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={[
-                  styles.sizeBtn,
-                  selectedSize === idx && styles.sizeBtnActive
-                ]}
-                onPress={() => setSelectedSize(idx)}
-              >
-                <Text style={[
-                  styles.sizeBtnText,
-                  selectedSize === idx && styles.sizeBtnTextActive
-                ]}>
-                  {size}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                  return (
+                    <TouchableOpacity
+                      key={val}
+                      style={[
+                        styles.attrBtn,
+                        isSelected && styles.attrBtnActive,
+                        isHex && { width: 42, height: 42, borderRadius: 21, paddingHorizontal: 0, paddingVertical: 0, minWidth: 0 }
+                      ]}
+                      onPress={() => handleVariantSelect(attrName, val)}
+                    >
+                      {isHex ? (
+                        <View style={[styles.colorInnerDot, { backgroundColor: val }]} />
+                      ) : (
+                        <Text style={[
+                          styles.attrBtnText,
+                          isSelected && styles.attrBtnTextActive
+                        ]}>
+                          {val}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })}
 
         {/* Quantity Controls Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Số lượng đặt hàng ({product.unit || 'chiếc'})</Text>
+        <View style={[styles.section, styles.qtySection]}>
+          <Text style={styles.qtyLabel}>Số lượng đặt hàng ({product.unit || 'chiếc'})</Text>
           <View style={styles.qtyControls}>
             <TouchableOpacity style={styles.qtyBtn} onPress={() => setQty(Math.max(minQty, qty - 1))}>
               <Ionicons name="remove" size={18} color={Colors.textPrimary} />
@@ -242,25 +353,68 @@ export function ProductDetailScreen({ route, navigation }: any) {
             <TouchableOpacity style={styles.qtyBtn} onPress={() => setQty(qty + 1)}>
               <Ionicons name="add" size={18} color={Colors.textPrimary} />
             </TouchableOpacity>
-            {minQty > 1 && (
-              <Text style={styles.minQtyNote}>Mức mua tối thiểu: {minQty}</Text>
-            )}
           </View>
+          {minQty > 1 && (
+            <Text style={styles.minQtyNote}>Mức mua tối thiểu: {minQty}</Text>
+          )}
         </View>
 
-        {/* Description Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
-          <Text style={styles.description}>
-            {product.description || 'Trải nghiệm tốc độ vượt trội với Speed Pro Elite G-Series. Công nghệ đế Hyper-Grip thế hệ mới tăng cường độ bám lên tới 30%, phù hợp cho mọi địa hình. Chất liệu vải dệt kim thoáng khí giúp đôi chân luôn khô ráo.'}
-          </Text>
-          <View style={styles.bulletList}>
-            <Text style={styles.bulletItem}>• Chất liệu: Sợi tổng hợp cao cấp</Text>
-            <Text style={styles.bulletItem}>• Trọng lượng siêu nhẹ: 240g/chiếc</Text>
-            <Text style={styles.bulletItem}>• Hệ thống đệm khí Air-Flow tích hợp</Text>
-            <Text style={styles.bulletItem}>• Bảo hành chính hãng 12 tháng</Text>
-          </View>
-        </View>
+        {/* Tabs: Description / Specifications / Usage Instructions */}
+        {(() => {
+          const cleanDesc = product.description ? stripHtml(product.description) : '';
+          const hasSpecs = attributes.length > 0;
+          const hasUsage = hasContent(product.userManual);
+
+          const tabs = [
+            { label: 'Mô tả sản phẩm', visible: hasContent(product.description) },
+            { label: 'Thông số kỹ thuật', visible: hasSpecs },
+            { label: 'Hướng dẫn sử dụng', visible: hasUsage },
+          ].filter(t => t.visible);
+
+          if (tabs.length === 0) return null;
+
+          const safeTabIndex = Math.min(activeTab, tabs.length - 1);
+
+          return (
+            <View style={styles.section}>
+              <View style={styles.tabBar}>
+                {tabs.map((tab, idx) => (
+                  <TouchableOpacity
+                    key={tab.label}
+                    style={[styles.tabItem, safeTabIndex === idx && styles.tabItemActive]}
+                    onPress={() => setActiveTab(idx)}
+                  >
+                    <Text style={[styles.tabText, safeTabIndex === idx && styles.tabTextActive]}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.tabContent}>
+                {safeTabIndex === 0 && (
+                  <Text style={styles.description}>{cleanDesc}</Text>
+                )}
+                {safeTabIndex === 1 && (
+                  hasSpecs ? (
+                    <View>
+                      {attributes.map((attr, idx) => (
+                        <View key={idx} style={styles.specRow}>
+                          <Text style={styles.specName}>{attr.attributeName}</Text>
+                          <Text style={styles.specValue}>{attr.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null
+                )}
+                {safeTabIndex === 2 && hasUsage && (
+                  <Text style={styles.description}>
+                    {product.userManual ? stripHtml(product.userManual) : ''}
+                  </Text>
+                )}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Customer Reviews Section */}
         <View style={styles.section}>
@@ -520,24 +674,63 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     marginBottom: Spacing.md,
   },
-  colorsRow: {
+  tabBar: {
     flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    marginBottom: Spacing.md,
+  },
+  tabItem: {
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    marginRight: Spacing.sm,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabItemActive: {
+    borderBottomColor: Colors.primary,
+  },
+  tabText: {
+    fontSize: FontSize.md,
+    color: Colors.textTertiary,
+    fontWeight: FontWeight.semibold,
+  },
+  tabTextActive: {
+    color: Colors.primary,
+    fontWeight: FontWeight.bold,
+  },
+  tabContent: {
+    minHeight: 40,
+  },
+  attributesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
   },
-  colorBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  attrBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    justifyContent: 'center',
+    borderRadius: BorderRadius.sm,
     alignItems: 'center',
-    padding: 2,
+    justifyContent: 'center',
+    minWidth: 60,
   },
-  colorBtnActive: {
+  attrBtnActive: {
+    backgroundColor: Colors.primarySoft,
     borderColor: Colors.primary,
   },
-  colorInner: {
+  attrBtnText: {
+    fontSize: FontSize.md,
+    color: Colors.textPrimary,
+    fontWeight: FontWeight.semibold,
+  },
+  attrBtnTextActive: {
+    color: Colors.primary,
+    fontWeight: FontWeight.bold,
+  },
+  colorInnerDot: {
     width: '100%',
     height: '100%',
     borderRadius: 20,
@@ -554,36 +747,37 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
     textDecorationLine: 'underline',
   },
-  sizesGrid: {
+  specRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
-  sizeBtn: {
-    width: (width - 64) / 4,
-    paddingVertical: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
-    alignItems: 'center',
-  },
-  sizeBtnActive: {
-    backgroundColor: Colors.primarySoft,
-    borderColor: Colors.primary,
-  },
-  sizeBtnText: {
-    fontSize: FontSize.md,
-    color: Colors.textPrimary,
+  specName: {
+    flex: 1,
+    color: Colors.textSecondary,
     fontWeight: FontWeight.semibold,
+    fontSize: FontSize.sm,
   },
-  sizeBtnTextActive: {
-    color: Colors.primary,
+  specValue: {
+    flex: 2,
+    color: Colors.textPrimary,
+    fontSize: FontSize.sm,
+  },
+  qtySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  qtyLabel: {
+    fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
+    color: '#0F172A',
   },
   qtyControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   qtyBtn: {
     width: 40,
@@ -611,13 +805,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 22,
     marginBottom: Spacing.md,
-  },
-  bulletList: {
-    gap: Spacing.sm,
-  },
-  bulletItem: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
   },
   reviewsSummaryCard: {
     flexDirection: 'row',
