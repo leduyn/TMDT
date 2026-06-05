@@ -150,6 +150,9 @@ export interface OrderRequest {
   deliveryFee?: number;
   paymentMethod?: string;
   orderSource?: string;
+  invoiceName?: string;
+  invoiceTaxCode?: string;
+  invoiceAddress?: string;
 }
 
 export interface PromotionDTO {
@@ -170,16 +173,23 @@ export interface PromotionDTO {
 export interface AgencyDebtDTO {
   id: number;
   agencyId: number;
-  agencyName?: string;
   orderId?: number;
+  agencyCode?: string;
+  agencyName?: string;
+  customerCode?: string;
+  customerName?: string;
+  customerLevel?: string;
   debtCode: string;
-  description: string;
-  totalAmount: number;
-  paidAmount: number;
-  remainingAmount: number;
+  debtType?: string;
+  jobCategory?: string;
+  debtTermDays?: number;
+  value: number;
+  paidValue: number;
+  paymentDate?: string;
+  recordingDate?: string;
   dueDate?: string;
-  status: string;
-  createdAt: string;
+  remainingToCollect: number;
+  aCoin?: number;
 }
 
 export interface DashboardDTO {
@@ -199,6 +209,48 @@ export interface NotificationDTO {
   referenceId?: number;
   read: boolean;
   createdAt: string;
+}
+
+export interface CreditDetailResponse {
+  agencyId: number;
+  creditLimit: number;
+  totalDebt: number;
+  guaranteeDebt: number;
+  vtcAvailable: number;
+  vtcHold: number;
+  hmkd: number;
+  debtTermDays: number;
+  updatedAt?: string;
+  overdueDebts: OverdueDebtInfo[];
+  ledgerHistory: LedgerEntry[];
+  customerDebts: CustomerDebtInfo[];
+}
+
+export interface OverdueDebtInfo {
+  id: number;
+  orderId?: number;
+  customerId?: number;
+  customerName?: string;
+  principalAmount: number;
+  interestAccrued: number;
+  status: string;
+  startDate?: string;
+  lastCalculatedAt?: string;
+}
+
+export interface LedgerEntry {
+  id: number;
+  type: string;
+  amount: number;
+  referenceId?: string;
+  receiverType?: string;
+  createdAt: string;
+}
+
+export interface CustomerDebtInfo {
+  customerId: number;
+  customerName: string;
+  totalDebt: number;
 }
 
 export interface CartItem {

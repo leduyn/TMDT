@@ -73,6 +73,7 @@ export function AppNavigator() {
           headerStyle: { backgroundColor: Colors.primary },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '600' },
+          headerBackTitleVisible: false,
         }}
       >
         {!isAuthenticated ? (

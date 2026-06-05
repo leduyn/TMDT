@@ -125,7 +125,7 @@ export function CategoryListScreen({ navigation }: any) {
           />
         </View>
         <TouchableOpacity style={styles.cartHeaderBtn} onPress={() => navigation.navigate('Cart')}>
-          <Ionicons name="cart-outline" size={24} color={Colors.primary} />
+          <Ionicons name="cart-outline" size={24} color={Colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -194,12 +194,10 @@ const styles = StyleSheet.create({
   searchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
     gap: Spacing.md,
   },
   searchWrapper: {
@@ -212,7 +210,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  searchIcon: { marginRight: Spacing.xs },
+  searchIcon: { marginRight: Spacing.xs, color: Colors.textTertiary },
   searchInput: {
     flex: 1,
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html class="light" lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quản lý công nợ - B2B Connect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+</style>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                "colors": {
+                    "primary-fixed-dim": "#adc7f7",
+                    "inverse-surface": "#2d3133",
+                    "surface-dim": "#d8dadc",
+                    "on-surface-variant": "#43474e",
+                    "action-teal": "#0D9488",
+                    "text-muted": "#64748B",
+                    "surface-container-low": "#f2f4f6",
+                    "tertiary": "#00270f",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed": "#001b3c",
+                    "primary-container": "#1a365d",
+                    "on-primary-container": "#86a0cd",
+                    "primary": "#002045",
+                    "primary-fixed": "#d6e3ff",
+                    "secondary-container": "#ffa454",
+                    "agency-navy": "#0F172A",
+                    "inverse-primary": "#adc7f7",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#ffdcc3",
+                    "surface-variant": "#e0e3e5",
+                    "outline": "#74777f",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#904d00",
+                    "surface-container": "#eceef0",
+                    "on-tertiary-container": "#30b466",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#f7f9fb",
+                    "on-tertiary-fixed-variant": "#005228",
+                    "text-main": "#1E293B",
+                    "surface": "#f7f9fb",
+                    "surface-container-high": "#e6e8ea",
+                    "on-error": "#ffffff",
+                    "surface-border": "#E2E8F0",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-primary-fixed-variant": "#2d476f",
+                    "on-secondary-fixed": "#2f1500",
+                    "tertiary-fixed-dim": "#61de8a",
+                    "on-secondary-fixed-variant": "#6e3900",
+                    "on-error-container": "#93000a",
+                    "background": "#f7f9fb",
+                    "on-background": "#191c1e",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#003f1d",
+                    "tertiary-fixed": "#7efba4",
+                    "outline-variant": "#c4c6cf",
+                    "surface-tint": "#455f88",
+                    "on-surface": "#191c1e",
+                    "on-tertiary-fixed": "#00210c",
+                    "secondary-fixed-dim": "#ffb77d",
+                    "on-primary": "#ffffff",
+                    "debt-red": "#E11D48",
+                    "on-secondary-container": "#713b00"
+                },
+                "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+                },
+                "spacing": {
+                    "xl": "32px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "gutter": "20px",
+                    "2xl": "48px",
+                    "sm": "8px",
+                    "base": "4px",
+                    "margin-mobile": "16px",
+                    "3xl": "64px",
+                    "xs": "4px",
+                    "margin-desktop": "40px"
+                },
+                "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "code-sm": ["JetBrains Mono"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-md": ["Inter"]
+                },
+                "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "code-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "headline-sm": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                }
+            }
+        }
+    }
+</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+</style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+
+<!-- ===== HEADER ===== -->
+<header class="bg-surface dark:bg-inverse-surface border-b border-surface-border dark:border-outline-variant docked full-width top-0 sticky z-50 flex justify-between items-center w-full px-md md:px-margin-desktop py-base">
+    <div class="flex items-center gap-md">
+        <span class="material-symbols-outlined text-primary cursor-pointer">menu</span>
+        <h1 class="font-headline-md text-headline-md font-bold text-agency-navy dark:text-primary-fixed-dim">B2B Connect</h1>
+    </div>
+    <div class="hidden md:flex gap-lg">
+        <span class="text-on-surface-variant dark:text-surface-variant font-label-md cursor-pointer hover:bg-surface-container-low transition-colors px-2 py-1 rounded">DASHBOARD</span>
+        <span class="text-primary dark:text-inverse-primary font-bold font-label-md cursor-pointer px-2 py-1 rounded">CÔNG NỢ</span>
+        <span class="text-on-surface-variant dark:text-surface-variant font-label-md cursor-pointer hover:bg-surface-container-low transition-colors px-2 py-1 rounded">GIAO DỊCH</span>
+    </div>
+    <div class="flex items-center gap-md">
+        <span class="material-symbols-outlined text-primary cursor-pointer">search</span>
+        <div class="w-10 h-10 rounded-full bg-primary-fixed-dim flex items-center justify-center text-primary font-bold">MP</div>
+    </div>
+</header>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="max-w-[1280px] mx-auto px-margin-mobile md:px-margin-desktop py-xl pb-32">
+
+    <!-- Summary Cards Section -->
+    <section class="mb-xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-md mb-lg">
+            <div>
+                <p class="text-text-muted font-label-md mb-xs">QUẢN LÝ TÀI CHÍNH</p>
+                <h2 class="font-headline-lg text-headline-lg text-agency-navy">Công nợ &amp; Tín dụng</h2>
+            </div>
+            <button class="bg-secondary text-on-secondary px-lg py-md rounded-xl font-headline-sm flex items-center gap-sm active:scale-95 transition-transform shadow-md">
+                <span class="material-symbols-outlined">payments</span>
+                Thanh toán ngay
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+            <!-- Tổng dư nợ -->
+            <div class="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-gutter">
+                <div class="bg-primary-container text-on-primary-container p-xl rounded-xl relative overflow-hidden flex flex-col justify-between h-48 shadow-lg">
+                    <div class="relative z-10">
+                        <p class="font-label-md opacity-80 mb-xs">TỔNG DƯ NỢ HIỆN TẠI</p>
+                        <h3 class="font-display-lg text-display-lg text-white">450.280.000đ</h3>
+                    </div>
+                    <div class="relative z-10 flex items-center gap-xs text-error-container">
+                        <span class="material-symbols-outlined text-body-sm">warning</span>
+                        <span class="font-body-sm">Vượt định mức 5%</span>
+                    </div>
+                    <div class="absolute -right-10 -bottom-10 opacity-10">
+                        <span class="material-symbols-outlined text-[160px]">account_balance_wallet</span>
+                    </div>
+                </div>
+
+                <!-- Hạn mức tín dụng -->
+                <div class="bg-white border border-surface-border p-xl rounded-xl flex flex-col justify-between h-48 shadow-sm">
+                    <div>
+                        <div class="flex justify-between items-start mb-base">
+                            <p class="text-text-muted font-label-md">HẠN MỨC TÍN DỤNG</p>
+                            <span class="bg-tertiary-fixed text-on-tertiary-fixed px-2 py-0.5 rounded-full text-[10px] font-bold">PLATINUM</span>
+                        </div>
+                        <h3 class="font-headline-lg text-headline-lg text-agency-navy">1.200.000.000đ</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-body-sm font-medium">
+                            <span>Khả dụng</span>
+                            <span>749.720.000đ</span>
+                        </div>
+                        <div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                            <div class="bg-action-teal h-full w-[37.5%]"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thông tin đại lý -->
+            <div class="md:col-span-4 bg-white border border-surface-border p-xl rounded-xl shadow-sm flex flex-col justify-between">
+                <div>
+                    <p class="text-text-muted font-label-md mb-md uppercase">Thông tin đại lý</p>
+                    <div class="flex items-center gap-md mb-lg">
+                        <img class="w-16 h-16 rounded-full object-cover border-2 border-primary-fixed"
+                             alt="Agency owner portrait"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjgdkGOInMRWB2EqntJr9AUMtWDk8r1rmKFnrtP42ddhfGoy3XI3rwooYzE0S5gMWgC8hIDNA9lXYiSWjqFdTwl5e1hOi_jATMbVbn1qf6uFNR4G8RXuPuSptAh8aH9OVeQw1d5-BUUozoA_btwvI-MBmxDkb7xJt5MxshgL1wTVTkM7vH87zmvQeEn16V3oVkLyJdCQeuxIQuQzzxQH7RZmYMEFJJRVRErVLyTjNbDUzTkTS38lhNdKe4MlkHcXh3ZY-Z0DGkzA"/>
+                        <div>
+                            <h4 class="font-headline-sm text-agency-navy">Minh Phát Tier 1</h4>
+                            <p class="text-body-sm text-text-muted">ID: AG-8829 • Platinum Partner</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-md pt-md border-t border-surface-border">
+                    <div>
+                        <p class="text-label-md text-text-muted mb-xs">Ngày đối soát</p>
+                        <p class="font-headline-sm text-agency-navy">25 Hàng tháng</p>
+                    </div>
+                    <div>
+                        <p class="text-label-md text-text-muted mb-xs">Điểm tín dụng</p>
+                        <p class="font-headline-sm text-action-teal">842</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Invoices & Payment History -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-xl">
+
+        <!-- Hóa đơn chưa thanh toán -->
+        <section class="lg:col-span-2">
+            <div class="flex items-center justify-between mb-lg">
+                <h3 class="font-headline-md text-headline-md text-agency-navy">Hóa đơn chưa thanh toán</h3>
+                <button class="text-primary font-label-md flex items-center gap-xs hover:underline">
+                    Xem tất cả
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </button>
+            </div>
+            <div class="space-y-md">
+                <!-- Invoice 1 - Overdue -->
+                <div class="group bg-white border border-surface-border p-md rounded-xl hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-md">
+                    <div class="flex items-center gap-md">
+                        <div class="w-12 h-12 rounded-lg bg-error-container flex items-center justify-center text-debt-red">
+                            <span class="material-symbols-outlined">description</span>
+                        </div>
+                        <div>
+                            <h5 class="font-body-md font-bold text-agency-navy">HD-2023-1102</h5>
+                            <p class="text-body-sm text-text-muted">Đơn hàng thiết bị điện lạnh Panasonic</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between md:justify-end gap-xl">
+                        <div class="text-right">
+                            <p class="text-label-md text-debt-red font-bold">Quá hạn 5 ngày</p>
+                            <p class="font-headline-sm text-agency-navy">125.000.000đ</p>
+                        </div>
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors cursor-pointer">chevron_right</span>
+                    </div>
+                </div>
+
+                <!-- Invoice 2 -->
+                <div class="group bg-white border border-surface-border p-md rounded-xl hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-md">
+                    <div class="flex items-center gap-md">
+                        <div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">description</span>
+                        </div>
+                        <div>
+                            <h5 class="font-body-md font-bold text-agency-navy">HD-2023-1105</h5>
+                            <p class="text-body-sm text-text-muted">Lô hàng dây cáp &amp; linh kiện phụ trợ</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between md:justify-end gap-xl">
+                        <div class="text-right">
+                            <p class="text-label-md text-text-muted">Đến hạn: 12/12/2023</p>
+                            <p class="font-headline-sm text-agency-navy">85.500.000đ</p>
+                        </div>
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors cursor-pointer">chevron_right</span>
+                    </div>
+                </div>
+
+                <!-- Invoice 3 -->
+                <div class="group bg-white border border-surface-border p-md rounded-xl hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-md">
+                    <div class="flex items-center gap-md">
+                        <div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">description</span>
+                        </div>
+                        <div>
+                            <h5 class="font-body-md font-bold text-agency-navy">HD-2023-1108</h5>
+                            <p class="text-body-sm text-text-muted">Hợp đồng bảo trì hệ thống tháng 11</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between md:justify-end gap-xl">
+                        <div class="text-right">
+                            <p class="text-label-md text-text-muted">Đến hạn: 15/12/2023</p>
+                            <p class="font-headline-sm text-agency-navy">239.780.000đ</p>
+                        </div>
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary transition-colors cursor-pointer">chevron_right</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lịch sử thanh toán -->
+        <section>
+            <div class="flex items-center justify-between mb-lg">
+                <h3 class="font-headline-md text-headline-md text-agency-navy">Lịch sử thanh toán</h3>
+                <span class="material-symbols-outlined text-text-muted cursor-pointer hover:text-primary">filter_list</span>
+            </div>
+            <div class="bg-white border border-surface-border rounded-xl divide-y divide-surface-border">
+                <!-- Payment 1 -->
+                <div class="p-md flex items-center justify-between">
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </div>
+                        <div>
+                            <p class="font-body-sm font-bold text-agency-navy">Chuyển khoản VCB</p>
+                            <p class="text-[12px] text-text-muted">20/11/2023 • 14:20</p>
+                        </div>
+                    </div>
+                    <p class="font-body-md font-bold text-action-teal">+50.000.000đ</p>
+                </div>
+
+                <!-- Payment 2 -->
+                <div class="p-md flex items-center justify-between">
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </div>
+                        <div>
+                            <p class="font-body-sm font-bold text-agency-navy">Tiền mặt tại kho</p>
+                            <p class="text-[12px] text-text-muted">15/11/2023 • 09:45</p>
+                        </div>
+                    </div>
+                    <p class="font-body-md font-bold text-action-teal">+15.200.000đ</p>
+                </div>
+
+                <!-- Payment 3 -->
+                <div class="p-md flex items-center justify-between">
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </div>
+                        <div>
+                            <p class="font-body-sm font-bold text-agency-navy">Khấu trừ hoa hồng</p>
+                            <p class="text-[12px] text-text-muted">10/11/2023 • 18:00</p>
+                        </div>
+                    </div>
+                    <p class="font-body-md font-bold text-action-teal">+4.500.000đ</p>
+                </div>
+
+                <!-- Payment 4 -->
+                <div class="p-md flex items-center justify-between">
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </div>
+                        <div>
+                            <p class="font-body-sm font-bold text-agency-navy">Chuyển khoản BIDV</p>
+                            <p class="text-[12px] text-text-muted">05/11/2023 • 11:30</p>
+                        </div>
+                    </div>
+                    <p class="font-body-md font-bold text-action-teal">+100.000.000đ</p>
+                </div>
+
+                <!-- Download button -->
+                <div class="p-md text-center">
+                    <button class="text-primary font-label-md">Tải báo cáo sao kê (.pdf)</button>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<!-- ===== BOTTOM NAVIGATION (Mobile) ===== -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-sm pb-safe h-16 bg-surface-container-lowest dark:bg-inverse-surface border-t border-surface-border dark:border-outline-variant shadow-md dark:shadow-none z-50 md:hidden">
+    <div class="flex flex-col items-center justify-center text-text-muted dark:text-surface-variant px-3 py-1 scale-95 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">home</span>
+        <span class="font-label-md text-label-md">Trang chủ</span>
+    </div>
+    <div class="flex flex-col items-center justify-center text-text-muted dark:text-surface-variant px-3 py-1 scale-95 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">grid_view</span>
+        <span class="font-label-md text-label-md">Sản phẩm</span>
+    </div>
+    <div class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-xl px-3 py-1 scale-95 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+        <span class="font-label-md text-label-md">Công nợ</span>
+    </div>
+    <div class="flex flex-col items-center justify-center text-text-muted dark:text-surface-variant px-3 py-1 scale-95 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">sell</span>
+        <span class="font-label-md text-label-md">Ưu đãi</span>
+    </div>
+    <div class="flex flex-col items-center justify-center text-text-muted dark:text-surface-variant px-3 py-1 scale-95 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">person</span>
+        <span class="font-label-md text-label-md">Cá nhân</span>
+    </div>
+</nav>
+
+<!-- ===== FLOATING SUPPORT BUTTON (Desktop) ===== -->
+<div class="fixed bottom-24 right-6 z-40 hidden md:block">
+    <button class="w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform group">
+        <span class="material-symbols-outlined">support_agent</span>
+        <span class="absolute right-full mr-4 bg-agency-navy text-white px-md py-xs rounded-lg text-body-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Hỗ trợ tài chính</span>
+    </button>
+</div>
+
+<!-- ===== ANIMATION SCRIPT ===== -->
+<script>
+    // Simple counter animation for the debt display
+    function animateValue(obj, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const val = Math.floor(progress * (end - start) + start);
+            obj.innerHTML = new Intl.NumberFormat('vi-VN').format(val) + 'đ';
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const debtHeading = document.querySelector('h3.text-display-lg');
+        if (debtHeading) {
+            // Initial set to 0 then animate to target
+            debtHeading.innerHTML = '0đ';
+            setTimeout(() => animateValue(debtHeading, 0, 450280000, 1500), 500);
+        }
+    });
+</script>
+
+</body>
+</html>

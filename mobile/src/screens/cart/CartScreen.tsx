@@ -9,6 +9,7 @@ import {
   ScrollView,
   TextInput,
   Animated,
+  Platform,
 } from 'react-native';
 import { useCart } from '../../context/CartContext';
 import { CartItemRow } from '../../components/CartItemRow';
@@ -44,21 +45,27 @@ export function CartScreen({ navigation }: any) {
   // ───── Empty Cart State ─────
   if (items.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyIconWrapper}>
-          <Text style={styles.emptyIcon}>🛒</Text>
+      <View style={styles.screen}>
+        <View style={styles.cartHeader}>
+          <Text style={styles.cartHeaderTitle}>Giỏ hàng</Text>
+          <Text style={styles.cartHeaderCount}>0 sản phẩm</Text>
         </View>
-        <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
-        <Text style={styles.emptySubtitle}>
-          Hãy khám phá các sản phẩm chất lượng dành cho đại lý
-        </Text>
-        <TouchableOpacity
-          style={styles.emptyShopBtn}
-          onPress={() => navigation.navigate('CategoryList')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.emptyShopBtnText}>🛍  Mua sắm ngay</Text>
-        </TouchableOpacity>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconWrapper}>
+            <Text style={styles.emptyIcon}>🛒</Text>
+          </View>
+          <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
+          <Text style={styles.emptySubtitle}>
+            Hãy khám phá các sản phẩm chất lượng dành cho đại lý
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyShopBtn}
+            onPress={() => navigation.navigate('CategoryList')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.emptyShopBtnText}>🛍  Mua sắm ngay</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -66,17 +73,16 @@ export function CartScreen({ navigation }: any) {
   // ───── Cart with Items ─────
   return (
     <View style={styles.screen}>
+      {/* Header */}
+      <View style={styles.cartHeader}>
+        <Text style={styles.cartHeaderTitle}>Giỏ hàng</Text>
+        <Text style={styles.cartHeaderCount}>{totalItems} sản phẩm</Text>
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── Header ─── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Giỏ hàng của bạn</Text>
-          <Text style={styles.itemCount}>{totalItems} sản phẩm</Text>
-        </View>
-
         {/* ─── Cart Items Card ─── */}
         <View style={styles.itemsCard}>
           {items.map((item, index) => (
@@ -242,8 +248,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 32,
+  },
+
+  // ─── Cart Header ───
+  cartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingBottom: Spacing.md,
+  },
+  cartHeaderTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  cartHeaderCount: {
+    fontSize: FontSize.sm,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: FontWeight.semibold,
   },
 
   // ─── Empty State ───
@@ -293,23 +320,6 @@ const styles = StyleSheet.create({
   },
 
   // ─── Section Header ───
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-  },
-  itemCount: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-
   // ─── Items Card ───
   itemsCard: {
     backgroundColor: Colors.white,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,20 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { orderApi } from '../../api/order';
+import { agencyApi } from '../../api/agency';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
-import type { OrderRequest } from '../../types';
+import type { OrderRequest, UserDTO } from '../../types';
 
 export function CheckoutScreen({ navigation }: any) {
   const { items, clearCart, totalAmount, totalItems } = useCart();
-  const { user } = useAuth();
+  const { user, agencyId } = useAuth();
 
   // Shipping Info States
   const [shippingAddress, setShippingAddress] = useState(
@@ -27,6 +30,48 @@ export function CheckoutScreen({ navigation }: any) {
   );
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [tempAddress, setTempAddress] = useState(shippingAddress);
+
+  // Customer selection state
+  const [customers, setCustomers] = useState<UserDTO[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+
+  useEffect(() => {
+    if (agencyId) {
+      setLoadingCustomers(true);
+      agencyApi.getCustomers(agencyId)
+        .then(setCustomers)
+        .catch(() => {})
+        .finally(() => setLoadingCustomers(false));
+    }
+  }, [agencyId]);
+
+  const handleSelectCustomer = (customer: UserDTO) => {
+    setSelectedCustomer(customer);
+    if (customer.shippingAddress) setShippingAddress(customer.shippingAddress);
+    setInvoiceFor('customer');
+    const newName = customer.organizationName || '';
+    const newTaxCode = customer.taxCode || '';
+    const newAddress = customer.billingAddress || customer.shippingAddress || '';
+    setInvoiceName(newName);
+    setInvoiceTaxCode(newTaxCode);
+    setInvoiceAddress(newAddress);
+    setTempInvoiceName(newName);
+    setTempInvoiceTaxCode(newTaxCode);
+    setTempInvoiceAddress(newAddress);
+    setShowCustomerPicker(false);
+  };
+
+  // Invoice State
+  const [invoiceFor, setInvoiceFor] = useState<'creator' | 'customer'>('customer');
+  const [invoiceName, setInvoiceName] = useState(user?.organizationName || '');
+  const [invoiceTaxCode, setInvoiceTaxCode] = useState(user?.taxCode || '');
+  const [invoiceAddress, setInvoiceAddress] = useState(user?.billingAddress || user?.shippingAddress || '');
+  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
+  const [tempInvoiceName, setTempInvoiceName] = useState(invoiceName);
+  const [tempInvoiceTaxCode, setTempInvoiceTaxCode] = useState(invoiceTaxCode);
+  const [tempInvoiceAddress, setTempInvoiceAddress] = useState(invoiceAddress);
 
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<'Tiền mặt' | 'Chuyển khoản' | 'Thẻ tín dụng'>('Tiền mặt');
@@ -68,6 +113,51 @@ export function CheckoutScreen({ navigation }: any) {
     setIsEditingAddress(false);
   };
 
+  const handleSaveInvoice = () => {
+    if (!tempInvoiceName.trim()) {
+      Alert.alert('Lỗi', 'Tên công ty xuất hóa đơn không được để trống.');
+      return;
+    }
+    if (!tempInvoiceTaxCode.trim()) {
+      Alert.alert('Lỗi', 'Mã số thuế không được để trống.');
+      return;
+    }
+    setInvoiceName(tempInvoiceName);
+    setInvoiceTaxCode(tempInvoiceTaxCode);
+    setInvoiceAddress(tempInvoiceAddress);
+    setIsEditingInvoice(false);
+  };
+
+  const handleInvoiceForCreator = () => {
+    setInvoiceFor('creator');
+    const newName = user?.organizationName || '';
+    const newTaxCode = user?.taxCode || '';
+    const newAddress = user?.billingAddress || user?.shippingAddress || '';
+    setInvoiceName(newName);
+    setInvoiceTaxCode(newTaxCode);
+    setInvoiceAddress(newAddress);
+    setTempInvoiceName(newName);
+    setTempInvoiceTaxCode(newTaxCode);
+    setTempInvoiceAddress(newAddress);
+  };
+
+  const handleInvoiceForCustomer = () => {
+    if (!selectedCustomer) {
+      Alert.alert('Chưa chọn người mua', 'Vui lòng chọn người mua trước khi xuất hóa đơn cho khách hàng.');
+      return;
+    }
+    setInvoiceFor('customer');
+    const newName = selectedCustomer.organizationName || '';
+    const newTaxCode = selectedCustomer.taxCode || '';
+    const newAddress = selectedCustomer.billingAddress || selectedCustomer.shippingAddress || '';
+    setInvoiceName(newName);
+    setInvoiceTaxCode(newTaxCode);
+    setInvoiceAddress(newAddress);
+    setTempInvoiceName(newName);
+    setTempInvoiceTaxCode(newTaxCode);
+    setTempInvoiceAddress(newAddress);
+  };
+
   const handleConfirmOrder = async () => {
     if (items.length === 0) {
       Alert.alert('Giỏ hàng trống', 'Vui lòng thêm sản phẩm vào giỏ hàng trước khi đặt hàng.');
@@ -101,11 +191,15 @@ export function CheckoutScreen({ navigation }: any) {
           quantity: item.quantity
         })),
         shippingAddress,
+        customerId: selectedCustomer?.id,
         promotionCode: appliedPromo || undefined,
         paymentMethod,
         orderType: 'DROPSHIP',
         deliveryFee: shippingFee,
-        orderSource: 'Mobile'
+        orderSource: 'Mobile',
+        invoiceName: invoiceName || undefined,
+        invoiceTaxCode: invoiceTaxCode || undefined,
+        invoiceAddress: invoiceAddress || undefined,
       };
 
       // Determine which API depending on user roles
@@ -176,6 +270,24 @@ export function CheckoutScreen({ navigation }: any) {
             )}
           </View>
 
+          {/* Customer Selector for agency users */}
+          {agencyId && (
+            <TouchableOpacity style={styles.customerSelector} onPress={() => setShowCustomerPicker(true)} activeOpacity={0.85}>
+              <View style={styles.customerSelectorLeft}>
+                <Ionicons name="people-outline" size={18} color={Colors.primary} />
+                <Text style={styles.customerSelectorLabel}>Người mua:</Text>
+              </View>
+              <View style={styles.customerSelectorRight}>
+                <Text style={selectedCustomer ? styles.customerSelectorValue : styles.customerSelectorPlaceholder}>
+                  {selectedCustomer
+                    ? (selectedCustomer.displayName || selectedCustomer.username)
+                    : 'Mặc định (tôi)'}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={Colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+          )}
+
           {isEditingAddress ? (
             <View style={styles.editAddressContainer}>
               <TextInput
@@ -190,22 +302,177 @@ export function CheckoutScreen({ navigation }: any) {
             </View>
           ) : (
             <View style={styles.addressCardList}>
-              {/* Default Address Card */}
               <View style={styles.addressCardActive}>
                 <View style={styles.checkIconWrapper}>
                   <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
                 </View>
                 <Text style={styles.addressTag}>ĐỊA CHỈ MẶC ĐỊNH</Text>
-                <Text style={styles.addressName}>{user?.displayName || user?.username || 'Đại lý Minh Phát'}</Text>
-                <Text style={styles.addressPhone}>{user?.phone || '090 123 4567'}</Text>
+                <Text style={styles.addressName}>
+                  {selectedCustomer
+                    ? (selectedCustomer.displayName || selectedCustomer.username)
+                    : (user?.displayName || user?.username || 'Đại lý Minh Phát')}
+                </Text>
+                <Text style={styles.addressPhone}>
+                  {selectedCustomer ? selectedCustomer.phone || '' : (user?.phone || '090 123 4567')}
+                </Text>
                 <Text style={styles.addressDetail}>{shippingAddress}</Text>
               </View>
+            </View>
+          )}
+        </View>
 
-              {/* Add New Address Card */}
-              <TouchableOpacity style={styles.addAddressCard} activeOpacity={0.8}>
-                <Ionicons name="add-outline" size={24} color={Colors.textSecondary} />
-                <Text style={styles.addAddressText}>Thêm địa chỉ mới</Text>
+        {/* Customer Picker Modal */}
+        <Modal visible={showCustomerPicker} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Chọn người mua</Text>
+                <TouchableOpacity onPress={() => setShowCustomerPicker(false)}>
+                  <Ionicons name="close" size={24} color={Colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+              {loadingCustomers ? (
+                <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+              ) : customers.length === 0 ? (
+                <Text style={styles.modalEmptyText}>Không có khách hàng nào</Text>
+              ) : (
+                <FlatList
+                  data={customers}
+                  keyExtractor={(item) => String(item.id)}
+                  renderItem={({ item }) => {
+                    const isSelected = selectedCustomer?.id === item.id;
+                    return (
+                      <TouchableOpacity
+                        style={[styles.customerItem, isSelected && styles.customerItemActive]}
+                        onPress={() => handleSelectCustomer(item)}
+                      >
+                        <View style={styles.customerItemLeft}>
+                          <Text style={styles.customerItemName}>
+                            {item.displayName || item.username}
+                          </Text>
+                          {item.phone && <Text style={styles.customerItemPhone}>{item.phone}</Text>}
+                        </View>
+                        <View style={styles.customerItemRight}>
+                          {isSelected ? (
+                            <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
+                          ) : (
+                            <View style={styles.customerRadio} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  contentContainerStyle={styles.customerListContent}
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* ─── Thông tin xuất hóa đơn (Invoice Info) ─── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
+              <Text style={styles.sectionTitle}>Thông tin xuất hóa đơn</Text>
+            </View>
+            {!isEditingInvoice ? (
+              <TouchableOpacity onPress={() => {
+                setTempInvoiceName(invoiceName);
+                setTempInvoiceTaxCode(invoiceTaxCode);
+                setTempInvoiceAddress(invoiceAddress);
+                setIsEditingInvoice(true);
+              }}>
+                <Text style={styles.actionBtnText}>Thay đổi</Text>
               </TouchableOpacity>
+            ) : (
+              <View style={styles.editActionRow}>
+                <TouchableOpacity onPress={handleSaveInvoice}>
+                  <Text style={[styles.actionBtnText, { color: Colors.success }]}>Lưu</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setIsEditingInvoice(false)}>
+                  <Text style={[styles.actionBtnText, { color: Colors.error }]}>Hủy</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Invoice toggle: creator or customer */}
+          <View style={styles.invoiceToggleRow}>
+            <TouchableOpacity
+              style={[styles.invoiceToggleOption, invoiceFor === 'creator' && styles.invoiceToggleActive]}
+              onPress={handleInvoiceForCreator}
+            >
+              <Ionicons
+                name={invoiceFor === 'creator' ? 'checkmark-circle' : 'ellipse-outline'}
+                size={18}
+                color={invoiceFor === 'creator' ? Colors.primary : Colors.textTertiary}
+              />
+              <Text style={[styles.invoiceToggleText, invoiceFor === 'creator' && styles.invoiceToggleTextActive]}>
+                Xuất cho tôi
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.invoiceToggleOption, invoiceFor === 'customer' && styles.invoiceToggleActive]}
+              onPress={handleInvoiceForCustomer}
+            >
+              <Ionicons
+                name={invoiceFor === 'customer' ? 'checkmark-circle' : 'ellipse-outline'}
+                size={18}
+                color={invoiceFor === 'customer' ? Colors.primary : Colors.textTertiary}
+              />
+              <Text style={[styles.invoiceToggleText, invoiceFor === 'customer' && styles.invoiceToggleTextActive]}>
+                Xuất cho khách hàng
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {isEditingInvoice ? (
+            <View style={styles.editAddressContainer}>
+              <TextInput
+                style={styles.addressInput}
+                placeholder="Tên công ty"
+                placeholderTextColor={Colors.textTertiary}
+                value={tempInvoiceName}
+                onChangeText={setTempInvoiceName}
+              />
+              <View style={{ height: 10 }} />
+              <TextInput
+                style={styles.addressInput}
+                placeholder="Mã số thuế"
+                placeholderTextColor={Colors.textTertiary}
+                value={tempInvoiceTaxCode}
+                onChangeText={setTempInvoiceTaxCode}
+              />
+              <View style={{ height: 10 }} />
+              <TextInput
+                style={styles.addressInput}
+                multiline
+                numberOfLines={2}
+                placeholder="Địa chỉ xuất hóa đơn"
+                placeholderTextColor={Colors.textTertiary}
+                value={tempInvoiceAddress}
+                onChangeText={setTempInvoiceAddress}
+              />
+            </View>
+          ) : (
+            <View style={styles.addressCardList}>
+              <View style={styles.addressCardActive}>
+                <View style={styles.checkIconWrapper}>
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+                </View>
+                <Text style={styles.addressTag}>
+                  {invoiceFor === 'creator'
+                    ? (user?.organizationName || user?.displayName || 'NGƯỜI TẠO ĐƠN').toUpperCase()
+                    : (selectedCustomer?.displayName || selectedCustomer?.username || user?.organizationName || user?.displayName || 'KHÁCH HÀNG').toUpperCase()}
+                </Text>
+                {invoiceName ? <Text style={styles.addressName}>{invoiceName}</Text> : null}
+                {invoiceTaxCode ? <Text style={styles.addressPhone}>MST: {invoiceTaxCode}</Text> : null}
+                {invoiceAddress ? <Text style={styles.addressDetail}>{invoiceAddress}</Text> : null}
+                {!invoiceName && !invoiceTaxCode && !invoiceAddress && (
+                  <Text style={styles.addressDetail}>Chưa có thông tin xuất hóa đơn</Text>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -522,21 +789,147 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 16,
   },
-  addAddressCard: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-  },
   addAddressText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
     color: Colors.textSecondary,
+  },
+
+  // Customer Selector styles
+  customerSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: 12,
+    marginBottom: 12,
+  },
+  customerSelectorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  customerSelectorLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+  },
+  customerSelectorRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  customerSelectorValue: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  customerSelectorPlaceholder: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+  },
+
+  // Customer Picker Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+    maxHeight: '60%',
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  modalEmptyText: {
+    textAlign: 'center',
+    color: Colors.textTertiary,
+    paddingVertical: 40,
+    fontSize: FontSize.sm,
+  },
+  customerListContent: {
+    paddingHorizontal: 16,
+  },
+  customerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  customerItemActive: {
+    backgroundColor: '#F0F4FA',
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
+  customerItemLeft: {
+    flex: 1,
+  },
+  customerItemName: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+  customerItemPhone: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  customerItemRight: {
+    marginLeft: 12,
+  },
+  customerRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  invoiceToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  invoiceToggleOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: 10,
+    backgroundColor: Colors.surface,
+  },
+  invoiceToggleActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#F0F4FA',
+  },
+  invoiceToggleText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textTertiary,
+  },
+  invoiceToggleTextActive: {
+    color: Colors.primary,
   },
 
   // Payment Section styles

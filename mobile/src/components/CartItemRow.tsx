@@ -11,7 +11,7 @@ interface Props {
 
 export function CartItemRow({ item, onUpdateQuantity, onRemove }: Props) {
   const { product, quantity } = item;
-  const price = product.appliedPrice ?? product.price;
+  const price = product.appliedPrice ?? product.price ?? 0;
   const hasDiscount = product.appliedPrice && product.appliedPrice < product.price;
   const subtotal = price * quantity;
 

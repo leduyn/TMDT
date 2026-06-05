@@ -24,7 +24,7 @@ export function PromotionsScreen() {
 
   const discountLabel = (p: PromotionDTO) => {
     if (p.discountType === 'PERCENTAGE') return `Giảm ${p.discountValue}%`;
-    return `Giảm ${p.discountValue.toLocaleString('vi-VN')}đ`;
+    return `Giảm ${(p.discountValue ?? 0).toLocaleString('vi-VN')}đ`;
   };
 
   const isActive = (p: PromotionDTO) => {
@@ -49,7 +49,7 @@ export function PromotionsScreen() {
         </View>
       )}
       {item.minOrderValue != null && item.minOrderValue > 0 && (
-        <Text style={styles.minOrder}>Đơn tối thiểu: {item.minOrderValue.toLocaleString('vi-VN')}đ</Text>
+        <Text style={styles.minOrder}>Đơn tối thiểu: {(item.minOrderValue ?? 0).toLocaleString('vi-VN')}đ</Text>
       )}
       <View style={styles.dateRow}>
         <Text style={styles.date}>

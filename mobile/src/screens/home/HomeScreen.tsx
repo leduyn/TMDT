@@ -66,19 +66,19 @@ export function HomeScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       
       {/* Header Bar */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity style={styles.iconBtn}>
-            <Ionicons name="menu-outline" size={26} color={Colors.textPrimary} />
+            <Ionicons name="menu-outline" size={26} color={Colors.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>B2B Connect</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
+            <Ionicons name="notifications-outline" size={24} color={Colors.white} />
             <View style={styles.notiBadge} />
           </TouchableOpacity>
           <TouchableOpacity 
@@ -203,7 +203,7 @@ export function HomeScreen({ navigation }: any) {
         <View style={styles.productsGrid}>
           {products.length > 0 ? (
             products.slice(0, 4).map((p) => {
-              const displayPrice = p.appliedPrice ?? p.price;
+              const displayPrice = p.appliedPrice ?? p.price ?? 0;
               const oldPrice = p.oldAppliedPrice;
               const hasDiscount = oldPrice && oldPrice > displayPrice;
               const discountPercent = hasDiscount ? Math.round(((oldPrice - displayPrice) / oldPrice) * 100) : 0;
@@ -353,9 +353,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingBottom: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    backgroundColor: Colors.primary,
+    borderBottomWidth: 0,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -365,7 +364,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-    color: '#0F172A',
+    color: Colors.white,
   },
   headerRight: {
     flexDirection: 'row',
@@ -389,16 +388,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primaryLight,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 0,
   },
   avatarText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
-    color: Colors.primary,
+    color: Colors.white,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,

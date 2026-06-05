@@ -7,4 +7,6 @@ export const agencyApi = {
     fetchJSON<{ id: number; name: string; creditLimit?: number; totalDebt?: number }>(
       `/api/agencies/${id}`
     ),
+  getCustomers: (agencyId: number) =>
+    fetchJSON<UserDTO[]>(`/api/agencies/${agencyId}/customers`),
 };

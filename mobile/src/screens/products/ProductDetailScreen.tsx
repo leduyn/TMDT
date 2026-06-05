@@ -210,7 +210,7 @@ export function ProductDetailScreen({ route, navigation }: any) {
     );
   }
 
-  const price = product.appliedPrice ?? product.price;
+  const price = product.appliedPrice ?? product.price ?? 0;
   const oldPrice = product.oldAppliedPrice;
   const hasDiscount = oldPrice && oldPrice > price;
   const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
