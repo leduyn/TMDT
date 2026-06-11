@@ -11,6 +11,7 @@ import { dashboardApi } from '../../api/notification';
 import { productApi } from '../../api/product';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { ProductDTO, DashboardDTO } from '../../types';
+import { resolveImageUrl } from '../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -217,7 +218,7 @@ export function HomeScreen({ navigation }: any) {
                 >
                   <View style={styles.prodImgWrapper}>
                     <Image
-                      source={{ uri: p.imageUrl || 'https://via.placeholder.com/150' }}
+                      source={{ uri: resolveImageUrl(p.imageUrl) || 'https://via.placeholder.com/150' }}
                       style={styles.prodImg}
                       resizeMode="cover"
                     />

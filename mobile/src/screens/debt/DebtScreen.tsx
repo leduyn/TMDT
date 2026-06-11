@@ -81,7 +81,8 @@ function useAnimatedCounter(target: number, duration = 1500) {
 // ─── Main Component ───────────────────────────────────────
 // ═══════════════════════════════════════════════════════════
 export function DebtScreen({ navigation }: any) {
-  const { user, agencyId } = useAuth();
+  const { user, agencyId, storedAgencyId } = useAuth();
+  const effectiveAgencyId = agencyId || storedAgencyId;
   const [debts, setDebts] = useState<AgencyDebtDTO[]>([]);
   const [credit, setCredit] = useState<CreditDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,8 +95,8 @@ export function DebtScreen({ navigation }: any) {
     setError(null);
     try {
       const [debtData, creditData] = await Promise.all([
-        agencyId ? debtApi.getByAgency(agencyId) : debtApi.getAll(),
-        agencyId ? creditApi.getDetail(agencyId) : Promise.resolve(null),
+        effectiveAgencyId ? debtApi.getByAgency(effectiveAgencyId) : debtApi.getAll(),
+        effectiveAgencyId ? creditApi.getDetail(effectiveAgencyId) : Promise.resolve(null),
       ]);
       setDebts(debtData);
       setCredit(creditData);
@@ -110,12 +111,12 @@ export function DebtScreen({ navigation }: any) {
   const onRefresh = () => { setRefreshing(true); loadData(); };
 
   // ── Computed values ──
-  const totalDebt = debts.reduce((s, d) => s + d.remainingToCollect, 0);
+  const totalDebt = credit?.totalDebt ?? 0;
   const creditLimit = credit?.creditLimit ?? 0;
   const guaranteeDebt = credit?.guaranteeDebt ?? 0;
-  const hmkd = credit?.hmkd ?? (creditLimit - totalDebt);
+  const hmkd = credit?.hmkd ?? Math.max(0, creditLimit - totalDebt - guaranteeDebt + (credit?.vtcAvailable ?? 0));
   const available = Math.max(0, hmkd);
-  const usedPercent = creditLimit > 0 ? (totalDebt / creditLimit) * 100 : 0;
+  const usedPercent = creditLimit > 0 ? (totalDebt + guaranteeDebt) / creditLimit * 100 : 0;
   const isOverLimit = usedPercent > 100;
 
   const unpaidDebts = debts.filter(d => d.remainingToCollect > 0);
@@ -153,7 +154,9 @@ export function DebtScreen({ navigation }: any) {
   };
 
   const formatDateTime = (iso: string) => {
+    if (!iso) return '';
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
     return d.toLocaleDateString('vi-VN') + ' • ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -300,7 +303,7 @@ export function DebtScreen({ navigation }: any) {
         {/* ═══ Unpaid Invoices ═══ */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Hóa đơn chưa thanh toán</Text>
-          <TouchableOpacity style={styles.seeAllBtn}>
+          <TouchableOpacity style={styles.seeAllBtn} onPress={() => {}} activeOpacity={1}>
             <Text style={styles.seeAllText}>Xem tất cả</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
           </TouchableOpacity>

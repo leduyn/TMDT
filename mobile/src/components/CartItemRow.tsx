@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, BorderRadius, Shadow } from '../theme';
 import type { CartItem } from '../types';
+import { resolveImageUrl } from '../utils';
 
 interface Props {
   item: CartItem;
@@ -33,7 +34,7 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: Props) {
       {/* Product Image */}
       <View style={styles.imageWrapper}>
         <Image
-          source={{ uri: product.imageUrl || 'https://via.placeholder.com/96' }}
+          source={{ uri: resolveImageUrl(product.imageUrl) || 'https://via.placeholder.com/96' }}
           style={styles.image}
         />
       </View>

@@ -1,9 +1,11 @@
 package com.anhtin.tmdt.backend.modules.credit.service;
 
 import com.anhtin.tmdt.backend.modules.credit.entity.AgentCredit;
+import com.anhtin.tmdt.backend.modules.credit.entity.AgencyDebt;
 import com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.modules.credit.entity.OverdueDebt;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgentCreditRepository;
+import com.anhtin.tmdt.backend.modules.credit.repository.AgencyDebtRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.CreditLedgerRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.OverdueDebtRepository;
 import com.anhtin.tmdt.backend.modules.order.entity.Order;
@@ -120,11 +122,14 @@ public class CreditService {
         return true;
     }
 
+    @Autowired
+    private AgencyDebtRepository agencyDebtRepository;
+
     @Transactional
     public void processOverdue(Long orderId, Double amount) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        
+
         order.setStatus("OVERDUE");
         orderRepository.save(order);
 
@@ -132,26 +137,63 @@ public class CreditService {
                 .orElseThrow(() -> new RuntimeException("Credit account not found"));
 
         double overdueAmount = amount != null ? amount : order.getTotalAmount();
-        double holdAmount = Math.min(credit.getVtcAvailable(), overdueAmount);
+        LocalDateTime now = LocalDateTime.now();
+        boolean isCustomerDebt = "CUSTOMER".equals(order.getReceiverType());
 
-        if (holdAmount > 0) {
-            credit.setVtcAvailable(credit.getVtcAvailable() - holdAmount);
-            credit.setVtcHold(credit.getVtcHold() + holdAmount);
-            agentCreditRepository.save(credit);
-            saveLedger(credit.getAgency().getId(), CreditLedger.LedgerType.HOLD, holdAmount, orderId.toString());
+        // 1. Tự động thanh toán từ ví ký quỹ khả dụng (vtcAvailable)
+        double payFromVtc = Math.min(credit.getVtcAvailable(), overdueAmount);
+        if (payFromVtc > 0) {
+            credit.setVtcAvailable(credit.getVtcAvailable() - payFromVtc);
+
+            // Cập nhật remainingToCollect trên các AgencyDebt của đơn hàng này
+            List<AgencyDebt> orderDebts = agencyDebtRepository.findByOrderId(orderId);
+            double remainingToApply = payFromVtc;
+            for (AgencyDebt d : orderDebts) {
+                if (remainingToApply <= 0) break;
+                double toPay = Math.min(remainingToApply, d.getRemainingToCollect());
+                d.setPaidValue(d.getPaidValue() + toPay);
+                if (toPay > 0) d.setPaymentDate(now);
+                remainingToApply -= toPay;
+            }
+
+            // Giảm guaranteeDebt khi thanh toán từ VTC cho nợ khách hàng
+            if (isCustomerDebt) {
+                credit.setGuaranteeDebt(Math.max(0, credit.getGuaranteeDebt() - payFromVtc));
+            }
+
+            saveLedger(credit.getAgency().getId(), CreditLedger.LedgerType.PAYMENT, payFromVtc, orderId.toString());
         }
 
-        OverdueDebt debt = new OverdueDebt();
-        debt.setOrder(order);
-        debt.setAgency(order.getAgency());
-        debt.setPrincipalAmount(overdueAmount);
-        debt.setStartDate(LocalDateTime.now());
-        debt.setStatus(OverdueDebt.OverdueStatus.ACTIVE);
-        overdueDebtRepository.save(debt);
+        double remainingOverdue = Math.max(0, overdueAmount - payFromVtc);
 
-        // Record in AgencyDebt
-        agencyDebtService.recordTransaction(order.getAgency(), order, "HOLD-" + order.getId() + "-" + UUID.randomUUID().toString().substring(0,8), 
-            com.anhtin.tmdt.backend.modules.credit.entity.AgencyDebt.DebtType.HOLD, "Giữ quỹ nợ quá hạn - Đơn " + order.getId(), overdueAmount, 0);
+        if (remainingOverdue > 0) {
+            if (isCustomerDebt) {
+                // Nợ khách hàng quá hạn: không tạo OverdueDebt/HOLD
+                // recalculateDebts sẽ tự động chuyển phần còn lại từ guaranteeDebt sang vtcHold
+            } else {
+                // Nợ đại lý quá hạn: tạo OverdueDebt + HOLD (giữ nguyên logic cũ)
+                OverdueDebt debt = new OverdueDebt();
+                debt.setOrder(order);
+                debt.setAgency(order.getAgency());
+                debt.setPrincipalAmount(remainingOverdue);
+                debt.setStartDate(now);
+                debt.setStatus(OverdueDebt.OverdueStatus.ACTIVE);
+                overdueDebtRepository.save(debt);
+
+                agencyDebtService.recordTransaction(order.getAgency(), order,
+                    "HOLD-" + order.getId() + "-" + UUID.randomUUID().toString().substring(0, 8),
+                    AgencyDebt.DebtType.HOLD,
+                    "Nợ quá hạn - Đơn " + order.getId() + " (đã thanh toán " + fmtAmount(payFromVtc) + " từ VTC)",
+                    remainingOverdue, 0);
+            }
+        }
+
+        agentCreditRepository.save(credit);
+        agencyDebtService.recalculateDebts(credit.getAgency().getId());
+    }
+
+    private String fmtAmount(double d) {
+        return String.format("%,.0f", d);
     }
 
     @Transactional
@@ -159,88 +201,48 @@ public class CreditService {
         AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
                 .orElseThrow(() -> new RuntimeException("Credit account not found"));
 
-        double remainingAmount = amount;
-        saveLedger(agencyId, CreditLedger.LedgerType.PAYMENT, amount, targetOrderId != null ? targetOrderId.toString() : "GENERAL");
-        
+        // 1. Tăng ví ký quỹ khả dụng
+        credit.setVtcAvailable(credit.getVtcAvailable() + amount);
+
+        saveLedger(agencyId, CreditLedger.LedgerType.PAYMENT, amount,
+                targetOrderId != null ? targetOrderId.toString() : "GENERAL");
+
         com.anhtin.tmdt.backend.modules.agency.entity.Agency agency = agencyRepository.findById(agencyId).orElse(null);
         if (agency != null) {
             Order targetOrder = targetOrderId != null ? orderRepository.findById(targetOrderId).orElse(null) : null;
-            agencyDebtService.recordTransaction(agency, targetOrder, "PAY-" + UUID.randomUUID().toString().substring(0,8), 
-                com.anhtin.tmdt.backend.modules.credit.entity.AgencyDebt.DebtType.PAYMENT, "Thanh toán công nợ", -amount, 0);
+            agencyDebtService.recordTransaction(agency, targetOrder, "PAY-" + UUID.randomUUID().toString().substring(0, 8),
+                    AgencyDebt.DebtType.PAYMENT, "Thanh toán công nợ", -amount, 0);
         }
 
+        // 2. Nếu thanh toán cho đơn hàng cụ thể, giảm dư nợ trên AgencyDebt
         if (targetOrderId != null) {
-            // Thanh toán chỉ định cho 1 đơn hàng
-            OverdueDebt debt = overdueDebtRepository.findByAgencyIdAndStatus(agencyId, OverdueDebt.OverdueStatus.ACTIVE)
-                    .stream()
-                    .filter(d -> d.getOrder().getId().equals(targetOrderId))
-                    .findFirst()
-                    .orElse(null);
-            
-            if (debt != null) {
-                remainingAmount = payDebt(debt, remainingAmount, credit);
+            List<AgencyDebt> orderDebts = agencyDebtRepository.findByOrderId(targetOrderId);
+            double remainingToPay = amount;
+            for (AgencyDebt d : orderDebts) {
+                if (remainingToPay <= 0) break;
+                double toPay = Math.min(remainingToPay, d.getRemainingToCollect());
+                if (toPay > 0) {
+                    d.setPaidValue(d.getPaidValue() + toPay);
+                    d.setPaymentDate(LocalDateTime.now());
+                    remainingToPay -= toPay;
+                }
             }
-        } else {
-            // Thanh toán FIFO
-            List<OverdueDebt> activeDebts = overdueDebtRepository.findByAgencyIdAndStatus(agencyId, OverdueDebt.OverdueStatus.ACTIVE);
-            activeDebts.sort((a, b) -> a.getStartDate().compareTo(b.getStartDate()));
 
-            for (OverdueDebt debt : activeDebts) {
-                if (remainingAmount <= 0) break;
-                remainingAmount = payDebt(debt, remainingAmount, credit);
-            }
+            // Đóng OverdueDebt nếu đã thanh toán hết
+            overdueDebtRepository.findByOrderId(targetOrderId).stream()
+                .filter(od -> od.getStatus() == OverdueDebt.OverdueStatus.ACTIVE)
+                .forEach(od -> {
+                    double totalPaid = amount; // tổng đã thanh toán cho đơn này
+                    od.setPrincipalAmount(Math.max(0, od.getPrincipalAmount() - totalPaid));
+                    if (od.getPrincipalAmount() <= 0 && od.getInterestAccrued() <= 0) {
+                        od.setStatus(OverdueDebt.OverdueStatus.CLOSED);
+                    }
+                    overdueDebtRepository.save(od);
+                });
         }
 
-        // Nếu còn dư sau khi trả hết nợ quá hạn, ưu tiên giảm Dư nợ (totalDebt)
-        if (remainingAmount > 0) {
-            agentCreditRepository.decreaseAgencyDebt(agencyId, remainingAmount);
-        }
-    }
-
-    private double payDebt(OverdueDebt debt, double amount, AgentCredit credit) {
-        double remaining = amount;
-
-        // 1. Trả gốc trước
-        double principalToPay = Math.min(remaining, debt.getPrincipalAmount());
-        debt.setPrincipalAmount(debt.getPrincipalAmount() - principalToPay);
-        remaining -= principalToPay;
-        
-        if ("CUSTOMER".equals(debt.getOrder().getReceiverType())) {
-            agentCreditRepository.decreaseGuaranteeDebt(credit.getAgency().getId(), principalToPay);
-            if (debt.getOrder().getCustomer() != null && debt.getOrder().getAgency() != null) {
-                agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
-                        debt.getOrder().getAgency().getId(), debt.getOrder().getCustomer().getId())
-                    .ifPresent(assignment -> {
-                        assignment.setTotalDebt(Math.max(0, assignment.getTotalDebt() - principalToPay));
-                        agencyCustomerAssignmentRepository.save(assignment);
-                    });
-            }
-        } else {
-            agentCreditRepository.decreaseAgencyDebt(credit.getAgency().getId(), principalToPay);
-        }
-
-        // 2. Trả lãi sau
-        double interestToPay = Math.min(remaining, debt.getInterestAccrued());
-        debt.setInterestAccrued(debt.getInterestAccrued() - interestToPay);
-        remaining -= interestToPay;
-
-        if (debt.getPrincipalAmount() <= 0 && debt.getInterestAccrued() <= 0) {
-            debt.setStatus(OverdueDebt.OverdueStatus.CLOSED);
-            
-            // Refund collateral
-            double vtcHoldForThisOrder = Math.min(credit.getVtcHold(), debt.getOrder().getTotalAmount());
-            if (vtcHoldForThisOrder > 0) {
-                // Refund formula: refund = vtc_hold - interest_paid
-                // Ở đây ta đơn giản hóa: hoàn trả phần vtc_hold tương ứng đơn hàng này
-                credit.setVtcHold(credit.getVtcHold() - vtcHoldForThisOrder);
-                credit.setVtcAvailable(credit.getVtcAvailable() + vtcHoldForThisOrder);
-                saveLedger(credit.getAgency().getId(), CreditLedger.LedgerType.REFUND, vtcHoldForThisOrder, debt.getOrder().getId().toString());
-            }
-        }
-
-        overdueDebtRepository.save(debt);
         agentCreditRepository.save(credit);
-        return remaining;
+        agencyDebtService.recalculateDebts(agencyId);
     }
 
     private void saveLedger(Long agencyId, CreditLedger.LedgerType type, Double amount, String refId) {
@@ -270,6 +272,6 @@ public class CreditService {
         saveLedger(agencyId, CreditLedger.LedgerType.REFUND, amount, "VTC_DEPOSIT");
 
         agencyDebtService.recordTransaction(credit.getAgency(), null, "DEP-" + UUID.randomUUID().toString().substring(0,8), 
-            com.anhtin.tmdt.backend.modules.credit.entity.AgencyDebt.DebtType.DEPOSIT, "Nạp tiền vào ví VTC", -amount, 0);
+            AgencyDebt.DebtType.DEPOSIT, "Nạp tiền vào ví VTC", -amount, 0);
     }
 }

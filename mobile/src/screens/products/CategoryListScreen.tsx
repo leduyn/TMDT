@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { CategoryDTO, ProductDTO } from '../../types';
+import { resolveImageUrl } from '../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -73,7 +74,7 @@ export function CategoryListScreen({ navigation }: any) {
   }
 
   const renderProductItem = ({ item }: { item: ProductDTO }) => {
-    const displayPrice = item.appliedPrice ?? item.price;
+    const displayPrice = item.appliedPrice ?? item.price ?? 0;
     const isOutOfStock = item.stockQuantity === 0;
 
     return (
@@ -83,7 +84,7 @@ export function CategoryListScreen({ navigation }: any) {
         activeOpacity={0.7}
       >
         <Image
-          source={{ uri: item.imageUrl || 'https://via.placeholder.com/120' }}
+          source={{ uri: resolveImageUrl(item.imageUrl) || 'https://via.placeholder.com/120' }}
           style={styles.productImage}
           resizeMode="cover"
         />
@@ -146,7 +147,7 @@ export function CategoryListScreen({ navigation }: any) {
               >
                 <View style={[styles.activeIndicator, isActive && styles.activeIndicatorVisible]} />
                 <Image 
-                  source={{ uri: cat.imageUrl || 'https://via.placeholder.com/40' }} 
+                  source={{ uri: resolveImageUrl(cat.imageUrl) || 'https://via.placeholder.com/40' }} 
                   style={styles.categoryIcon} 
                 />
                 <Text 

@@ -15,7 +15,7 @@ export const authApi = {
 };
 
 export const userApi = {
-  getMe: (userId: number) => fetchJSON<UserDTO>(`/api/users/${userId}`),
+  getMe: () => fetchJSON<UserDTO>('/api/users/me'),
   updateProfile: (data: Partial<UserDTO>) =>
     fetchJSON<UserDTO>('/api/users/profile', {
       method: 'PUT',

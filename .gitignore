@@ -1,3 +1,5 @@
 # Windows reserved device name - cannot be tracked by git
 nul
 /nul
+
+opencode.json

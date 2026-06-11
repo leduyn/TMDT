@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import type { ProductDTO } from '../types';
 import { Colors } from '../theme';
+import { resolveImageUrl } from '../utils';
 
 interface ProductCardProps {
   product: ProductDTO;
@@ -10,13 +11,13 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps) {
-  const displayPrice = product.appliedPrice ?? product.price;
+  const displayPrice = product.appliedPrice ?? product.price ?? 0;
   const oldPrice = product.oldAppliedPrice;
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(product)} activeOpacity={0.7}>
       <Image
-        source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
+        source={{ uri: resolveImageUrl(product.imageUrl) || 'https://via.placeholder.com/150' }}
         style={styles.image}
         resizeMode="cover"
       />

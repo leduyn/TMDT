@@ -165,7 +165,11 @@ function CreditManagementContent() {
     setSubmitting(true);
     try {
       const amt = parseFloat(inputAmount);
-      if (isNaN(amt) || amt <= 0) throw new Error('Số tiền không hợp lệ');
+      if (modal === 'limit') {
+        if (isNaN(amt) || amt < 0) throw new Error('Hạn mức không hợp lệ');
+      } else {
+        if (isNaN(amt) || amt <= 0) throw new Error('Số tiền không hợp lệ');
+      }
 
       if (modal === 'limit') {
         await creditApi.updateLimit(selectedId, amt);
@@ -262,6 +266,44 @@ function CreditManagementContent() {
         {/* Detail */}
         {!loading && detail && (
           <>
+            {/* Agency info card */}
+            {(() => {
+              const agency = agencies.find(a => a.id === selectedId);
+              if (!agency) return null;
+              return (
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 16, padding: '20px 24px', marginBottom: 24,
+                  display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
+                }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 24,
+                    background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20, fontWeight: 700, color: '#fff',
+                  }}>
+                    {agency.name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{agency.name}</div>
+                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 6, fontSize: 13, color: '#94a3b8' }}>
+                      {agency.phone && <span>📞 {agency.phone}</span>}
+                      {agency.email && <span>✉ {agency.email}</span>}
+                      {agency.address && <span>📍 {agency.address}</span>}
+                      {agency.taxCode && <span>🆔 MST: {agency.taxCode}</span>}
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                    background: agency.active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                    color: agency.active ? '#22c55e' : '#ef4444',
+                  }}>
+                    {agency.active ? '● Hoạt động' : '● Ngừng'}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Stats grid */}
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
               <StatCard label="Hạn mức khả dụng (HMKD)" value={fmt(detail.hmkd)}

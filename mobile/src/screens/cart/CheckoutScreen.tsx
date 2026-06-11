@@ -19,6 +19,7 @@ import { orderApi } from '../../api/order';
 import { agencyApi } from '../../api/agency';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
 import type { OrderRequest, UserDTO } from '../../types';
+import { resolveImageUrl } from '../../utils';
 
 export function CheckoutScreen({ navigation }: any) {
   const { items, clearCart, totalAmount, totalItems } = useCart();
@@ -598,7 +599,7 @@ export function CheckoutScreen({ navigation }: any) {
               <View key={String(item.product.id)} style={styles.summaryItemRow}>
                 <View style={styles.itemImageWrapper}>
                   {item.product.imageUrl ? (
-                    <Image source={{ uri: item.product.imageUrl }} style={styles.itemImage} />
+                    <Image source={{ uri: resolveImageUrl(item.product.imageUrl) }} style={styles.itemImage} />
                   ) : (
                     <Text style={styles.itemImageText}>
                       {item.product.name ? item.product.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() : 'SP'}

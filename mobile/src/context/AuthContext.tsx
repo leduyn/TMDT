@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi } from '../api/auth';
+import { authApi, userApi } from '../api/auth';
 import type { LoginRequest, RegisterRequest, JwtResponse, UserDTO } from '../types';
 
 interface AuthContextType {
@@ -31,10 +31,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadStoredAuth = async () => {
     try {
       const storedToken = await AsyncStorage.getItem('token');
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedToken && storedUser) {
+      const storedAgency = await AsyncStorage.getItem('agencyId');
+      if (storedToken) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        if (storedAgency) setStoredAgencyId(Number(storedAgency));
+        try {
+          const fullUser = await userApi.getMe();
+          await AsyncStorage.setItem('user', JSON.stringify(fullUser));
+          setUser(fullUser);
+        } catch {
+          const storedUser = await AsyncStorage.getItem('user');
+          if (storedUser) setUser(JSON.parse(storedUser));
+        }
       }
     } catch {
       // ignore
@@ -46,26 +54,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (data: LoginRequest) => {
     const res: JwtResponse = await authApi.login(data);
     await AsyncStorage.setItem('token', res.token);
-    await AsyncStorage.setItem('user', JSON.stringify({
-      id: res.id,
-      username: res.username,
-      email: res.email,
-      roles: res.roles,
-      agencyId: res.agencyId,
-      shippingAddress: res.shippingAddress,
-    }));
     if (res.agencyId) {
       await AsyncStorage.setItem('agencyId', String(res.agencyId));
     }
+    // Fetch full user profile
+    let fullUser: UserDTO;
+    try {
+      fullUser = await userApi.getMe();
+    } catch {
+      fullUser = {
+        id: res.id,
+        username: res.username,
+        email: res.email,
+        role: res.roles?.[0] || '',
+        agencyId: res.agencyId,
+        shippingAddress: res.shippingAddress,
+      } as UserDTO;
+    }
+    await AsyncStorage.setItem('user', JSON.stringify(fullUser));
     setToken(res.token);
-    setUser({
-      id: res.id,
-      username: res.username,
-      email: res.email,
-      role: res.roles?.[0] || '',
-      agencyId: res.agencyId,
-      shippingAddress: res.shippingAddress,
-    } as UserDTO);
+    setUser(fullUser);
   }, []);
 
   const register = useCallback(async (data: RegisterRequest) => {

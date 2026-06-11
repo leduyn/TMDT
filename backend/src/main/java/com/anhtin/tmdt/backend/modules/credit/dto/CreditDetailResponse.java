@@ -162,15 +162,33 @@ public class CreditDetailResponse {
         CreditDetailResponse r = new CreditDetailResponse();
         r.setAgencyId(credit.getAgency().getId());
         r.setCreditLimit(credit.getCreditLimit());
-        r.setTotalDebt(credit.getTotalDebt());
-        r.setGuaranteeDebt(credit.getGuaranteeDebt());
-        r.setVtcAvailable(credit.getVtcAvailable());
+
+        // Floor debts at 0, shift negative customer debt into vtcAvailable
+        double totalDebt = Math.max(0, credit.getTotalDebt());
+        double guaranteeDebt = Math.max(0, credit.getGuaranteeDebt());
+        double vtcAvailable = credit.getVtcAvailable();
+
+        // Customer debts: floor at 0, accumulate negative amounts to add to vtcAvailable
+        double excessFromCustomers = 0;
+        List<CustomerDebtInfo> customerDebtList = new java.util.ArrayList<>();
+        for (var a : assignments) {
+            CustomerDebtInfo cd = CustomerDebtInfo.from(a);
+            if (cd.getTotalDebt() < 0) {
+                excessFromCustomers += Math.abs(cd.getTotalDebt());
+                cd.setTotalDebt(0);
+            }
+            customerDebtList.add(cd);
+        }
+
+        r.setTotalDebt(totalDebt);
+        r.setGuaranteeDebt(guaranteeDebt);
+        r.setVtcAvailable(vtcAvailable + excessFromCustomers);
         r.setVtcHold(credit.getVtcHold());
-        r.setHmkd(credit.getCreditLimit() - (credit.getTotalDebt() + credit.getGuaranteeDebt()) + credit.getVtcAvailable());
+        r.setHmkd(credit.getCreditLimit() - (totalDebt + guaranteeDebt) + vtcAvailable + excessFromCustomers);
         r.setDebtTermDays(credit.getDebtTermDays() != null ? credit.getDebtTermDays() : 30);
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
-        r.setCustomerDebts(assignments.stream().map(CustomerDebtInfo::from).toList());
+        r.setCustomerDebts(customerDebtList);
         
         r.setLedgerHistory(ledger.stream().map(l -> {
             String ref = l.getReferenceId();

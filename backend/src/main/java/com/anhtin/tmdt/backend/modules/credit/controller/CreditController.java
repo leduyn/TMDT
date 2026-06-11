@@ -75,7 +75,11 @@ public class CreditController {
         AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId).orElse(null);
 
         if (credit == null) {
-            return ResponseEntity.ok(CreditDetailResponse.empty(agencyId));
+            agencyDebtService.recalculateDebts(agencyId);
+            credit = agentCreditRepository.findByAgencyId(agencyId).orElse(null);
+            if (credit == null) {
+                return ResponseEntity.ok(CreditDetailResponse.empty(agencyId));
+            }
         }
 
         List<OverdueDebt> debts = overdueDebtRepository

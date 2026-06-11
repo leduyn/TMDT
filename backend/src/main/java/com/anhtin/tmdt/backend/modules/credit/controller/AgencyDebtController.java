@@ -22,12 +22,22 @@ public class AgencyDebtController {
     private AgencyDebtService agencyDebtService;
     
     @GetMapping
-    @PreAuthorize("hasRole('COMPANY')")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
     public ResponseEntity<List<AgencyDebtDTO>> getAllDebts() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth.getPrincipal() instanceof com.anhtin.tmdt.backend.security.services.UserDetailsImpl) {
+            com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+            if (userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"))) {
+                Long myAgencyId = userDetails.getAgencyId();
+                if (myAgencyId != null) {
+                    List<AgencyDebt> debts = agencyDebtService.getDebtsByAgency(myAgencyId);
+                    List<AgencyDebtDTO> dtos = debts.stream().map(AgencyDebtDTO::fromEntity).collect(Collectors.toList());
+                    return ResponseEntity.ok(dtos);
+                }
+            }
+        }
         List<AgencyDebt> debts = agencyDebtService.getAllDebts();
-        List<AgencyDebtDTO> dtos = debts.stream()
-                .map(AgencyDebtDTO::fromEntity)
-                .collect(Collectors.toList());
+        List<AgencyDebtDTO> dtos = debts.stream().map(AgencyDebtDTO::fromEntity).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 

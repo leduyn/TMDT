@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { ProductDTO } from '../../types';
+import { resolveImageUrl } from '../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -219,7 +220,7 @@ export function ProductDetailScreen({ route, navigation }: any) {
 
   // Build image list (fallback to placeholders if none defined)
   const productImages = product.imageUrl 
-    ? [product.imageUrl, ...(product.imageUrls || []).filter(url => url !== product.imageUrl)] 
+    ? [resolveImageUrl(product.imageUrl), ...(product.imageUrls || []).map(resolveImageUrl).filter((url): url is string => !!url && url !== resolveImageUrl(product.imageUrl))] 
     : [
         'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=60',
         'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=60',

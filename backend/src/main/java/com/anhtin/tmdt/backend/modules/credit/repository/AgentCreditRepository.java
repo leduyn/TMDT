@@ -25,10 +25,10 @@ public interface AgentCreditRepository extends JpaRepository<AgentCredit, Long> 
     int consumeGuaranteeCredit(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
 
     @Modifying
-    @Query("UPDATE AgentCredit ac SET ac.totalDebt = ac.totalDebt - :amount WHERE ac.agency.id = :agencyId")
+    @Query("UPDATE AgentCredit ac SET ac.totalDebt = GREATEST(0, ac.totalDebt - :amount) WHERE ac.agency.id = :agencyId")
     int decreaseAgencyDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
 
     @Modifying
-    @Query("UPDATE AgentCredit ac SET ac.guaranteeDebt = ac.guaranteeDebt - :amount WHERE ac.agency.id = :agencyId")
+    @Query("UPDATE AgentCredit ac SET ac.guaranteeDebt = GREATEST(0, ac.guaranteeDebt - :amount) WHERE ac.agency.id = :agencyId")
     int decreaseGuaranteeDebt(@Param("agencyId") Long agencyId, @Param("amount") Double amount);
 }

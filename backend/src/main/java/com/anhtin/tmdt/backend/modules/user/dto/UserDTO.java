@@ -25,6 +25,7 @@ public class UserDTO {
     private String customShippingAddress;
     private String customPhone;
     private Double totalDebt;
+    private Long agencyId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -66,6 +67,8 @@ public class UserDTO {
     public void setCustomPhone(String customPhone) { this.customPhone = customPhone; }
     public Double getTotalDebt() { return totalDebt; }
     public void setTotalDebt(Double totalDebt) { this.totalDebt = totalDebt; }
+    public Long getAgencyId() { return agencyId; }
+    public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
 
     public UserDTO(User user) {
         this.id = user.getId();
@@ -103,6 +106,7 @@ public class UserDTO {
         } else {
             this.agencyIds = new java.util.ArrayList<>();
             this.agencyNames = new java.util.ArrayList<>();
+            this.totalDebt = 0.0;
         }
     }
 }

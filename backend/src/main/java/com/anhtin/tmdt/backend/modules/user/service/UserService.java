@@ -54,7 +54,9 @@ public class UserService {
         if (id == null) throw new RuntimeException("ID cannot be null");
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return new UserDTO(user);
+        UserDTO dto = new UserDTO(user);
+        agencyRepository.findByUserId(id).ifPresent(a -> dto.setAgencyId(a.getId()));
+        return dto;
     }
 
     public List<UserDTO> getUnassignedAgencies() {

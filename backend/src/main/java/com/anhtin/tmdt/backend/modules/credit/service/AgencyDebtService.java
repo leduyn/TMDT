@@ -2,6 +2,7 @@ package com.anhtin.tmdt.backend.modules.credit.service;
 
 import com.anhtin.tmdt.backend.modules.credit.entity.AgencyDebt;
 import com.anhtin.tmdt.backend.modules.credit.entity.AgentCredit;
+import com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgencyDebtRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgentCreditRepository;
 import com.anhtin.tmdt.backend.modules.order.entity.Order;
@@ -16,6 +17,8 @@ import java.util.Map;
 import java.util.HashMap;
 import com.anhtin.tmdt.backend.modules.credit.repository.CreditLedgerRepository;
 import com.anhtin.tmdt.backend.modules.order.repository.OrderRepository;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 
 @Service
 public class AgencyDebtService {
@@ -28,6 +31,9 @@ public class AgencyDebtService {
 
     @Autowired
     private CreditLedgerRepository creditLedgerRepository;
+
+    @Autowired
+    private AgencyRepository agencyRepository;
 
     @Transactional
     public void createDebtsForOrder(Order order) {
@@ -141,50 +147,53 @@ public class AgencyDebtService {
     public AgencyDebt payDebt(Long debtId, Double amount) {
         AgencyDebt debt = agencyDebtRepository.findById(debtId)
                 .orElseThrow(() -> new RuntimeException("Debt not found"));
-        
+
         if (amount <= 0) {
             throw new RuntimeException("Payment amount must be greater than 0");
         }
-        
+
         LocalDateTime now = LocalDateTime.now();
-        debt.setPaidValue(debt.getPaidValue() + amount);
+        double actualPay = Math.min(amount, debt.getRemainingToCollect());
+        debt.setPaidValue(debt.getPaidValue() + actualPay);
         debt.setPaymentDate(now);
-        debt.setRemainingToCollect(Math.max(0, debt.getRemainingToCollect() - amount));
-        
-        // 1. Cập nhật AgentCredit (Dư nợ / Nợ bảo lãnh)
+        debt.setRemainingToCollect(Math.max(0, debt.getRemainingToCollect() - actualPay));
+
         Order order = debt.getOrder();
         if (order != null && order.getAgency() != null) {
-            if ("CUSTOMER".equals(order.getReceiverType())) {
-                agentCreditRepository.decreaseGuaranteeDebt(order.getAgency().getId(), amount);
-                
-                // 2. Cập nhật AgencyCustomerAssignment.totalDebt
-                if (order.getCustomer() != null) {
-                    agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
-                            order.getAgency().getId(), order.getCustomer().getId())
-                        .ifPresent(assignment -> {
-                            assignment.setTotalDebt(Math.max(0, assignment.getTotalDebt() - amount));
-                            agencyCustomerAssignmentRepository.save(assignment);
-                        });
-                }
-            } else {
-                agentCreditRepository.decreaseAgencyDebt(order.getAgency().getId(), amount);
+            AgentCredit credit = agentCreditRepository.findByAgencyId(order.getAgency().getId()).orElse(null);
+
+            // 1. Tăng ví ký quỹ khả dụng
+            if (credit != null) {
+                credit.setVtcAvailable(credit.getVtcAvailable() + actualPay);
+                agentCreditRepository.save(credit);
             }
 
-            // Save ledger entry
-            com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger ledger = new com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger();
+            // 2. Cập nhật dư nợ khách hàng
+            if ("CUSTOMER".equals(order.getReceiverType()) && order.getCustomer() != null) {
+                agencyCustomerAssignmentRepository.findByAgencyIdAndCustomerId(
+                        order.getAgency().getId(), order.getCustomer().getId())
+                    .ifPresent(assignment -> {
+                        assignment.setTotalDebt(Math.max(0, assignment.getTotalDebt() - actualPay));
+                        agencyCustomerAssignmentRepository.save(assignment);
+                    });
+            }
+
+            // 3. Save ledger entry
+            CreditLedger ledger = new CreditLedger();
             ledger.setAgencyId(order.getAgency().getId());
-            ledger.setType(com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger.LedgerType.PAYMENT);
-            ledger.setAmount(amount);
+            ledger.setType(CreditLedger.LedgerType.PAYMENT);
+            ledger.setAmount(actualPay);
             ledger.setReferenceId(order.getId().toString());
             creditLedgerRepository.save(ledger);
         }
 
         // 3. Cập nhật a-coin: Nếu thanh toán trước hạn thì cộng a-coin
         if (now.isBefore(debt.getDueDate()) || now.isEqual(debt.getDueDate())) {
-            int newCoin = (int) Math.floor(amount / 100000);
+            int newCoin = (int) Math.floor(actualPay / 100000);
             debt.setaCoin((debt.getaCoin() != null ? debt.getaCoin() : 0) + newCoin);
         }
-        
+
+        recalculateDebts(debt.getAgency().getId());
         return agencyDebtRepository.save(debt);
     }
     @Transactional
@@ -192,35 +201,60 @@ public class AgencyDebtService {
         List<AgencyDebt> allDebts = agencyDebtRepository.findByAgencyIdOrderByRecordingDateDesc(agencyId);
         
         double calculatedAgencyDebt = 0.0;
-        double calculatedGuaranteeDebt = 0.0;
+        double calculatedGuaranteeDebt = 0.0; // Công nợ của người mua chưa quá hạn
+        double calculatedVtcHold = 0.0;       // Công nợ của người mua đã quá hạn
         Map<Long, Double> customerDebtMap = new HashMap<>();
+        LocalDateTime now = LocalDateTime.now();
 
         for (AgencyDebt debt : allDebts) {
             double remaining = debt.getRemainingToCollect();
+            if (remaining <= 0) continue;
+
             Order order = debt.getOrder();
-            
+
             if (order != null && "CUSTOMER".equals(order.getReceiverType())) {
-                calculatedGuaranteeDebt += remaining;
+                // Khoản nợ của người mua — phân loại theo trạng thái quá hạn
+                boolean isOverdue = debt.getDueDate() != null && debt.getDueDate().isBefore(now);
+                if (isOverdue) {
+                    calculatedVtcHold += remaining;
+                } else {
+                    calculatedGuaranteeDebt += remaining;
+                }
+
                 if (order.getCustomer() != null) {
                     Long cId = order.getCustomer().getId();
-                    customerDebtMap.put(cId, customerDebtMap.getOrDefault(cId, 0.0) + remaining);
+                    customerDebtMap.merge(cId, remaining, Double::sum);
                 }
             } else {
-                // If no order (like VTC deposit) or order is not for customer, it's agency debt
+                // Nợ của chính đại lý
                 calculatedAgencyDebt += remaining;
             }
         }
 
         AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
-                .orElseThrow(() -> new RuntimeException("Credit account not found"));
-        
-        credit.setTotalDebt(calculatedAgencyDebt); 
+                .orElseGet(() -> {
+                    Agency agency = agencyRepository.findById(agencyId)
+                            .orElseThrow(() -> new RuntimeException("Agency not found"));
+                    AgentCredit newCredit = new AgentCredit();
+                    newCredit.setAgency(agency);
+                    newCredit.setCreditLimit(0.0);
+                    newCredit.setTotalDebt(0.0);
+                    newCredit.setGuaranteeDebt(0.0);
+                    newCredit.setVtcAvailable(0.0);
+                    newCredit.setVtcHold(0.0);
+                    newCredit.setDebtTermDays(30);
+                    return agentCreditRepository.save(newCredit);
+                });
+
+        credit.setTotalDebt(Math.max(0, calculatedAgencyDebt));
         credit.setGuaranteeDebt(Math.max(0, calculatedGuaranteeDebt));
-        
+        credit.setVtcHold(Math.max(0, calculatedVtcHold));
+
         agentCreditRepository.save(credit);
-        
-        // 3. Cập nhật nợ của từng khách hàng được gán
-        List<com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment> assignments = agencyCustomerAssignmentRepository.findByAgencyId(agencyId);
+
+        // Cập nhật nợ của từng khách hàng được gán
+        List<com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment> assignments = 
+            agencyCustomerAssignmentRepository.findByAgencyId(agencyId);
         for (var assignment : assignments) {
             Double cusDebt = customerDebtMap.getOrDefault(assignment.getCustomer().getId(), 0.0);
             assignment.setTotalDebt(Math.max(0, cusDebt));
