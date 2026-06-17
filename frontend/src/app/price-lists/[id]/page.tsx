@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
 
 interface PriceListItem {
@@ -100,7 +101,7 @@ export default function PriceListDetailPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>{priceList.name}</h1>
@@ -260,7 +261,7 @@ export default function PriceListDetailPage() {
         )}
 
 
-      </main>
+      </Main>
     </>
   );
 }

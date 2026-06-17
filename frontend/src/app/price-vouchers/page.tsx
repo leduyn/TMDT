@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { priceAssignmentVoucherApi, PriceAssignmentVoucher, priceListApi, PriceListDTO, agencyApi, AgencyDTO, customerApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -12,6 +13,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import { Plus } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 export default function PriceVouchersPage() {
   const [vouchers, setVouchers] = useState<PriceAssignmentVoucher[]>([]);
@@ -21,6 +23,8 @@ export default function PriceVouchersPage() {
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
   
   const { user } = useAuth();
   const isAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
@@ -147,6 +151,9 @@ export default function PriceVouchersPage() {
     (v.customerName && v.customerName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const totalPages = Math.ceil(filteredVouchers.length / pageSize) || 1;
+  const paginatedVouchers = filteredVouchers.slice(page * pageSize, (page + 1) * pageSize);
+
   const columns: Column<PriceAssignmentVoucher>[] = [
     { header: 'Tên lệnh', key: 'name', width: '25%' },
     { header: 'Bảng giá', key: 'priceListName', width: '20%' },
@@ -219,7 +226,7 @@ export default function PriceVouchersPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Hẹn giờ áp dụng bảng giá" 
           subtitle="Tự động hóa việc gán bảng giá cho Khách hàng và Người mua lẻ theo lịch trình"
@@ -239,10 +246,13 @@ export default function PriceVouchersPage() {
         />
 
         <DataTable 
-          data={filteredVouchers}
+          data={paginatedVouchers}
           columns={columns}
           loading={loading}
           emptyMessage={searchQuery ? 'Không tìm thấy lệnh nào phù hợp' : 'Chưa có lệnh hẹn giờ nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
 
         {/* Create Modal */}
@@ -392,7 +402,7 @@ export default function PriceVouchersPage() {
             </GlassCard>
           </div>
         )}
-      </main>
+      </Main>
     </>
   );
 }

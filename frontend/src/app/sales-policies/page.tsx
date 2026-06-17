@@ -15,6 +15,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 export default function SalesPoliciesPage() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function SalesPoliciesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'SALES_POLICY' | 'PROMOTION' | 'RETAIL_POLICY'>('SALES_POLICY');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   const isAdmin = user?.roles?.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
@@ -126,6 +129,9 @@ export default function SalesPoliciesPage() {
   const filteredPolicies = tabPolicies.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredPolicies.length / pageSize) || 1;
+  const paginatedPolicies = filteredPolicies.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<SalesPolicyDTO>[] = [
     {
@@ -266,10 +272,13 @@ export default function SalesPoliciesPage() {
         />
 
         <DataTable 
-          data={filteredPolicies}
+          data={paginatedPolicies}
           columns={columns}
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy chương trình ưu đãi nào phù hợp' : 'Chưa có chương trình ưu đãi nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
       </main>
     </>

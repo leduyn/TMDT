@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { agencyApi, AgencyDTO, UserDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO } from '@/lib/api';
 import Link from 'next/link';
 
@@ -260,7 +261,7 @@ export default function AgencyDetailPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <div style={{ padding: '0 24px', marginBottom: 16 }}>
           <button 
             className="btn-outline" 
@@ -893,7 +894,7 @@ export default function AgencyDetailPage() {
             </div>
           </div>
         )}
-      </main>
+      </Main>
 
       <style jsx>{`
         .info-label {

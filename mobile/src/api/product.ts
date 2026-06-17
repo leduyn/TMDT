@@ -4,6 +4,9 @@ import type { CategoryDTO, ProductDTO, AttributeDTO, AttributeValueDTO } from '.
 export const categoryApi = {
   getAll: () => fetchJSON<CategoryDTO[]>('/api/categories'),
   getById: (id: number) => fetchJSON<CategoryDTO>(`/api/categories/${id}`),
+  getLevelNames: () => fetchJSON<Record<number, string>>('/api/categories/levels'),
+  getByLevel: (level: number) => fetchJSON<CategoryDTO[]>(`/api/categories/level/${level}`),
+  getChildren: (parentId: number) => fetchJSON<CategoryDTO[]>(`/api/categories/${parentId}/children`),
 };
 
 export const productApi = {

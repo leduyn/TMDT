@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { agencyApi } from '@/lib/api';
 
 import { useRouter } from 'next/navigation';
@@ -13,6 +14,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import { UserPlus, Eye, Phone, MapPin, User as UserIcon, CheckCircle, XCircle, ShieldCheck, Mail, Lock, Edit } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 interface Agency {
   id: number;
@@ -63,6 +65,8 @@ export default function AgenciesPage() {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -210,6 +214,9 @@ export default function AgenciesPage() {
     return matchesSearch;
   });
 
+  const totalPages = Math.ceil(filteredAgencies.length / pageSize) || 1;
+  const paginatedAgencies = filteredAgencies.slice(page * pageSize, (page + 1) * pageSize);
+
   const columns: Column<Agency>[] = [
     { 
       header: 'Khách hàng', 
@@ -297,7 +304,7 @@ export default function AgenciesPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Quản lý Khách hàng" 
           subtitle="Danh sách và thiết lập các Khách hàng ủy quyền trong hệ thống"
@@ -341,10 +348,13 @@ export default function AgenciesPage() {
         />
 
         <DataTable 
-          data={filteredAgencies}
+          data={paginatedAgencies}
           columns={columns}
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy Khách hàng nào phù hợp' : 'Chưa có Khách hàng nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
 
         {/* Modal Thêm Khách hàng Mới */}
@@ -579,7 +589,7 @@ export default function AgenciesPage() {
             font-weight: 500;
           }
         `}</style>
-      </main>
+      </Main>
     </>
   );
 }

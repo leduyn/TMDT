@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { agencyDebtApi, agencyApi, AgencyDebtDTO, AgencyDTO } from '@/lib/api';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge, { BadgeType } from '@/components/ui/Badge';
+import Pagination from '@/components/ui/Pagination';
 import { 
   Search, 
   Filter, 
@@ -105,6 +106,8 @@ function AgencyDebtsContent() {
   }, [isAdmin, myAgencyId, selectedAgencyId, loadDebts]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   const filteredDebts = debts.filter(d => {
     if (!searchTerm) return true;
@@ -119,6 +122,9 @@ function AgencyDebtsContent() {
       d.jobCategory?.toLowerCase().includes(term)
     );
   });
+
+  const totalPages = Math.ceil(filteredDebts.length / pageSize) || 1;
+  const paginatedData = filteredDebts.slice(page * pageSize, (page + 1) * pageSize);
 
   const handlePay = async () => {
     if (!paymentModal) return;
@@ -235,7 +241,7 @@ function AgencyDebtsContent() {
                     Không có kết quả tìm kiếm phù hợp
                   </td>
                 </tr>
-              ) : filteredDebts.map(debt => {
+              ) : paginatedData.map(debt => {
                 const isOverdue = new Date(debt.dueDate) < new Date() && debt.remainingToCollect > 0;
                 return (
                   <tr key={debt.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -307,6 +313,11 @@ function AgencyDebtsContent() {
               })}
             </tbody>
           </table>
+          {filteredDebts.length > 0 && (
+            <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
         </div>
       </GlassCard>
 

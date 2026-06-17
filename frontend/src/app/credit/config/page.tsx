@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { creditApi, AgencyCreditSummary } from '@/lib/api';
 import NotificationModal from '@/components/NotificationModal';
 
@@ -12,6 +13,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import { Settings, Search, Check, X, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -29,6 +31,8 @@ export default function CreditConfigPage() {
   const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false, title: '', message: '', type: 'info'
   });
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   useEffect(() => {
     loadSummaries();
@@ -98,6 +102,9 @@ export default function CreditConfigPage() {
     (s.agencyPhone || '').includes(searchQuery) ||
     s.agencyId.toString().includes(searchQuery)
   );
+
+  const totalPages = Math.ceil(filteredSummaries.length / pageSize) || 1;
+  const paginatedSummaries = filteredSummaries.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<any>[] = [
     { 
@@ -221,7 +228,7 @@ export default function CreditConfigPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Cấu hình Công nợ Người mua" 
           subtitle="Thiết lập hạn mức tín dụng và kỳ hạn thanh toán cho từng Người mua"
@@ -252,12 +259,15 @@ export default function CreditConfigPage() {
         />
 
         <DataTable 
-          data={filteredSummaries.map(s => ({ ...s, id: s.agencyId }))}
+          data={paginatedSummaries.map(s => ({ ...s, id: s.agencyId }))}
           columns={columns}
           loading={loading}
           emptyMessage={searchQuery ? 'Không tìm thấy Người mua nào phù hợp' : 'Chưa có thông tin tín dụng nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
-      </main>
+      </Main>
 
       <NotificationModal 
         isOpen={modal.isOpen} 

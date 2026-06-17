@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
 import { getDashboard, DashboardDTO } from '@/lib/api';
 
@@ -164,7 +165,7 @@ export default function DashboardPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         {/* Welcome hero */}
         <div className="glass-card fade-in-up" style={{
           padding: 32, marginBottom: 32,
@@ -317,7 +318,7 @@ export default function DashboardPage() {
             {user.roles.join(', ')} · ID: {user.id}
           </code>
         </div>
-      </main>
+      </Main>
     </>
   );
 }

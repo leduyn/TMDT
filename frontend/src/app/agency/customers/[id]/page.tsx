@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { customerApi, UserDTO } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -110,7 +111,7 @@ export default function AgencyCustomerDetailPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800 }}>{customer.displayName || customer.username}</h1>
@@ -220,7 +221,7 @@ export default function AgencyCustomerDetailPage() {
             </div>
           </div>
         </div>
-      </main>
+      </Main>
 
       {/* Edit Modal cho Người mua */}
       {showEditModal && (

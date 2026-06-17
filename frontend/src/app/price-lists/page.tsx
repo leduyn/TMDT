@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
 
 // UI Components
@@ -12,6 +13,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import { Plus, Eye, Trash2, FileText, Clock } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 interface PriceList {
   id: number;
@@ -28,6 +30,8 @@ export default function PriceListsPage() {
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   // Form state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -100,6 +104,9 @@ export default function PriceListsPage() {
     pl.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (pl.description && pl.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const totalPages = Math.ceil(filteredLists.length / pageSize) || 1;
+  const paginatedLists = filteredLists.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<PriceList>[] = [
     { 
@@ -175,7 +182,7 @@ export default function PriceListsPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Quản lý Bảng giá" 
           subtitle="Thiết lập các kịch bản giá cho các nhóm Khách hàng và Người mua khác nhau"
@@ -203,12 +210,15 @@ export default function PriceListsPage() {
         />
 
         <DataTable 
-          data={filteredLists}
+          data={paginatedLists}
           columns={columns}
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy bảng giá nào phù hợp' : 'Chưa có bảng giá nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
-      </main>
+      </Main>
 
       {/* Create Modal */}
       {showCreateModal && (

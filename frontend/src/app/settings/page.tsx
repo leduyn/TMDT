@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
 import { retailTrendApi, RetailTrendConfig } from '@/lib/api';
 
@@ -148,7 +149,7 @@ export default function SettingsPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         {/* Header */}
         <div className="fade-in-up" style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
@@ -518,7 +519,7 @@ export default function SettingsPage() {
             Mặc định là <strong>7 ngày</strong>.
           </p>
         </div>
-      </main>
+      </Main>
     </>
   );
 }

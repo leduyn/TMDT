@@ -42,6 +42,10 @@ public class Product {
     @JoinColumn(name = "brand_id")
     private Brand brand;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id")
+    private ProductType productType;
+
     @Column(name = "is_app_visible")
     private Boolean isAppVisible = true;
 
@@ -75,6 +79,33 @@ public class Product {
     @Column(name = "show_discount")
     private Boolean showDiscount = false;
 
+    @Column(name = "product_code", unique = true, nullable = false, length = 100)
+    private String productCode;
+
+    @Column(name = "retail_warranty_period", length = 100)
+    private String retailWarrantyPeriod;
+
+    @Column(name = "wholesale_warranty_period", length = 100)
+    private String wholesaleWarrantyPeriod;
+
+    @Column(name = "status", length = 50)
+    private String status = "ACTIVE";
+
+    @Column(name = "other_name", length = 500)
+    private String otherName;
+
+    @Column(name = "short_name", length = 300)
+    private String shortName;
+
+    @Column(name = "specification", length = 100)
+    private String specification;
+
+    @Column(name = "feature1", length = 100)
+    private String feature1;
+
+    @Column(name = "feature2", length = 100)
+    private String feature2;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -95,6 +126,8 @@ public class Product {
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Brand getBrand() { return brand; }
     public void setBrand(Brand brand) { this.brand = brand; }
+    public ProductType getProductType() { return productType; }
+    public void setProductType(ProductType productType) { this.productType = productType; }
     public Boolean getIsAppVisible() { return isAppVisible; }
     public void setIsAppVisible(Boolean isAppVisible) { this.isAppVisible = isAppVisible; }
     public Boolean getIsWebVisible() { return isWebVisible; }
@@ -117,4 +150,22 @@ public class Product {
     public void setUserManual(String userManual) { this.userManual = userManual; }
     public Boolean getShowDiscount() { return showDiscount; }
     public void setShowDiscount(Boolean showDiscount) { this.showDiscount = showDiscount; }
+    public String getProductCode() { return productCode; }
+    public void setProductCode(String productCode) { this.productCode = productCode; }
+    public String getRetailWarrantyPeriod() { return retailWarrantyPeriod; }
+    public void setRetailWarrantyPeriod(String retailWarrantyPeriod) { this.retailWarrantyPeriod = retailWarrantyPeriod; }
+    public String getWholesaleWarrantyPeriod() { return wholesaleWarrantyPeriod; }
+    public void setWholesaleWarrantyPeriod(String wholesaleWarrantyPeriod) { this.wholesaleWarrantyPeriod = wholesaleWarrantyPeriod; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getOtherName() { return otherName; }
+    public void setOtherName(String otherName) { this.otherName = otherName; }
+    public String getShortName() { return shortName; }
+    public void setShortName(String shortName) { this.shortName = shortName; }
+    public String getSpecification() { return specification; }
+    public void setSpecification(String specification) { this.specification = specification; }
+    public String getFeature1() { return feature1; }
+    public void setFeature1(String feature1) { this.feature1 = feature1; }
+    public String getFeature2() { return feature2; }
+    public void setFeature2(String feature2) { this.feature2 = feature2; }
 }

@@ -9,10 +9,11 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.anhtin.tmdt.backend.modules.product.entity.Product;
-import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
 
 @Service
 public class BrandService {
@@ -22,6 +23,7 @@ public class BrandService {
 
     public List<BrandDTO> getAllBrands() {
         return brandRepository.findAll().stream()
+                .sorted(Comparator.comparing(Brand::getUpdatedDate, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -38,9 +40,7 @@ public class BrandService {
             throw new RuntimeException("Brand code already exists");
         }
         Brand brand = new Brand();
-        brand.setCode(request.getCode());
-        brand.setName(request.getName());
-        brand.setLogoUrl(request.getLogoUrl());
+        setBrandFields(brand, request);
         return convertToDTO(brandRepository.save(brand));
     }
 
@@ -55,10 +55,23 @@ public class BrandService {
             }
         });
 
+        setBrandFields(brand, request);
+        return convertToDTO(brandRepository.save(brand));
+    }
+
+    private void setBrandFields(Brand brand, BrandRequest request) {
         brand.setCode(request.getCode());
         brand.setName(request.getName());
         brand.setLogoUrl(request.getLogoUrl());
-        return convertToDTO(brandRepository.save(brand));
+        brand.setBravoId(request.getBravoId());
+        brand.setIsHighlight(request.getIsHighlight());
+        brand.setHighlightPriority(request.getHighlightPriority());
+        brand.setStatus(request.getStatus());
+        if (request.getCreatedDate() != null) {
+            brand.setCreatedDate(LocalDateTime.parse(request.getCreatedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")));
+        }
+        brand.setBravoSortValue(request.getBravoSortValue());
+        brand.setUpdatedDate(LocalDateTime.now());
     }
 
     @Transactional
@@ -70,6 +83,9 @@ public class BrandService {
     }
 
     public BrandDTO convertToDTO(Brand brand) {
-        return new BrandDTO(brand.getId(), brand.getCode(), brand.getName(), brand.getLogoUrl());
+        return new BrandDTO(brand.getId(), brand.getCode(), brand.getName(), brand.getLogoUrl(),
+                brand.getBravoId(), brand.getIsHighlight(), brand.getHighlightPriority(),
+                brand.getStatus(), brand.getCreatedDate(), brand.getBravoSortValue(),
+                brand.getUpdatedDate());
     }
 }

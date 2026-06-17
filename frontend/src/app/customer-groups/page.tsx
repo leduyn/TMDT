@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
+import Pagination from '@/components/ui/Pagination';
 import { useAuth } from '@/context/AuthContext';
 
 interface CustomerGroup {
@@ -40,6 +42,8 @@ export default function CustomerGroupsPage() {
   const [editingGroup, setEditingGroup] = useState<CustomerGroup | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   const handleOpenModal = (group: CustomerGroup | null = null) => {
     setEditingGroup(group);
@@ -92,10 +96,13 @@ export default function CustomerGroupsPage() {
 
   if (isLoading) return <div className="loading-spinner" />;
 
+  const totalPages = Math.ceil(groups.length / pageSize) || 1;
+  const paginatedData = groups.slice(page * pageSize, (page + 1) * pageSize);
+
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>Nhóm <span className="gradient-text">Người mua</span></h1>
@@ -109,7 +116,7 @@ export default function CustomerGroupsPage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 20 }}>
-          {groups.map(group => (
+          {paginatedData.map(group => (
             <div key={group.id} className="glass-card fade-in-up" style={{ padding: 24, position: 'relative' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{group.name}</h3>
@@ -131,13 +138,18 @@ export default function CustomerGroupsPage() {
               </div>
             </div>
           ))}
-          {groups.length === 0 && (
+          {paginatedData.length === 0 && groups.length === 0 && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
               Chưa có nhóm Người mua nào được thiết lập.
             </div>
           )}
         </div>
-      </main>
+        {groups.length > 0 && (
+          <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          </div>
+        )}
+      </Main>
 
       {/* Modal */}
       {showModal && (

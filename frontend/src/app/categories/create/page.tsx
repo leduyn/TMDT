@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import ImageUploader from '@/modules/common/components/ImageUploader';
 import { categoryApi, CategoryDTO } from '@/lib/api';
 
@@ -36,7 +37,7 @@ export default function CreateCategoryPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 600, margin: '40px auto', padding: '0 24px' }}>
+      <Main>
         <div className="glass-card fade-in-up" style={{ padding: 32 }}>
           <h1 style={{ margin: '0 0 24px', fontSize: '1.5rem', fontWeight: 700 }}>
             🆕 Tạo danh mục mới
@@ -69,7 +70,7 @@ export default function CreateCategoryPage() {
               >
                 <option value="">-- Không có --</option>
                 {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>{cat.name} ({cat.levelName || `Cấp ${cat.level ?? 0}`})</option>
                 ))}
               </select>
             </div>
@@ -92,7 +93,7 @@ export default function CreateCategoryPage() {
             </div>
           </form>
         </div>
-      </main>
+      </Main>
     </>
   );
 }

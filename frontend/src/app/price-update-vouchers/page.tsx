@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
+import Pagination from '@/components/ui/Pagination';
 import { useAuth } from '@/context/AuthContext';
 import { priceListApi, PriceListDTO, productApi, ProductDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, categoryApi, CategoryDTO } from '@/lib/api';
 
@@ -87,6 +89,8 @@ export default function PriceUpdateVouchersPage() {
 
   const { user } = useAuth();
   const isCompany = user?.roles.includes('ROLE_COMPANY');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   useEffect(() => {
     if (isCompany) loadData();
@@ -275,6 +279,9 @@ export default function PriceUpdateVouchersPage() {
 
   if (!isCompany) return <div className="p-8">Bạn không có quyền truy cập.</div>;
 
+  const totalPages = Math.ceil(vouchers.length / pageSize) || 1;
+  const paginatedData = vouchers.slice(page * pageSize, (page + 1) * pageSize);
+
   // ── Bulk picker filter ─────────────────────────────────────────────────────
   const bulkFiltered = products.filter(p => {
     const matchSearch = !bulkSearch || p.name.toLowerCase().includes(bulkSearch.toLowerCase()) || (p.sku || '').toLowerCase().includes(bulkSearch.toLowerCase());
@@ -286,7 +293,7 @@ export default function PriceUpdateVouchersPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <div>
@@ -318,7 +325,7 @@ export default function PriceUpdateVouchersPage() {
                 </tr>
               </thead>
               <tbody>
-                {vouchers.map(v => (
+                {paginatedData.map(v => (
                   <tr key={v.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px 20px', fontWeight: 600 }}>
                       <a href={`/price-update-vouchers/${v.id}`} style={{ color: 'var(--accent-light)', textDecoration: 'none' }}>
@@ -337,6 +344,11 @@ export default function PriceUpdateVouchersPage() {
                 ))}
               </tbody>
             </table>
+            {vouchers.length > 0 && (
+              <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
           </div>
         )}
 
@@ -502,7 +514,7 @@ export default function PriceUpdateVouchersPage() {
             </div>
           </div>
         )}
-      </main>
+      </Main>
 
       {/* ══════════ BULK PRODUCT PICKER MODAL ══════════ */}
       {bulkOpen && (

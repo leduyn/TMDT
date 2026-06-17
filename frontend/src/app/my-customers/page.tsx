@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { agencyApi, UserDTO } from '@/lib/api';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -12,6 +13,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import { UserPlus, Eye, Mail, Users as UsersIcon } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 export default function MyCustomersPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -19,6 +21,8 @@ export default function MyCustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   useEffect(() => {
     if (!authLoading) {
@@ -70,6 +74,9 @@ export default function MyCustomersPage() {
     c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
+  const paginatedCustomers = filteredCustomers.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<UserDTO>[] = [
     { 
@@ -132,7 +139,7 @@ export default function MyCustomersPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Người mua của tôi" 
           subtitle="Quản lý danh sách Người mua đang thuộc sự phụ trách của Khách hàng"
@@ -158,12 +165,15 @@ export default function MyCustomersPage() {
         />
 
         <DataTable 
-          data={filteredCustomers}
+          data={paginatedCustomers}
           columns={columns}
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy Người mua nào phù hợp' : 'Bạn chưa quản lý Người mua nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
-      </main>
+      </Main>
     </>
   );
 }

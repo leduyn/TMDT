@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
 
 interface PriceList {
@@ -62,7 +63,7 @@ export default function MyStorePriceListPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>Thiết lập <span className="gradient-text">Cửa hàng</span></h1>
           <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)' }}>
@@ -120,7 +121,7 @@ export default function MyStorePriceListPage() {
             ))}
           </div>
         </div>
-      </main>
+      </Main>
     </>
   );
 }

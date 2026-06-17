@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { customerApi, agencyApi, customerGroupApi, AgencyDTO } from '@/lib/api';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -91,7 +92,7 @@ export default function EditCustomerPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Sửa Người mua</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Cập nhật thông tin và phân bổ lại khách hàng quản lý</p>
@@ -310,7 +311,7 @@ export default function EditCustomerPage() {
             </div>
           </form>
         </div>
-      </main>
+      </Main>
     </>
   );
 }

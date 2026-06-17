@@ -1,18 +1,25 @@
 package com.anhtin.tmdt.backend.modules.product.controller;
 
 import com.anhtin.tmdt.backend.modules.product.dto.ProductRequest;
+import com.anhtin.tmdt.backend.modules.product.dto.ProductImportRequest;
+import com.anhtin.tmdt.backend.modules.product.dto.ProductImportResult;
 import com.anhtin.tmdt.backend.modules.common.dto.ProductDTO;
 import com.anhtin.tmdt.backend.modules.product.service.ProductService;
+import com.anhtin.tmdt.backend.modules.product.service.ProductImportService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
-import com.anhtin.tmdt.backend.modules.product.entity.Product;
-import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -21,6 +28,9 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private ProductImportService productImportService;
 
     @GetMapping
     public ResponseEntity<List<ProductDTO>> getAllProducts(
@@ -56,5 +66,31 @@ public class ProductController {
     public ResponseEntity<?> deleteProduct(@PathVariable @NonNull Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok("Product deleted successfully");
+    }
+
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    @PostMapping("/import")
+    public ResponseEntity<ProductImportResult> importProducts(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("mapping") String mappingJson) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ProductImportRequest request = mapper.readValue(mappingJson, ProductImportRequest.class);
+            ProductImportResult result = productImportService.importProducts(file, request);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing import config: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/import/template")
+    public ResponseEntity<InputStreamResource> downloadTemplate() {
+        ByteArrayInputStream in = productImportService.exportTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=product_import_template.xlsx");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new InputStreamResource(in));
     }
 }

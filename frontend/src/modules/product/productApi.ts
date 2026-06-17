@@ -6,6 +6,8 @@ export interface CategoryDTO {
   imageUrl?: string;
   parentId?: number;
   parentName?: string;
+  level?: number;
+  levelName?: string;
 }
 
 export interface CategoryRequest {
@@ -63,6 +65,19 @@ export interface ProductPolicyPreviewDTO {
   retailFlow: PriceFlowDetailsDTO;
 }
 
+export interface ProductTypeDTO {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface ProductTypeRequest {
+  code: string;
+  name: string;
+  description?: string;
+}
+
 export interface ProductDTO {
   id: number;
   name: string;
@@ -78,6 +93,7 @@ export interface ProductDTO {
   imageUrl?: string;
   imageUrls?: string[];
   brand?: BrandDTO;
+  productType?: ProductTypeDTO;
   isAppVisible?: boolean;
   isWebVisible?: boolean;
   tags?: string;
@@ -97,6 +113,15 @@ export interface ProductDTO {
   sku?: string;
   retailPriceEligible?: boolean;
   policyPreview?: ProductPolicyPreviewDTO;
+  productCode?: string;
+  retailWarrantyPeriod?: string;
+  wholesaleWarrantyPeriod?: string;
+  status?: string;
+  otherName?: string;
+  shortName?: string;
+  specification?: string;
+  feature1?: string;
+  feature2?: string;
 }
 
 export interface ProductRequest {
@@ -110,6 +135,7 @@ export interface ProductRequest {
   imageUrl?: string;
   imageUrls?: string[];
   brandId?: number;
+  productTypeId?: number;
   attributeValueIds?: number[];
   isAppVisible?: boolean;
   isWebVisible?: boolean;
@@ -122,6 +148,15 @@ export interface ProductRequest {
   quantityStep?: number;
   userManual?: string;
   showDiscount?: boolean;
+  productCode?: string;
+  retailWarrantyPeriod?: string;
+  wholesaleWarrantyPeriod?: string;
+  status?: string;
+  otherName?: string;
+  shortName?: string;
+  specification?: string;
+  feature1?: string;
+  feature2?: string;
 }
 
 export interface AttributeValueDTO {
@@ -186,6 +221,12 @@ export const categoryApi = {
   delete: (id: number) =>
     fetchJSON<any>(`/api/categories/${id}`, {
       method: 'DELETE',
+    }),
+  getLevelNames: () => fetchJSON<Record<number, string>>('/api/categories/levels'),
+  updateLevelNames: (data: Record<number, string>) =>
+    fetchJSON<void>('/api/categories/levels', {
+      method: 'PUT',
+      body: JSON.stringify(data),
     }),
 };
 
@@ -268,6 +309,68 @@ export const attributeApi = {
     fetchJSON<any>(`/api/attributes/values/${valueId}`, {
       method: 'DELETE',
     }),
+};
+
+export interface ProductImportRequest {
+  columnMappings: Record<string, string>;
+  hasHeaderRow: boolean;
+  sheetIndex: number;
+}
+
+export interface ProductImportRowResult {
+  rowIndex: number;
+  success: boolean;
+  message: string;
+  productId?: number;
+  productName?: string;
+}
+
+export interface ProductImportResult {
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  rowResults: ProductImportRowResult[];
+}
+
+export const productTypeApi = {
+  getAll: () => fetchJSON<ProductTypeDTO[]>('/api/product-types'),
+  getById: (id: number) => fetchJSON<ProductTypeDTO>(`/api/product-types/${id}`),
+  create: (data: ProductTypeRequest) =>
+    fetchJSON<ProductTypeDTO>('/api/product-types', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: ProductTypeRequest) =>
+    fetchJSON<ProductTypeDTO>(`/api/product-types/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: number) =>
+    fetchJSON<any>(`/api/product-types/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+export const productImportApi = {
+  importProducts: (file: File, mapping: ProductImportRequest) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mapping', JSON.stringify(mapping));
+    const token = localStorage.getItem('token');
+    return fetch('/api/products/import', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        let err = { message: 'Import failed' };
+        try { err = await res.json(); } catch {}
+        throw new Error((err as any).message || 'Import failed');
+      }
+      return res.json() as Promise<ProductImportResult>;
+    });
+  },
+  downloadTemplateUrl: '/api/products/import/template',
 };
 
 export const facetedSearchApi = {

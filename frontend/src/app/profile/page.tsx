@@ -8,6 +8,7 @@ import NotificationModal from '@/components/NotificationModal';
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import GlassCard from '@/components/ui/GlassCard';
+import Main from '@/components/Main';
 import { User, ShieldCheck, Building, MapPin, Save, Key } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -101,7 +102,7 @@ export default function ProfilePage() {
   if (loading || authLoading) return <div className="loading-spinner" />;
 
   return (
-    <main style={{ padding: '20px 0' }}>
+    <Main>
       <PageHeader 
         title="Hồ sơ tài khoản" 
         subtitle="Quản lý thông tin cá nhân và bảo mật tài khoản người dùng"
@@ -254,7 +255,7 @@ export default function ProfilePage() {
         message={modal.message}
         type={modal.type}
       />
-    </main>
+    </Main>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { customerApi, UserDTO, orderApi, OrderDTO } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -67,7 +68,7 @@ export default function CustomerDetailPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <div style={{ 
@@ -297,7 +298,7 @@ export default function CustomerDetailPage() {
             )}
           </div>
         )}
-      </main>
+      </Main>
     </>
   );
 }

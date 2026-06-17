@@ -52,6 +52,8 @@ export interface CategoryDTO {
   imageUrl?: string;
   parentId?: number;
   parentName?: string;
+  level?: number;
+  levelName?: string;
 }
 
 export interface BrandDTO {
@@ -87,6 +89,12 @@ export interface ProductDTO {
   priceChangeRatio?: number;
   sku?: string;
   userManual?: string;
+  productCode?: string;
+  retailWarrantyPeriod?: string;
+  wholesaleWarrantyPeriod?: string;
+  status?: string;
+  otherName?: string;
+  shortName?: string;
 }
 
 export interface AttributeValueDTO {

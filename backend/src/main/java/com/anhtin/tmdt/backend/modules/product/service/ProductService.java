@@ -30,6 +30,7 @@ import com.anhtin.tmdt.backend.modules.product.repository.ProductAttributeValueR
 import com.anhtin.tmdt.backend.modules.product.entity.Brand;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductImageRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.AttributeValueRepository;
+import com.anhtin.tmdt.backend.modules.product.repository.ProductTypeRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
 import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
 
@@ -47,6 +48,9 @@ public class ProductService {
 
     @Autowired
     private BrandRepository brandRepository;
+
+    @Autowired
+    private ProductTypeRepository productTypeRepository;
 
     @Autowired
     private AttributeValueRepository attributeValueRepository;
@@ -188,6 +192,9 @@ public class ProductService {
         product.setDropshipPrice(request.getDropshipPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setDropship(request.isDropship());
+        if (request.getProductCode() != null && productRepository.existsByProductCode(request.getProductCode())) {
+            throw new RuntimeException("Mã sản phẩm đã tồn tại: " + request.getProductCode());
+        }
         product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
         product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
         product.setShowDiscount(request.getShowDiscount() != null ? request.getShowDiscount() : false);
@@ -199,11 +206,26 @@ public class ProductService {
         product.setMinPurchaseQuantity(request.getMinPurchaseQuantity() != null ? request.getMinPurchaseQuantity() : 1);
         product.setQuantityStep(request.getQuantityStep() != null ? request.getQuantityStep() : 1);
         product.setUserManual(request.getUserManual());
+        product.setProductCode(request.getProductCode());
+        product.setRetailWarrantyPeriod(request.getRetailWarrantyPeriod());
+        product.setWholesaleWarrantyPeriod(request.getWholesaleWarrantyPeriod());
+        product.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE");
+        product.setOtherName(request.getOtherName());
+        product.setShortName(request.getShortName());
+        product.setSpecification(request.getSpecification());
+        product.setFeature1(request.getFeature1());
+        product.setFeature2(request.getFeature2());
 
         Long brandId = request.getBrandId();
         if (brandId != null) {
             product.setBrand(brandRepository.findById(brandId)
                 .orElseThrow(() -> new RuntimeException("Brand not found")));
+        }
+
+        Long productTypeId = request.getProductTypeId();
+        if (productTypeId != null) {
+            product.setProductType(productTypeRepository.findById(productTypeId)
+                .orElseThrow(() -> new RuntimeException("ProductType not found")));
         }
 
         // áº¢nh chÃ­nh = áº£nh Ä‘áº§u tiÃªn trong gallery hoáº·c imageUrl Ä‘Æ¡n láº»
@@ -242,6 +264,12 @@ public class ProductService {
         product.setDropshipPrice(request.getDropshipPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setDropship(request.isDropship());
+        if (request.getProductCode() != null && !request.getProductCode().equals(product.getProductCode())
+                && productRepository.existsByProductCode(request.getProductCode())) {
+            throw new RuntimeException("Mã sản phẩm đã tồn tại: " + request.getProductCode());
+        }
+        product.setProductCode(request.getProductCode());
+
         product.setIsAppVisible(request.getIsAppVisible() != null ? request.getIsAppVisible() : true);
         product.setIsWebVisible(request.getIsWebVisible() != null ? request.getIsWebVisible() : true);
         product.setShowDiscount(request.getShowDiscount() != null ? request.getShowDiscount() : false);
@@ -253,6 +281,14 @@ public class ProductService {
         product.setMinPurchaseQuantity(request.getMinPurchaseQuantity() != null ? request.getMinPurchaseQuantity() : 1);
         product.setQuantityStep(request.getQuantityStep() != null ? request.getQuantityStep() : 1);
         product.setUserManual(request.getUserManual());
+        product.setRetailWarrantyPeriod(request.getRetailWarrantyPeriod());
+        product.setWholesaleWarrantyPeriod(request.getWholesaleWarrantyPeriod());
+        product.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE");
+        product.setOtherName(request.getOtherName());
+        product.setShortName(request.getShortName());
+        product.setSpecification(request.getSpecification());
+        product.setFeature1(request.getFeature1());
+        product.setFeature2(request.getFeature2());
 
         Long brandIdUpdate = request.getBrandId();
         if (brandIdUpdate != null) {
@@ -260,6 +296,14 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Brand not found")));
         } else {
             product.setBrand(null);
+        }
+
+        Long productTypeIdUpdate = request.getProductTypeId();
+        if (productTypeIdUpdate != null) {
+            product.setProductType(productTypeRepository.findById(productTypeIdUpdate)
+                .orElseThrow(() -> new RuntimeException("ProductType not found")));
+        } else {
+            product.setProductType(null);
         }
 
         String mainImage = resolveMainImage(request);

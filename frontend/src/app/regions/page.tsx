@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationModal from '@/components/NotificationModal';
@@ -12,6 +13,7 @@ import Badge from '@/components/ui/Badge';
 import { regionApi, BusinessRegionDTO, BusinessRegionRequest, ProvinceDTO, WardDTO } from '@/lib/api';
 import { MapPin, Plus, Edit2, Trash2, X, Map, RefreshCw } from 'lucide-react';
 import LocationSelector from '@/modules/region/LocationSelector';
+import Pagination from '@/components/ui/Pagination';
 
 export default function RegionManagementPage() {
   const { user, isLoading } = useAuth();
@@ -19,6 +21,8 @@ export default function RegionManagementPage() {
   const [regions, setRegions] = useState<BusinessRegionDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRegion, setEditingRegion] = useState<BusinessRegionDTO | null>(null);
@@ -131,6 +135,9 @@ export default function RegionManagementPage() {
     r.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredRegions.length / pageSize) || 1;
+  const paginatedRegions = filteredRegions.slice(page * pageSize, (page + 1) * pageSize);
+
   const columns: Column<BusinessRegionDTO>[] = [
     {
       header: 'Mã',
@@ -202,7 +209,7 @@ export default function RegionManagementPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Khu vực Kinh doanh" 
           subtitle="Quản lý và phân bổ các tỉnh/thành phố theo vùng miền"
@@ -231,12 +238,15 @@ export default function RegionManagementPage() {
         />
 
         <DataTable 
-          data={filteredRegions}
+          data={paginatedRegions}
           columns={columns}
           loading={loading}
           emptyMessage={searchQuery ? 'Không tìm thấy khu vực nào' : 'Chưa có dữ liệu khu vực'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
-      </main>
+      </Main>
 
       {/* Modal Form */}
       {isModalOpen && (

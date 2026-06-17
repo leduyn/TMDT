@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { customerApi, customerGroupApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -78,7 +79,7 @@ export default function AgencyCreateCustomerPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>Tạo Người mua Mới</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Thêm Người mua vào danh sách quản lý của Người mua bạn</p>
@@ -202,7 +203,7 @@ export default function AgencyCreateCustomerPage() {
             </div>
           </form>
         </div>
-      </main>
+      </Main>
 
       <NotificationModal 
         isOpen={showErrorModal} 

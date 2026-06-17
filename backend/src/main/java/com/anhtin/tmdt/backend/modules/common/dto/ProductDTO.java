@@ -24,6 +24,7 @@ public class ProductDTO {
     private Long categoryId;
     private String categoryName;
     private BrandDTO brand;
+    private ProductTypeDTO productType;
     private Double appliedPrice;
     private String appliedPriceListName;
     private Long appliedPriceListId;
@@ -50,6 +51,16 @@ public class ProductDTO {
     private Integer quantityStep;
     private String userManual;
 
+    private String productCode;
+    private String retailWarrantyPeriod;
+    private String wholesaleWarrantyPeriod;
+    private String status;
+    private String otherName;
+    private String shortName;
+    private String specification;
+    private String feature1;
+    private String feature2;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -74,6 +85,8 @@ public class ProductDTO {
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public BrandDTO brand() { return brand; }
     public void setBrand(BrandDTO brand) { this.brand = brand; }
+    public ProductTypeDTO getProductType() { return productType; }
+    public void setProductType(ProductTypeDTO productType) { this.productType = productType; }
     public Double getAppliedPrice() { return appliedPrice; }
     public void setAppliedPrice(Double appliedPrice) { this.appliedPrice = appliedPrice; }
     public String getAppliedPriceListName() { return appliedPriceListName; }
@@ -106,6 +119,24 @@ public class ProductDTO {
     public void setOldAppliedPrice(Double oldAppliedPrice) { this.oldAppliedPrice = oldAppliedPrice; }
     public Double getPriceChangeRatio() { return priceChangeRatio; }
     public void setPriceChangeRatio(Double priceChangeRatio) { this.priceChangeRatio = priceChangeRatio; }
+    public String getProductCode() { return productCode; }
+    public void setProductCode(String productCode) { this.productCode = productCode; }
+    public String getRetailWarrantyPeriod() { return retailWarrantyPeriod; }
+    public void setRetailWarrantyPeriod(String retailWarrantyPeriod) { this.retailWarrantyPeriod = retailWarrantyPeriod; }
+    public String getWholesaleWarrantyPeriod() { return wholesaleWarrantyPeriod; }
+    public void setWholesaleWarrantyPeriod(String wholesaleWarrantyPeriod) { this.wholesaleWarrantyPeriod = wholesaleWarrantyPeriod; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getOtherName() { return otherName; }
+    public void setOtherName(String otherName) { this.otherName = otherName; }
+    public String getShortName() { return shortName; }
+    public void setShortName(String shortName) { this.shortName = shortName; }
+    public String getSpecification() { return specification; }
+    public void setSpecification(String specification) { this.specification = specification; }
+    public String getFeature1() { return feature1; }
+    public void setFeature1(String feature1) { this.feature1 = feature1; }
+    public String getFeature2() { return feature2; }
+    public void setFeature2(String feature2) { this.feature2 = feature2; }
     
     public BrandDTO getBrand() { return brand; }
 
@@ -129,6 +160,15 @@ public class ProductDTO {
         this.quantityStep = product.getQuantityStep();
         this.userManual = product.getUserManual();
         this.showDiscount = product.getShowDiscount() != null ? product.getShowDiscount() : false;
+        this.productCode = product.getProductCode();
+        this.retailWarrantyPeriod = product.getRetailWarrantyPeriod();
+        this.wholesaleWarrantyPeriod = product.getWholesaleWarrantyPeriod();
+        this.status = product.getStatus();
+        this.otherName = product.getOtherName();
+        this.shortName = product.getShortName();
+        this.specification = product.getSpecification();
+        this.feature1 = product.getFeature1();
+        this.feature2 = product.getFeature2();
         if (product.getCategory() != null) {
             this.categoryId = product.getCategory().getId();
             this.categoryName = product.getCategory().getName();
@@ -139,6 +179,14 @@ public class ProductDTO {
                 product.getBrand().getCode(),
                 product.getBrand().getName(),
                 product.getBrand().getLogoUrl()
+            );
+        }
+        if (product.getProductType() != null) {
+            this.productType = new ProductTypeDTO(
+                product.getProductType().getId(),
+                product.getProductType().getCode(),
+                product.getProductType().getName(),
+                product.getProductType().getDescription()
             );
         }
     }

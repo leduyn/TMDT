@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { customerApi, UserDTO } from '@/lib/api';
 import Link from 'next/link';
 import NotificationModal from '@/components/NotificationModal';
@@ -14,6 +15,7 @@ import Badge from '@/components/ui/Badge';
 import { UserPlus, CheckCircle, Eye, Edit, ShieldCheck } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import { agencyApi } from '@/lib/api';
+import Pagination from '@/components/ui/Pagination';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<UserDTO[]>([]);
@@ -22,6 +24,8 @@ export default function CustomersPage() {
   const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({
     isOpen: false, title: '', message: '', type: 'info' as any
   });
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
   
   // Conversion state
   const [showConvertModal, setShowConvertModal] = useState(false);
@@ -85,6 +89,9 @@ export default function CustomersPage() {
     c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
+  const paginatedCustomers = filteredCustomers.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<UserDTO>[] = [
     { 
@@ -171,7 +178,7 @@ export default function CustomersPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Quản lý Người mua" 
           subtitle="Danh sách khách lẻ đăng ký trên hệ thống"
@@ -191,10 +198,13 @@ export default function CustomersPage() {
         />
 
         <DataTable 
-          data={filteredCustomers}
+          data={paginatedCustomers}
           columns={columns}
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy Người mua nào phù hợp' : 'Chưa có Người mua nào'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
 
         {/* Modal Chuyển đổi thành Người mua */}
@@ -239,7 +249,7 @@ export default function CustomersPage() {
             </GlassCard>
           </div>
         )}
-      </main>
+      </Main>
 
       <NotificationModal 
         isOpen={modal.isOpen} 

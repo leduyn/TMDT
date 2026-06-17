@@ -2,18 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
-import { brandApi, BrandDTO, BrandRequest, uploadApi } from '@/lib/api';
+import Main from '@/components/Main';
+import Pagination from '@/components/ui/Pagination';
+import BrandFormModal from '@/components/ui/BrandFormModal';
+import { brandApi, BrandDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import ImageUploader from '@/modules/common/components/ImageUploader';
 
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<BrandDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState<BrandRequest>({ code: '', name: '', logoUrl: '' });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<BrandDTO | null>(null);
   const { user } = useAuth();
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   const loadBrands = () => {
     setLoading(true);
@@ -27,25 +31,14 @@ export default function BrandsPage() {
     loadBrands();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingId) {
-        await brandApi.update(editingId, form);
-      } else {
-        await brandApi.create(form);
-      }
-      setForm({ code: '', name: '', logoUrl: '' });
-      setEditingId(null);
-      loadBrands();
-    } catch (err: any) {
-      alert(err.message);
-    }
+  const handleAdd = () => {
+    setEditingBrand(null);
+    setShowModal(true);
   };
 
   const handleEdit = (brand: BrandDTO) => {
-    setEditingId(brand.id);
-    setForm({ code: brand.code, name: brand.name, logoUrl: brand.logoUrl || '' });
+    setEditingBrand(brand);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -58,68 +51,33 @@ export default function BrandsPage() {
     }
   };
 
+  const handleModalSuccess = () => {
+    loadBrands();
+  };
+
   const isAuthorized = user?.roles.some(r => ['ROLE_ADMIN', 'ROLE_COMPANY'].includes(r));
+  const totalPages = Math.ceil(brands.length / pageSize) || 1;
+  const paginatedData = brands.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px' }}>
-        <div className="fade-in-up" style={{ marginBottom: 40 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
-            🏷️ <span className="gradient-text">Quản lý thương hiệu</span>
-          </h1>
-          <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-            Quản lý các thương hiệu sản phẩm trong hệ thống
-          </p>
-        </div>
-
-        {isAuthorized && (
-          <div className="glass-card fade-in-up" style={{ padding: 24, marginBottom: 40 }}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: 20 }}>
-              {editingId ? '📝 Cập nhật thương hiệu' : '✨ Thêm thương hiệu mới'}
-            </h2>
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '250px 1fr auto', gap: 24 }}>
-              <div style={{ gridRow: 'span 2' }}>
-                <ImageUploader 
-                  label="Logo thương hiệu"
-                  value={form.logoUrl}
-                  onChange={url => setForm({...form, logoUrl: url})}
-                  uploadFn={uploadApi.uploadBrandLogo}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Mã thương hiệu (Duy nhất)</label>
-                <input 
-                  className="input-field" 
-                  placeholder="VD: SAM" 
-                  value={form.code} 
-                  onChange={e => setForm({...form, code: e.target.value.toUpperCase()})}
-                  required 
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignSelf: 'end' }}>
-                <button type="submit" className="btn-primary" style={{ height: 42 }}>
-                  {editingId ? 'Cập nhật' : 'Thêm mới'}
-                </button>
-                {editingId && (
-                  <button type="button" className="btn-outline" onClick={() => { setEditingId(null); setForm({code:'', name:'', logoUrl:''}); }} style={{ height: 42 }}>
-                    Hủy
-                  </button>
-                )}
-              </div>
-              <div style={{ gridColumn: '2 / span 2' }}>
-                <label style={{ display: 'block', marginBottom: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tên thương hiệu</label>
-                <input 
-                  className="input-field" 
-                  placeholder="VD: Samsung" 
-                  value={form.name} 
-                  onChange={e => setForm({...form, name: e.target.value})}
-                  required 
-                />
-              </div>
-            </form>
+      <Main>
+        <div className="fade-in-up" style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
+              🏷️ <span className="gradient-text">Quản lý thương hiệu</span>
+            </h1>
+            <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
+              Quản lý các thương hiệu sản phẩm trong hệ thống
+            </p>
           </div>
-        )}
+          {isAuthorized && (
+            <button onClick={handleAdd} className="btn-primary" style={{ height: 42, whiteSpace: 'nowrap' }}>
+              + Thêm thương hiệu
+            </button>
+          )}
+        </div>
 
         {loading && <p>Đang tải...</p>}
         {error && <div className="alert-error">{error}</div>}
@@ -136,7 +94,7 @@ export default function BrandsPage() {
                 </tr>
               </thead>
               <tbody>
-                {brands.map((brand) => (
+                {paginatedData.map((brand) => (
                   <tr key={brand.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px 20px' }}>
                       {brand.logoUrl ? (
@@ -161,7 +119,7 @@ export default function BrandsPage() {
                     )}
                   </tr>
                 ))}
-                {brands.length === 0 && (
+                {paginatedData.length === 0 && brands.length === 0 && (
                   <tr>
                     <td colSpan={4} style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
                       Chưa có thương hiệu nào
@@ -172,8 +130,19 @@ export default function BrandsPage() {
             </table>
           </div>
         )}
-      </main>
+        {brands.length > 0 && (
+          <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          </div>
+        )}
+      </Main>
+
+      <BrandFormModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleModalSuccess}
+        brand={editingBrand}
+      />
     </>
   );
 }
-

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { productApi, ProductDTO } from '@/lib/api';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +15,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
+import Pagination from '@/components/ui/Pagination';
 import { 
   Plus, 
   Edit, 
@@ -24,7 +26,8 @@ import {
   LayoutGrid, 
   List as ListIcon,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Upload,
 } from 'lucide-react';
 
 export default function ProductsPage() {
@@ -32,7 +35,10 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  useEffect(() => { setPage(0); }, [search]);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const { user } = useAuth();
   const { addToCart } = useCart();
 
@@ -89,6 +95,8 @@ export default function ProductsPage() {
     p.description?.toLowerCase().includes(search.toLowerCase()) ||
     p.categoryName?.toLowerCase().includes(search.toLowerCase())
   );
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedData = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   const formatPrice = (price: number) => {
     if (price === -1 || price === undefined) return 'Liên hệ';
@@ -126,8 +134,20 @@ export default function ProductsPage() {
             {p.name}
           </Link>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.categoryName || 'Chưa phân loại'}</span>
+          {p.productCode && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Mã: {p.productCode}</span>}
         </div>
       )
+    },
+    {
+      header: 'Trạng thái',
+      key: 'status',
+      align: 'center',
+      render: (p) => {
+        if (p.status === 'ACTIVE') return <Badge label="Hoạt động" type="success" />;
+        if (p.status === 'INACTIVE') return <Badge label="Ngừng HĐ" type="warning" />;
+        if (p.status === 'DISCONTINUED') return <Badge label="Ngừng KD" type="error" />;
+        return <Badge label="N/A" type="info" />;
+      }
     },
     {
       header: 'Giá áp dụng',
@@ -227,7 +247,7 @@ export default function ProductsPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Danh sách sản phẩm" 
           subtitle="Khám phá hàng nghìn sản phẩm từ các đối tác và Người mua uy tín"
@@ -276,10 +296,16 @@ export default function ProductsPage() {
               </div>
 
               {isAuthorized && (
-                <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
-                  <Plus size={18} />
-                  Thêm sản phẩm
-                </Link>
+                <>
+                  <Link href="/products/create" className="btn-primary" style={{ textDecoration: 'none' }}>
+                    <Plus size={18} />
+                    Thêm sản phẩm
+                  </Link>
+                  <Link href="/products/import" className="btn-outline" style={{ textDecoration: 'none' }}>
+                    <Upload size={18} />
+                    Import Excel
+                  </Link>
+                </>
               )}
             </div>
           }
@@ -306,18 +332,35 @@ export default function ProductsPage() {
           </GlassCard>
         ) : (
           <>
-            <div style={{ marginBottom: 20, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ marginBottom: 20, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Hiển thị {filtered.length} sản phẩm</span>
-              <span>Chế độ: {viewMode === 'grid' ? 'Lưới' : 'Bảng'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span>Chế độ: {viewMode === 'grid' ? 'Lưới' : 'Bảng'}</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPage(0); setPageSize(Number(e.target.value)); }}
+                  style={{
+                    padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)',
+                    background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)',
+                    fontSize: '0.8rem', cursor: 'pointer'
+                  }}
+                >
+                  <option value={12}>12 / trang</option>
+                  <option value={20}>20 / trang</option>
+                  <option value={50}>50 / trang</option>
+                  <option value={100}>100 / trang</option>
+                </select>
+              </div>
             </div>
 
             {viewMode === 'grid' ? (
+              <>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                 gap: 24,
               }}>
-                {filtered.map((product, i) => (
+                {paginatedData.map((product, i) => (
                   <GlassCard
                     key={product.id}
                     hoverable
@@ -354,6 +397,10 @@ export default function ProductsPage() {
 
                     <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
                       <Badge label={product.categoryName || 'Chưa phân loại'} type="primary" />
+                      {product.productCode && <Badge label={`Mã: ${product.productCode}`} type="info" />}
+                      {product.status === 'ACTIVE' ? <Badge label="Hoạt động" type="success" /> :
+                       product.status === 'INACTIVE' ? <Badge label="Ngừng HĐ" type="warning" /> :
+                       product.status === 'DISCONTINUED' ? <Badge label="Ngừng KD" type="error" /> : null}
                       {product.stockQuantity !== undefined && (
                         <Badge 
                           label={product.stockQuantity > 0 ? `Kho: ${product.stockQuantity}` : 'Hết hàng'} 
@@ -456,16 +503,21 @@ export default function ProductsPage() {
                   </GlassCard>
                 ))}
               </div>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              </>
             ) : (
               <DataTable 
-                data={filtered}
+                data={paginatedData}
                 columns={tableColumns}
                 loading={loading}
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
               />
             )}
           </>
         )}
-      </main>
+      </Main>
     </>
   );
 }

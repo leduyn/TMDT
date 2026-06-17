@@ -20,6 +20,8 @@ public class ProductRequest {
 
     private Long brandId;
 
+    private Long productTypeId;
+
     @NotNull
     private Double basePrice;
 
@@ -48,6 +50,21 @@ public class ProductRequest {
     private String userManual;
     private Boolean showDiscount = false;
 
+    @NotBlank
+    private String productCode;
+
+    private String retailWarrantyPeriod;
+    private String wholesaleWarrantyPeriod;
+    private String status = "ACTIVE";
+    private String otherName;
+    private String shortName;
+
+    private String specification;
+
+    private String feature1;
+
+    private String feature2;
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
@@ -56,6 +73,8 @@ public class ProductRequest {
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public Long getBrandId() { return brandId; }
     public void setBrandId(Long brandId) { this.brandId = brandId; }
+    public Long getProductTypeId() { return productTypeId; }
+    public void setProductTypeId(Long productTypeId) { this.productTypeId = productTypeId; }
     public Double getBasePrice() { return basePrice; }
     public void setBasePrice(Double basePrice) { this.basePrice = basePrice; }
     public Double getDropshipPrice() { return dropshipPrice; }
@@ -92,4 +111,22 @@ public class ProductRequest {
     public void setUserManual(String userManual) { this.userManual = userManual; }
     public Boolean getShowDiscount() { return showDiscount; }
     public void setShowDiscount(Boolean showDiscount) { this.showDiscount = showDiscount; }
+    public String getProductCode() { return productCode; }
+    public void setProductCode(String productCode) { this.productCode = productCode; }
+    public String getRetailWarrantyPeriod() { return retailWarrantyPeriod; }
+    public void setRetailWarrantyPeriod(String retailWarrantyPeriod) { this.retailWarrantyPeriod = retailWarrantyPeriod; }
+    public String getWholesaleWarrantyPeriod() { return wholesaleWarrantyPeriod; }
+    public void setWholesaleWarrantyPeriod(String wholesaleWarrantyPeriod) { this.wholesaleWarrantyPeriod = wholesaleWarrantyPeriod; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getOtherName() { return otherName; }
+    public void setOtherName(String otherName) { this.otherName = otherName; }
+    public String getShortName() { return shortName; }
+    public void setShortName(String shortName) { this.shortName = shortName; }
+    public String getSpecification() { return specification; }
+    public void setSpecification(String specification) { this.specification = specification; }
+    public String getFeature1() { return feature1; }
+    public void setFeature1(String feature1) { this.feature1 = feature1; }
+    public String getFeature2() { return feature2; }
+    public void setFeature2(String feature2) { this.feature2 = feature2; }
 }

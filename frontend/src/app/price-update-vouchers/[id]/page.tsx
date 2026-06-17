@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { priceUpdateVoucherApi, PriceUpdateVoucherDTO, priceListApi, PriceListDTO, productApi, ProductDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -89,7 +90,7 @@ export default function PriceUpdateVoucherDetailPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px' }}>
+      <Main>
         <button onClick={() => router.back()} className="btn-outline" style={{ marginBottom: 24 }}>
           ← Quay lại danh sách
         </button>
@@ -187,7 +188,7 @@ export default function PriceUpdateVoucherDetailPage() {
             </tbody>
           </table>
         </div>
-      </main>
+      </Main>
 
       <style jsx>{`
         .badge {

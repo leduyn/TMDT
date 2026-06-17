@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { debtApi } from '../../api/debt';
 import { creditApi } from '../../api/credit';
+import { agencyApi } from '../../api/agency';
 import { useAuth } from '../../context/AuthContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { AgencyDebtDTO, CreditDetailResponse } from '../../types';
@@ -85,6 +86,7 @@ export function DebtScreen({ navigation }: any) {
   const effectiveAgencyId = agencyId || storedAgencyId;
   const [debts, setDebts] = useState<AgencyDebtDTO[]>([]);
   const [credit, setCredit] = useState<CreditDetailResponse | null>(null);
+  const [agency, setAgency] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +102,15 @@ export function DebtScreen({ navigation }: any) {
       ]);
       setDebts(debtData);
       setCredit(creditData);
+      // Fetch agency info (prefer explicit agency id, otherwise use /agencies/me)
+      try {
+        const ag = effectiveAgencyId
+          ? await agencyApi.getById(effectiveAgencyId)
+          : await agencyApi.getMe();
+        if (ag) setAgency(ag as { id: number; name: string });
+      } catch {
+        // ignore agency fetch errors
+      }
     } catch (e: any) {
       setError(e.message || 'Không thể tải dữ liệu công nợ');
     } finally {
@@ -267,10 +278,10 @@ export function DebtScreen({ navigation }: any) {
             </View>
             <View style={styles.agencyInfo}>
               <Text style={styles.agencyName}>
-                {user?.displayName || user?.organizationName || 'Minh Phát Tier 1'}
+                {agency?.name ?? user?.displayName ?? user?.organizationName ?? 'Minh Phát Tier 1'}
               </Text>
               <Text style={styles.agencyId}>
-                ID: AG-{user?.id || '8829'} • {user?.customerGroupName || 'Platinum Partner'}
+                ID: AG-{agency?.id ?? user?.id ?? '8829'} • {user?.customerGroupName || 'Platinum Partner'}
               </Text>
             </View>
           </View>

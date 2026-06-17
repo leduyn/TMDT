@@ -4,4 +4,6 @@ import com.anhtin.tmdt.backend.modules.product.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
+    boolean existsByProductCode(String productCode);
+    Product findByProductCode(String productCode);
 }

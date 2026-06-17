@@ -9,6 +9,7 @@ import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import { Plus, Edit2, Trash2, Play, CheckCircle, Eye } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 export default function AccumulationProgramsPage() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function AccumulationProgramsPage() {
   const [programs, setPrograms] = useState<AccumulationProgramDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   const isAdmin = user?.roles?.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
@@ -80,6 +83,9 @@ export default function AccumulationProgramsPage() {
   const filtered = programs.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedPrograms = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<AccumulationProgramDTO>[] = [
     {
@@ -188,10 +194,13 @@ export default function AccumulationProgramsPage() {
         }
       />
       <DataTable
-        data={filtered}
+        data={paginatedPrograms}
         columns={columns}
         loading={isLoading}
         emptyMessage="Chưa có chương trình tích lũy nào"
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
       />
     </main>
   );

@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { userApi, UserDTO, agencyApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import NotificationModal from '@/components/NotificationModal';
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import { Users, Trash2, Shield, Search, Eye, X } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 export default function UserManagementPage() {
   const { user, isLoading } = useAuth();
@@ -25,6 +27,8 @@ export default function UserManagementPage() {
   const [modal, setModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({
     isOpen: false, title: '', message: '', type: 'info'
   });
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -82,6 +86,9 @@ export default function UserManagementPage() {
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  const totalPages = Math.ceil(filteredUsers.length / pageSize) || 1;
+  const paginatedUsers = filteredUsers.slice(page * pageSize, (page + 1) * pageSize);
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -158,7 +165,7 @@ export default function UserManagementPage() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '20px 0' }}>
+      <Main>
         <PageHeader 
           title="Quản lý Người dùng" 
           subtitle="Danh sách toàn bộ người dùng trên hệ thống"
@@ -185,12 +192,15 @@ export default function UserManagementPage() {
         />
 
         <DataTable 
-          data={filteredUsers}
+          data={paginatedUsers}
           columns={columns}
           loading={loading}
           emptyMessage={searchQuery ? 'Không tìm thấy người dùng nào phù hợp' : 'Chưa có người dùng nào trên hệ thống'}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
         />
-      </main>
+      </Main>
 
       <NotificationModal 
         isOpen={modal.isOpen} 

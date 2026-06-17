@@ -51,6 +51,7 @@ export default function Sidebar() {
     { label: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard, roles: ['ROLE_USER'] },
     { label: 'Sản phẩm', href: '/products', icon: ShoppingBag, roles: ['ROLE_USER'] },
     { label: 'Danh mục', href: '/categories', icon: Layers, roles: ['ROLE_USER'] },
+    { label: 'Loại SP', href: '/product-types', icon: Layers, roles: ['ROLE_USER'] },
     { label: 'Bảng giá', href: '/price-lists', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Hẹn giờ giá', href: '/price-vouchers', icon: Clock, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Chính sách BH', href: '/sales-policies', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },

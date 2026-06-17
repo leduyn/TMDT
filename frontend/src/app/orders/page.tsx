@@ -8,6 +8,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge, { BadgeType } from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import { Eye, Search, Filter, Plus, CheckCircle2, Truck, CreditCard } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -15,6 +16,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   useEffect(() => {
     fetchOrders();
@@ -72,6 +75,9 @@ export default function OrdersPage() {
                          o.customerName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
+  const paginatedOrders = filteredOrders.slice(page * pageSize, (page + 1) * pageSize);
 
   const columns: Column<OrderDTO>[] = [
     { header: 'Mã đơn', key: 'id', render: (o) => <strong>#{o.id}</strong> },
@@ -199,10 +205,13 @@ export default function OrdersPage() {
       </GlassCard>
 
       <DataTable 
-        data={filteredOrders} 
+        data={paginatedOrders} 
         columns={columns} 
         loading={loading}
         emptyMessage="Không tìm thấy đơn hàng nào"
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
       />
 
       <style jsx>{`

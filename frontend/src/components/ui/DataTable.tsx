@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import GlassCard from './GlassCard';
+import Pagination from './Pagination';
 
 export interface Column<T> {
   header: string;
@@ -14,13 +15,19 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   loading?: boolean;
   emptyMessage?: string;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export default function DataTable<T extends { id?: string | number }>({
   data,
   columns,
   loading = false,
-  emptyMessage = 'Không có dữ liệu hiển thị'
+  emptyMessage = 'Không có dữ liệu hiển thị',
+  page,
+  totalPages,
+  onPageChange,
 }: DataTableProps<T>) {
   if (loading) {
     return (
@@ -95,6 +102,9 @@ export default function DataTable<T extends { id?: string | number }>({
           </tbody>
         </table>
       </div>
+      {page !== undefined && totalPages !== undefined && onPageChange && (
+        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+      )}
       <style jsx global>{`
         .table-row-hover:hover {
           background: rgba(255, 255, 255, 0.02);

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
+import Pagination from '@/components/ui/Pagination';
 import { attributeApi, categoryApi, CategoryDTO, AttributeDTO, AttributeValueDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -18,6 +19,8 @@ export default function AttributesManagementPage() {
   const [showAttrModal, setShowAttrModal] = useState(false);
   const [editingAttr, setEditingAttr] = useState<AttributeDTO | null>(null);
   const [attrForm, setAttrForm] = useState({ name: '', displayName: '', categoryId: 0, isVariant: false });
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   // Value management states
   const [selectedAttrForValues, setSelectedAttrForValues] = useState<AttributeDTO | null>(null);
@@ -133,6 +136,9 @@ export default function AttributesManagementPage() {
     }
   };
 
+  const totalPages = Math.ceil(attributes.length / pageSize) || 1;
+  const paginatedData = attributes.slice(page * pageSize, (page + 1) * pageSize);
+
   if (authLoading || loading && attributes.length === 0) return <Navbar />;
 
   return (
@@ -167,7 +173,7 @@ export default function AttributesManagementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {attributes.map(attr => (
+                  {paginatedData.map(attr => (
                     <tr key={attr.id} className={selectedAttrForValues?.id === attr.id ? 'active-row' : ''} onClick={() => setSelectedAttrForValues(attr)}>
                       <td><strong>{attr.displayName}</strong></td>
                       <td><code>{attr.name}</code></td>
@@ -192,7 +198,7 @@ export default function AttributesManagementPage() {
                       </td>
                     </tr>
                   ))}
-                  {attributes.length === 0 && (
+                  {paginatedData.length === 0 && attributes.length === 0 && (
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
                         Chưa có thuộc tính nào được tạo
@@ -202,6 +208,11 @@ export default function AttributesManagementPage() {
                 </tbody>
               </table>
             </div>
+            {attributes.length > 0 && (
+              <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
           </section>
 
           {/* Value Management Sidebar */}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Main from '@/components/Main';
 import { productApi, facetedSearchApi, attributeApi, ProductDTO, AttributeValueDTO, ProductPolicyPreviewDTO, PolicyEffectDTO, PriceFlowDetailsDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { resolveImageUrl } from '@/lib/utils';
@@ -224,7 +225,7 @@ export default function ProductDetailPage() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: 1200, margin: '40px auto', padding: '0 24px' }}>
+      <Main>
 
         <div className="fade-in-up" style={{ marginBottom: 24 }}>
           <Link href="/products" style={{ color: 'var(--accent-light)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -289,8 +290,31 @@ export default function ProductDetailPage() {
               <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 12px', lineHeight: 1.3 }}>{product.name}</h1>
               <div style={{ display: 'flex', gap: 16, color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 20 }}>
                 {product.brand && <span>Thương hiệu: <strong>{product.brand.name}</strong></span>}
-                <span>Mã SP: #{product.id}</span>
+                {product.productType && <span>Loại SP: <strong>{product.productType.name}</strong></span>}
+                <span>Mã SP: <strong>{product.productCode || `#${product.id}`}</strong></span>
+                {product.status && (
+                  <span>Trạng thái: 
+                    <strong style={{
+                      color: product.status === 'ACTIVE' ? '#2ecc71' : 
+                             product.status === 'INACTIVE' ? '#f59e0b' : '#ef4444'
+                    }}>
+                      {' '}{product.status === 'ACTIVE' ? 'Hoạt động' : 
+                         product.status === 'INACTIVE' ? 'Ngừng HĐ' : 
+                         product.status === 'DISCONTINUED' ? 'Ngừng KD' : product.status}
+                    </strong>
+                  </span>
+                )}
               </div>
+              {product.otherName && (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 4 }}>
+                  Tên khác: <strong style={{ color: 'var(--text-secondary)' }}>{product.otherName}</strong>
+                </div>
+              )}
+              {product.shortName && (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 4 }}>
+                  Tên rút gọn: <strong style={{ color: 'var(--text-secondary)' }}>{product.shortName}</strong>
+                </div>
+              )}
             </div>
 
             {Object.keys(availableAttributes).length > 0 && (
@@ -369,10 +393,12 @@ export default function ProductDetailPage() {
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 16, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              <div style={{ display: 'flex', gap: 16, color: 'var(--text-secondary)', fontSize: '0.95rem', flexWrap: 'wrap' }}>
                 {product.unit && <span>Đơn vị: <strong>{product.unit}</strong></span>}
                 {product.innerPackaging && <span>Quy cách: <strong>{product.innerPackaging}</strong></span>}
                 {product.outerPackaging && <span>Thùng: <strong>{product.outerPackaging}</strong></span>}
+                {product.retailWarrantyPeriod && <span>BH bán thường: <strong>{product.retailWarrantyPeriod}</strong></span>}
+                {product.wholesaleWarrantyPeriod && <span>BH bán sỉ: <strong>{product.wholesaleWarrantyPeriod}</strong></span>}
               </div>
               {product.isDropship && product.dropshipPrice && (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: 12 }}>
@@ -523,7 +549,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-      </main>
+      </Main>
 
       <style jsx>{`
         @media (max-width: 768px) {
