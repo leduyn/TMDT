@@ -6,6 +6,7 @@ import Main from '@/components/Main';
 import Pagination from '@/components/ui/Pagination';
 import { useAuth } from '@/context/AuthContext';
 import { priceListApi, PriceListDTO, productApi, ProductDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, categoryApi, CategoryDTO } from '@/lib/api';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 // ─── Icons (inline SVGs to avoid extra deps) ─────────────────────────────────
 const IconUpload = () => (
@@ -553,11 +554,13 @@ export default function PriceUpdateVouchersPage() {
                   style={{ width: '100%', padding: '9px 12px 9px 34px', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)', fontSize: 13, boxSizing: 'border-box' }}
                 />
               </div>
-              <select value={bulkCatFilter ?? ''} onChange={e => setBulkCatFilter(e.target.value ? Number(e.target.value) : null)}
-                style={{ background: '#1e293b', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-secondary)', fontSize: 12, padding: '9px 12px', minWidth: 160 }}>
-                <option value="">Tất cả danh mục</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableSelect
+                options={categories.map(c => ({ value: c.id, label: c.name }))}
+                value={bulkCatFilter ?? undefined}
+                onChange={(val) => setBulkCatFilter(val ? Number(val) : null)}
+                placeholder="Tất cả danh mục"
+                style={{ minWidth: 160 }}
+              />
               <button type="button"
                 onClick={() => {
                   if (allFilteredSelected) {

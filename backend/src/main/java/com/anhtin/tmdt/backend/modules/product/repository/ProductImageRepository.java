@@ -14,6 +14,7 @@ import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
 @Repository
 public interface ProductImageRepository extends JpaRepository<ProductImage, Long> {
     List<ProductImage> findByProductIdOrderBySortOrderAsc(Long productId);
+    List<ProductImage> findByProductIdIn(List<Long> productIds);
     
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Transactional

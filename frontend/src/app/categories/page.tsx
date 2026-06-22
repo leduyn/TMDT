@@ -10,10 +10,134 @@ import { useAuth } from '@/context/AuthContext';
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
-import DataTable, { Column } from '@/components/ui/DataTable';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import Badge from '@/components/ui/Badge';
-import { Plus, Tag, Edit, Trash2, Settings } from 'lucide-react';
-import Pagination from '@/components/ui/Pagination';
+import GlassCard from '@/components/ui/GlassCard';
+import { Plus, Tag, Edit, Trash2, Settings, Upload, ChevronRight } from 'lucide-react';
+
+interface TreeNode {
+  category: CategoryDTO;
+  children: TreeNode[];
+  depth: number;
+}
+
+function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNames, searchQuery, onDelete }: {
+  node: TreeNode;
+  expandedIds: Set<number>;
+  onToggle: (id: number) => void;
+  isAuthorized: boolean;
+  levelNames: Record<number, string>;
+  searchQuery: string;
+  onDelete: (id: number) => void;
+}) {
+  const { category: c, children } = node;
+  const hasChildren = children.length > 0;
+  const isExpanded = expandedIds.has(c.id);
+  const depth = c.level ?? 0;
+
+  const highlightText = (text: string) => {
+    if (!searchQuery) return text;
+    const idx = text.toLowerCase().indexOf(searchQuery.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <span style={{ background: 'rgba(251,191,36,0.3)', borderRadius: 3, padding: '0 2px' }}>{text.slice(idx, idx + searchQuery.length)}</span>
+        {text.slice(idx + searchQuery.length)}
+      </>
+    );
+  };
+
+  const getBadgeType = (lvl?: number) => {
+    if (lvl === 0) return 'primary' as const;
+    if (lvl === 1) return 'info' as const;
+    if (lvl === 2) return 'success' as const;
+    return 'warning' as const;
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 20px', paddingLeft: 20 + depth * 24,
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          transition: 'background 0.15s',
+          cursor: hasChildren ? 'pointer' : 'default',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        {/* Toggle */}
+        <div
+          onClick={() => hasChildren && onToggle(c.id)}
+          style={{
+            width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, visibility: hasChildren ? 'visible' : 'hidden',
+            color: 'var(--text-muted)', transition: 'transform 0.2s',
+            transform: isExpanded ? 'rotate(90deg)' : 'none',
+          }}
+        >
+          <ChevronRight size={16} />
+        </div>
+
+        {/* Connector line */}
+        {depth > 0 && (
+          <div style={{
+            width: 1, height: 16, background: 'var(--border)', flexShrink: 0, marginRight: 4,
+          }} />
+        )}
+
+        {/* Name */}
+        <span style={{ flex: 1, fontWeight: depth === 0 ? 700 : 500, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {highlightText(c.name)}
+        </span>
+
+        {/* Level badge */}
+        <Badge
+          label={c.levelName || levelNames[c.level ?? 0] || `Cấp ${c.level ?? 0}`}
+          type={getBadgeType(c.level)}
+          icon="Layers"
+        />
+
+        {/* Parent name */}
+        {c.parentName && (
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            ↳ {c.parentName}
+          </span>
+        )}
+
+        {/* Actions */}
+        {isAuthorized && (
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            <Link href={`/categories/${c.id}/edit`} className="btn-outline" style={{ padding: '6px', borderRadius: 6, display: 'flex' }}>
+              <Edit size={14} />
+            </Link>
+            <button onClick={() => onDelete(c.id)} className="btn-outline" style={{ padding: '6px', borderRadius: 6, display: 'flex', color: '#ef4444' }}>
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Children */}
+      {hasChildren && isExpanded && (
+        children.map(child => (
+          <TreeNodeComponent
+            key={child.category.id}
+            node={child}
+            expandedIds={expandedIds}
+            onToggle={onToggle}
+            isAuthorized={isAuthorized}
+            levelNames={levelNames}
+            searchQuery={searchQuery}
+            onDelete={onDelete}
+          />
+        ))
+      )}
+    </>
+  );
+}
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
@@ -29,10 +153,8 @@ export default function CategoriesPage() {
   });
   const [savingConfig, setSavingConfig] = useState(false);
   const { user } = useAuth();
-  const [page, setPage] = useState(0);
   const [levelFilter, setLevelFilter] = useState<number | 'ALL'>('ALL');
   const [parentFilter, setParentFilter] = useState<number | 'ALL'>('ALL');
-  const pageSize = 20;
 
   const loadCategories = () => {
     setLoading(true);
@@ -77,87 +199,92 @@ export default function CategoriesPage() {
     }
   };
 
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
   const uniqueLevels = [...new Set(categories.map(c => c.level).filter((l): l is number => l !== undefined))].sort();
   const parentCategories = categories.filter(c => c.level === 0);
 
-  const filteredCategories = categories.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.parentName && c.parentName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (c.levelName && c.levelName.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesLevel = levelFilter === 'ALL' || c.level === levelFilter;
-    const matchesParent = parentFilter === 'ALL' || c.parentId === parentFilter;
+  const buildTree = (): TreeNode[] => {
+    const map = new Map<number, TreeNode>();
+    const roots: TreeNode[] = [];
+    const sorted = [...categories].sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+
+    for (const cat of sorted) {
+      const node: TreeNode = { category: cat, children: [], depth: cat.level ?? 0 };
+      map.set(cat.id, node);
+      if (cat.parentId && map.has(cat.parentId)) {
+        map.get(cat.parentId)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+    return roots;
+  };
+
+  const getAncestorIds = (catId: number): number[] => {
+    const result: number[] = [];
+    let current = categories.find(c => c.id === catId);
+    while (current?.parentId) {
+      result.push(current.parentId);
+      current = categories.find(c => c.id === current!.parentId);
+    }
+    return result;
+  };
+
+  const matchesFilter = (cat: CategoryDTO): boolean => {
+    const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLevel = levelFilter === 'ALL' || cat.level === levelFilter;
+    const matchesParent = parentFilter === 'ALL' || cat.parentId === parentFilter;
     return matchesSearch && matchesLevel && matchesParent;
-  });
+  };
 
-  useEffect(() => { setPage(0); }, [searchQuery, levelFilter, parentFilter]);
+  const tree = buildTree();
 
-  const totalPages = Math.ceil(filteredCategories.length / pageSize) || 1;
-  const paginatedCategories = filteredCategories.slice(page * pageSize, (page + 1) * pageSize);
+  const filterTreeNode = (nodes: TreeNode[]): TreeNode[] => {
+    return nodes.reduce<TreeNode[]>((acc, node) => {
+      const filteredChildren = filterTreeNode(node.children);
+      if (matchesFilter(node.category) || filteredChildren.length > 0 || searchQuery === '') {
+        acc.push({ ...node, children: filteredChildren });
+      }
+      return acc;
+    }, []);
+  };
+
+  const filteredTree = searchQuery || levelFilter !== 'ALL' || parentFilter !== 'ALL'
+    ? filterTreeNode(tree)
+    : tree;
+
+  useEffect(() => {
+    if (searchQuery) {
+      const toExpand = new Set<number>();
+      categories.forEach(c => {
+        if (c.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+          getAncestorIds(c.id).forEach(id => toExpand.add(id));
+        }
+      });
+      setExpandedIds(toExpand);
+    }
+  }, [searchQuery, categories]);
+
+  const toggleExpand = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const countLeaves = (nodes: TreeNode[]): number => {
+    let count = 0;
+    for (const n of nodes) {
+      if (n.children.length === 0) count++;
+      else count += countLeaves(n.children);
+    }
+    return count;
+  };
+  const totalTreeItems = countLeaves(filteredTree);
 
   const isAuthorized = user?.roles.some(r => ['ROLE_ADMIN', 'ROLE_COMPANY', 'ROLE_AGENCY'].includes(r));
-
-  const columns: Column<CategoryDTO>[] = [
-    { 
-      header: 'ID', 
-      key: 'id', 
-      width: '10%',
-      render: (c) => <span style={{ color: 'var(--text-muted)' }}>#{c.id}</span>
-    },
-    { 
-      header: 'Tên danh mục', 
-      key: 'name', 
-      width: '30%',
-      render: (c) => <span style={{ fontWeight: 600 }}>{c.name}</span>
-    },
-    {
-      header: 'Cấp danh mục',
-      key: 'levelName',
-      width: '25%',
-      render: (c) => {
-        const getBadgeType = (lvl?: number) => {
-          if (lvl === 0) return 'primary' as const;
-          if (lvl === 1) return 'info' as const;
-          if (lvl === 2) return 'success' as const;
-          return 'warning' as const;
-        };
-        return (
-          <Badge 
-            label={c.levelName || `Cấp ${c.level ?? 0}`} 
-            type={getBadgeType(c.level)} 
-            icon="Layers" 
-          />
-        );
-      }
-    },
-    { 
-      header: 'Danh mục cha', 
-      key: 'parentName', 
-      width: '25%',
-      render: (c) => c.parentName ? (
-        <Badge label={c.parentName} type="info" icon="FolderTree" />
-      ) : (
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Gốc</span>
-      )
-    }
-  ];
-
-  if (isAuthorized) {
-    columns.push({
-      header: 'Thao tác',
-      key: 'actions',
-      align: 'right',
-      render: (c) => (
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <Link href={`/categories/${c.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
-            <Edit size={16} />
-          </Link>
-          <button onClick={() => handleDelete(c.id)} className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#ef4444' }}>
-            <Trash2 size={16} />
-          </button>
-        </div>
-      )
-    });
-  }
 
   return (
     <>
@@ -187,6 +314,10 @@ export default function CategoriesPage() {
                 <Tag size={18} />
                 Thương hiệu
               </Link>
+              <Link href="/categories/import" className="btn-outline" style={{ textDecoration: 'none' }}>
+                <Upload size={18} />
+                Import Excel
+              </Link>
               <Link href="/categories/create" className="btn-primary" style={{ textDecoration: 'none' }}>
                 <Plus size={18} />
                 Thêm danh mục
@@ -212,29 +343,46 @@ export default function CategoriesPage() {
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Danh mục cha</label>
-            <select
-              className="input-field"
-              value={parentFilter}
-              onChange={e => setParentFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+            <SearchableSelect
+              options={parentCategories.map(pc => ({ value: pc.id, label: pc.name }))}
+              value={parentFilter === 'ALL' ? undefined : parentFilter}
+              onChange={(val) => setParentFilter(val !== undefined ? Number(val) : 'ALL')}
+              placeholder="Tất cả cha"
               style={{ width: '100%' }}
-            >
-              <option value="ALL">Tất cả cha</option>
-              {parentCategories.map(pc => (
-                <option key={pc.id} value={pc.id}>{pc.name}</option>
-              ))}
-            </select>
+            />
           </div>
         </div>
 
-        <DataTable 
-          data={paginatedCategories}
-          columns={columns}
-          loading={loading}
-          emptyMessage={searchQuery ? 'Không tìm thấy danh mục nào phù hợp' : 'Chưa có danh mục nào'}
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
+        <GlassCard style={{ padding: 0 }}>
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <span>{loading ? 'Đang tải...' : `${totalTreeItems} danh mục`}</span>
+          </div>
+          {loading ? (
+            <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+              Đang tải danh mục...
+            </div>
+          ) : filteredTree.length === 0 ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              {searchQuery ? 'Không tìm thấy danh mục nào phù hợp' : 'Chưa có danh mục nào'}
+            </div>
+          ) : (
+            <div>
+              {filteredTree.map(node => (
+                <TreeNodeComponent
+                  key={node.category.id}
+                  node={node}
+                  expandedIds={expandedIds}
+                  onToggle={toggleExpand}
+                  isAuthorized={!!isAuthorized}
+                  levelNames={levelNames}
+                  searchQuery={searchQuery}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+        </GlassCard>
 
         {error && (
           <div className="alert-error" style={{ marginTop: 20 }}>
@@ -268,7 +416,7 @@ export default function CategoriesPage() {
                 <Settings size={22} style={{ color: 'var(--color-primary)' }} /> Cấu hình Cấp Danh Mục
               </h3>
               <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxH: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
                   {Object.keys(levelNames)
                     .map(Number)
                     .sort((a, b) => a - b)

@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
 import ImageUploader from '@/modules/common/components/ImageUploader';
 import { categoryApi, CategoryDTO } from '@/lib/api';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 export default function CreateCategoryPage() {
   const [name, setName] = useState('');
@@ -62,17 +63,12 @@ export default function CreateCategoryPage() {
               <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 Danh mục cha (Tùy chọn)
               </label>
-              <select
-                className="input-field"
-                value={parentId || ''}
-                onChange={e => setParentId(e.target.value ? Number(e.target.value) : undefined)}
-                style={{ appearance: 'none' }}
-              >
-                <option value="">-- Không có --</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name} ({cat.levelName || `Cấp ${cat.level ?? 0}`})</option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={categories.map(cat => ({ value: cat.id, label: `${cat.name} (${cat.levelName || `Cấp ${cat.level ?? 0}`})` }))}
+                value={parentId}
+                onChange={(val) => setParentId(val !== undefined ? Number(val) : undefined)}
+                placeholder="-- Không có --"
+              />
             </div>
 
             <ImageUploader

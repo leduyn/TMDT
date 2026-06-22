@@ -11,4 +11,6 @@ import com.anhtin.tmdt.backend.modules.product.entity.Product;
 public interface BrandRepository extends JpaRepository<Brand, Long> {
     Optional<Brand> findByCode(String code);
     Optional<Brand> findByName(String name);
+    Optional<Brand> findFirstByName(String name);
+    Optional<Brand> findFirstByCode(String code);
 }

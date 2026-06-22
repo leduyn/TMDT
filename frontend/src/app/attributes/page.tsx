@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Pagination from '@/components/ui/Pagination';
 import { attributeApi, categoryApi, CategoryDTO, AttributeDTO, AttributeValueDTO } from '@/lib/api';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -286,16 +287,15 @@ export default function AttributesManagementPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Gắn vào Danh mục (Tùy chọn)</label>
-                  <select 
-                    className="input-field"
+                  <SearchableSelect
+                    options={[
+                      { value: 0, label: 'Dùng chung cho mọi danh mục' },
+                      ...categories.map(cat => ({ value: cat.id, label: cat.name })),
+                    ]}
                     value={attrForm.categoryId}
-                    onChange={e => setAttrForm({...attrForm, categoryId: Number(e.target.value)})}
-                  >
-                    <option value={0}>Dùng chung cho mọi danh mục</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setAttrForm({...attrForm, categoryId: Number(val ?? 0)})}
+                    placeholder="Chọn danh mục"
+                  />
                 </div>
                 <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
                   <input 

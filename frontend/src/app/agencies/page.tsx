@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
@@ -409,12 +410,12 @@ export default function AgenciesPage() {
                 ) : (
                   <div style={{ marginBottom: 24 }}>
                     <label className="form-label">Chọn Tài khoản</label>
-                    <select className="input-field" required value={newAgency.userId} onChange={e => setNewAgency({...newAgency, userId: parseInt(e.target.value)})}>
-                      <option value="0">-- Chọn tài khoản --</option>
-                      {unassignedUsers.map(user => (
-                        <option key={user.id} value={user.id}>{user.username} ({user.email})</option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={unassignedUsers.map(user => ({ value: user.id, label: `${user.username} (${user.email})` }))}
+                      value={newAgency.userId || undefined}
+                      onChange={(val) => setNewAgency(prev => ({ ...prev, userId: val ? Number(val) : 0 }))}
+                      placeholder="-- Chọn tài khoản --"
+                    />
                   </div>
                 )}
 

@@ -6,6 +6,7 @@ import { agencyDebtApi, agencyApi, AgencyDebtDTO, AgencyDTO } from '@/lib/api';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge, { BadgeType } from '@/components/ui/Badge';
 import Pagination from '@/components/ui/Pagination';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { 
   Search, 
   Filter, 
@@ -189,16 +190,12 @@ function AgencyDebtsContent() {
         {isAdmin && (
           <div style={{ maxWidth: 200 }}>
             <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Lọc theo Khách hàng</label>
-            <select 
-              className="form-input"
-              value={selectedAgencyId || ''}
-              onChange={e => setSelectedAgencyId(e.target.value ? Number(e.target.value) : null)}
-            >
-              <option value="">-- Tất cả Khách hàng --</option>
-              {agencies.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={agencies.map(a => ({ value: a.id, label: a.name }))}
+              value={selectedAgencyId ?? undefined}
+              onChange={(val) => setSelectedAgencyId(val ? Number(val) : null)}
+              placeholder="-- Tất cả Khách hàng --"
+            />
           </div>
         )}
       </div>

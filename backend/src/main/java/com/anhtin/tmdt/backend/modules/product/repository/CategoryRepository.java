@@ -13,6 +13,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByLevel(Integer level);
     List<Category> findByParentId(Long parentId);
     Optional<Category> findByName(String name);
+    Optional<Category> findFirstByName(String name);
+    boolean existsByNameAndLevel(String name, Integer level);
+    boolean existsByNameAndLevelAndIdNot(String name, Integer level, Long id);
     Optional<Category> findByBravoId(Long bravoId);
 }
 

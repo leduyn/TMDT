@@ -6,18 +6,22 @@ import com.anhtin.tmdt.backend.modules.product.dto.ProductImportRowResult;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductRequest;
 import com.anhtin.tmdt.backend.modules.product.entity.Brand;
 import com.anhtin.tmdt.backend.modules.product.entity.Category;
+import com.anhtin.tmdt.backend.modules.product.entity.Product;
 import com.anhtin.tmdt.backend.modules.product.entity.ProductType;
 import com.anhtin.tmdt.backend.modules.product.repository.BrandRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.CategoryRepository;
+import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductTypeRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +41,9 @@ public class ProductImportService {
 
     @Autowired
     private ProductTypeRepository productTypeRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     public ByteArrayInputStream exportTemplate() {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -105,11 +112,18 @@ public class ProductImportService {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
+        try {
+            return importProducts(file.getBytes(), request);
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading file", e);
+        }
+    }
 
+    public ProductImportResult importProducts(byte[] fileBytes, ProductImportRequest request) {
         ProductImportResult result = new ProductImportResult();
         List<ProductImportRowResult> rowResults = new ArrayList<>();
 
-        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(fileBytes))) {
             Sheet sheet = workbook.getSheetAt(request.getSheetIndex());
             Map<String, String> mappings = request.getColumnMappings();
 
@@ -135,16 +149,30 @@ public class ProductImportService {
                 if (row == null) continue;
 
                 totalRows++;
-                String rowKey = request.isHasHeaderRow() && columnHeaders != null
-                    ? "ROW_" + i : "ROW_" + i;
 
                 try {
-                    ProductRequest productRequest = buildProductRequest(row, mappings, columnHeaders);
-                    var dto = productService.addProduct(productRequest);
-                    successCount++;
-                    rowResults.add(new ProductImportRowResult(
-                        i + 1, true, "OK", dto.getId(), dto.getName()
-                    ));
+                    String productCode = extractProductCode(row, mappings, columnHeaders);
+                    if (productCode == null || productCode.isEmpty()) {
+                        throw new IllegalArgumentException("Mã sản phẩm không được để trống");
+                    }
+
+                    Product existingProduct = productRepository.findByProductCode(productCode);
+                    if (existingProduct != null) {
+                        updateProductFromRow(existingProduct, row, mappings, columnHeaders);
+                        productRepository.save(existingProduct);
+                        successCount++;
+                        rowResults.add(new ProductImportRowResult(
+                            i + 1, true, "Đã cập nhật", existingProduct.getId(), existingProduct.getName(), "UPDATE"
+                        ));
+                    } else {
+                        ProductRequest productRequest = buildProductRequest(row, mappings, columnHeaders);
+                        validateRequiredFields(productRequest);
+                        var dto = productService.addProduct(productRequest);
+                        successCount++;
+                        rowResults.add(new ProductImportRowResult(
+                            i + 1, true, "Đã tạo mới", dto.getId(), dto.getName(), "CREATE"
+                        ));
+                    }
                 } catch (Exception e) {
                     errorCount++;
                     String errorMsg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định";
@@ -167,6 +195,52 @@ public class ProductImportService {
         return result;
     }
 
+    private String extractProductCode(Row row, Map<String, String> mappings, String[] columnHeaders) {
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            if ("productCode".equals(entry.getValue())) {
+                int colIndex = resolveColumnIndex(entry.getKey(), columnHeaders);
+                if (colIndex >= 0) {
+                    return getCellValueAsString(row.getCell(colIndex));
+                }
+            }
+        }
+        return null;
+    }
+
+    private void validateRequiredFields(ProductRequest req) {
+        if (req.getProductCode() == null || req.getProductCode().isBlank()) {
+            throw new IllegalArgumentException("Mã sản phẩm không được để trống");
+        }
+        if (req.getName() == null || req.getName().isBlank()) {
+            throw new IllegalArgumentException("Tên sản phẩm không được để trống");
+        }
+        if (req.getCategoryId() == null) {
+            throw new IllegalArgumentException("Danh mục không được để trống");
+        }
+        if (req.getBasePrice() == null) {
+            throw new IllegalArgumentException("Giá cơ bản không được để trống");
+        }
+        if (req.getStockQuantity() == null) {
+            throw new IllegalArgumentException("Số lượng kho không được để trống");
+        }
+    }
+
+    private void updateProductFromRow(Product product, Row row, Map<String, String> mappings, String[] columnHeaders) {
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            String columnKey = entry.getKey();
+            String field = entry.getValue();
+            if (field == null || field.isEmpty()) continue;
+
+            int colIndex = resolveColumnIndex(columnKey, columnHeaders);
+            if (colIndex < 0) continue;
+
+            String rawValue = getCellValueAsString(row.getCell(colIndex));
+            if (rawValue == null || rawValue.isEmpty()) continue;
+
+            setEntityField(product, field, rawValue.trim());
+        }
+    }
+
     private ProductRequest buildProductRequest(Row row, Map<String, String> mappings, String[] columnHeaders) {
         ProductRequest req = new ProductRequest();
 
@@ -184,15 +258,6 @@ public class ProductImportService {
             setField(req, field, rawValue.trim());
         }
 
-        if (req.getName() == null || req.getName().isBlank()) {
-            throw new IllegalArgumentException("Thiếu tên sản phẩm (name)");
-        }
-        if (req.getBasePrice() == null) {
-            throw new IllegalArgumentException("Thiếu giá cơ bản (basePrice)");
-        }
-        if (req.getStockQuantity() == null) {
-            throw new IllegalArgumentException("Thiếu số lượng kho (stockQuantity)");
-        }
         if (req.getCategoryId() == null) {
             throw new IllegalArgumentException("Thiếu danh mục (categoryName)");
         }
@@ -202,14 +267,15 @@ public class ProductImportService {
 
     private int resolveColumnIndex(String columnKey, String[] columnHeaders) {
         if (columnHeaders != null) {
+            String cleanKey = columnKey.replace("*", "").trim();
             for (int i = 0; i < columnHeaders.length; i++) {
-                if (columnHeaders[i] != null && columnHeaders[i].replace("*", "").trim().equalsIgnoreCase(columnKey)) {
+                if (columnHeaders[i] != null && columnHeaders[i].replace("*", "").trim().equalsIgnoreCase(cleanKey)) {
                     return i;
                 }
             }
             for (int i = 0; i < columnHeaders.length; i++) {
                 if (columnHeaders[i] != null && columnHeaders[i].replace("*", "").trim().toLowerCase()
-                        .contains(columnKey.toLowerCase())) {
+                        .contains(cleanKey.toLowerCase())) {
                     return i;
                 }
             }
@@ -222,6 +288,99 @@ public class ProductImportService {
             }
         }
         return -1;
+    }
+
+    private void setEntityField(Product product, String field, String value) {
+        try {
+            switch (field) {
+                case "name":
+                    product.setName(value);
+                    break;
+                case "description":
+                    product.setDescription(value);
+                    break;
+                case "basePrice":
+                    product.setBasePrice(parseDouble(value));
+                    break;
+                case "dropshipPrice":
+                    product.setDropshipPrice(parseDouble(value));
+                    break;
+                case "stockQuantity":
+                    product.setStockQuantity(parseInt(value));
+                    break;
+                case "unit":
+                    product.setUnit(value);
+                    break;
+                case "innerPackaging":
+                    product.setInnerPackaging(value);
+                    break;
+                case "outerPackaging":
+                    product.setOuterPackaging(value);
+                    break;
+                case "minPurchaseQuantity":
+                    product.setMinPurchaseQuantity(parseInt(value));
+                    break;
+                case "quantityStep":
+                    product.setQuantityStep(parseInt(value));
+                    break;
+                case "tags":
+                    product.setTags(value);
+                    break;
+                case "bravoOrder":
+                    product.setBravoOrder(parseInt(value));
+                    break;
+                case "isDropship":
+                    product.setDropship(parseBoolean(value));
+                    break;
+                case "isAppVisible":
+                    product.setIsAppVisible(parseBoolean(value));
+                    break;
+                case "isWebVisible":
+                    product.setIsWebVisible(parseBoolean(value));
+                    break;
+                case "showDiscount":
+                    product.setShowDiscount(parseBoolean(value));
+                    break;
+                case "productCode":
+                    product.setProductCode(value);
+                    break;
+                case "retailWarrantyPeriod":
+                    product.setRetailWarrantyPeriod(value);
+                    break;
+                case "wholesaleWarrantyPeriod":
+                    product.setWholesaleWarrantyPeriod(value);
+                    break;
+                case "status":
+                    product.setStatus(value);
+                    break;
+                case "otherName":
+                    product.setOtherName(value);
+                    break;
+                case "shortName":
+                    product.setShortName(value);
+                    break;
+                case "specification":
+                    product.setSpecification(value);
+                    break;
+                case "feature1":
+                    product.setFeature1(value);
+                    break;
+                case "feature2":
+                    product.setFeature2(value);
+                    break;
+                case "categoryName":
+                    lookupAndSetCategoryOnEntity(product, value);
+                    break;
+                case "brandName":
+                    lookupAndSetBrandOnEntity(product, value);
+                    break;
+                case "productTypeName":
+                    lookupAndSetProductTypeOnEntity(product, value);
+                    break;
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Giá trị '" + value + "' không hợp lệ cho trường " + field, e);
+        }
     }
 
     private void setField(ProductRequest req, String field, String value) {
@@ -278,11 +437,11 @@ public class ProductImportService {
                 case "categoryName":
                     lookupAndSetCategory(req, value);
                     break;
-                case "brandCode":
-                    lookupAndSetBrand(req, value);
+                case "brandName":
+                    lookupAndSetBrandByName(req, value);
                     break;
-                case "productTypeCode":
-                    lookupAndSetProductType(req, value);
+                case "productTypeName":
+                    lookupAndSetProductTypeByName(req, value);
                     break;
                 case "productCode":
                     req.setProductCode(value);
@@ -320,47 +479,95 @@ public class ProductImportService {
     private void lookupAndSetCategory(ProductRequest req, String name) {
         Optional<Category> cat = categoryRepository.findByName(name);
         if (cat.isPresent()) {
+            if (cat.get().getLevel() == null || cat.get().getLevel() != 4) {
+                throw new IllegalArgumentException("Danh mục '" + name + "' không phải cấp 4 (Dòng sản phẩm)");
+            }
             req.setCategoryId(cat.get().getId());
         } else {
-            Category newCat = new Category();
-            newCat.setName(name);
-            Category saved = categoryRepository.save(newCat);
-            req.setCategoryId(saved.getId());
+            throw new IllegalArgumentException("Không tìm thấy danh mục '" + name + "'. Vui lòng nhập đúng tên danh mục cấp 4 (Dòng sản phẩm)");
         }
     }
 
-    private void lookupAndSetBrand(ProductRequest req, String code) {
-        Optional<Brand> brand = brandRepository.findByCode(code);
+    private void lookupAndSetBrandByName(ProductRequest req, String name) {
+        Optional<Brand> brand = brandRepository.findByName(name);
         if (brand.isPresent()) {
             req.setBrandId(brand.get().getId());
         } else {
-            brand = brandRepository.findByName(code);
+            brand = brandRepository.findByCode(name);
             if (brand.isPresent()) {
                 req.setBrandId(brand.get().getId());
             } else {
                 Brand newBrand = new Brand();
-                newBrand.setCode(code);
-                newBrand.setName(code);
+                newBrand.setName(name);
+                newBrand.setCode(name);
                 Brand saved = brandRepository.save(newBrand);
                 req.setBrandId(saved.getId());
             }
         }
     }
 
-    private void lookupAndSetProductType(ProductRequest req, String code) {
-        Optional<ProductType> pt = productTypeRepository.findByCode(code);
+    private void lookupAndSetProductTypeByName(ProductRequest req, String name) {
+        Optional<ProductType> pt = productTypeRepository.findByName(name);
         if (pt.isPresent()) {
             req.setProductTypeId(pt.get().getId());
         } else {
-            pt = productTypeRepository.findByName(code);
+            pt = productTypeRepository.findByCode(name);
             if (pt.isPresent()) {
                 req.setProductTypeId(pt.get().getId());
             } else {
                 ProductType newPt = new ProductType();
-                newPt.setCode(code);
-                newPt.setName(code);
+                newPt.setName(name);
+                newPt.setCode(name);
                 ProductType saved = productTypeRepository.save(newPt);
                 req.setProductTypeId(saved.getId());
+            }
+        }
+    }
+
+    private void lookupAndSetCategoryOnEntity(Product product, String name) {
+        Optional<Category> cat = categoryRepository.findByName(name);
+        if (cat.isPresent()) {
+            if (cat.get().getLevel() == null || cat.get().getLevel() != 4) {
+                throw new IllegalArgumentException("Danh mục '" + name + "' không phải cấp 4 (Dòng sản phẩm)");
+            }
+            product.setCategory(cat.get());
+        } else {
+            throw new IllegalArgumentException("Không tìm thấy danh mục '" + name + "'. Vui lòng nhập đúng tên danh mục cấp 4 (Dòng sản phẩm)");
+        }
+    }
+
+    private void lookupAndSetBrandOnEntity(Product product, String name) {
+        Optional<Brand> brand = brandRepository.findByName(name);
+        if (brand.isPresent()) {
+            product.setBrand(brand.get());
+        } else {
+            brand = brandRepository.findByCode(name);
+            if (brand.isPresent()) {
+                product.setBrand(brand.get());
+            } else {
+                Brand newBrand = new Brand();
+                newBrand.setName(name);
+                newBrand.setCode(name);
+                Brand saved = brandRepository.save(newBrand);
+                product.setBrand(saved);
+            }
+        }
+    }
+
+    private void lookupAndSetProductTypeOnEntity(Product product, String name) {
+        Optional<ProductType> pt = productTypeRepository.findByName(name);
+        if (pt.isPresent()) {
+            product.setProductType(pt.get());
+        } else {
+            pt = productTypeRepository.findByCode(name);
+            if (pt.isPresent()) {
+                product.setProductType(pt.get());
+            } else {
+                ProductType newPt = new ProductType();
+                newPt.setName(name);
+                newPt.setCode(name);
+                ProductType saved = productTypeRepository.save(newPt);
+                product.setProductType(saved);
             }
         }
     }

@@ -61,6 +61,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception e) {
+        if (e.getMessage() != null && e.getMessage().contains("ClientAbortException") ||
+            e.getCause() instanceof java.io.IOException &&
+            e.getCause().getMessage() != null &&
+            e.getCause().getMessage().contains("aborted")) {
+            System.err.println("Client disconnected during response write (non-critical)");
+            return null;
+        }
+
         System.err.println("Unhandled Exception: " + e.getMessage());
         e.printStackTrace();
 

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { productApi, ProductDTO } from '@/lib/api';
+import { productApi, categoryApi, ProductDTO, PageResponse, CategoryDTO } from '@/lib/api';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -12,6 +12,7 @@ import { resolveImageUrl } from '@/lib/utils';
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
@@ -31,26 +32,30 @@ import {
 } from 'lucide-react';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductDTO[]>([]);
+  const [pageData, setPageData] = useState<PageResponse<ProductDTO> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  useEffect(() => { setPage(0); }, [search]);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const { user } = useAuth();
   const { addToCart } = useCart();
 
+  const [categoryOptions, setCategoryOptions] = useState<CategoryDTO[][]>([[], [], [], []]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<(number | undefined)[]>([undefined, undefined, undefined, undefined]);
+  const [levelNames, setLevelNames] = useState<string[]>(['Ngành hàng', 'Nhóm hàng', 'Loại SP', 'Dòng SP']);
+  const [categoryFilterId, setCategoryFilterId] = useState<number | undefined>(undefined);
+
   useEffect(() => {
-    // Load preference from localStorage
     const savedMode = localStorage.getItem('productViewMode');
     if (savedMode === 'table' || savedMode === 'grid') {
       setViewMode(savedMode);
     }
   }, []);
 
-  const loadProducts = async () => {
+  const fetchPage = useCallback(async (p: number, s: string, ps: number, catId?: number) => {
     setLoading(true);
     try {
       let currentAgencyId: number | undefined = undefined;
@@ -58,19 +63,81 @@ export default function ProductsPage() {
       if (storedAgencyId) {
         currentAgencyId = Number(storedAgencyId);
       }
-
-      const data = await productApi.getAll(currentAgencyId);
-      setProducts(data);
+      const data = await productApi.getPage({
+        page: p,
+        size: ps,
+        search: s || undefined,
+        agencyId: currentAgencyId,
+        categoryId: catId,
+      });
+      setPageData(data);
+      setError('');
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadProducts();
+    categoryApi.getByLevel(0).then(data => {
+      setCategoryOptions(prev => { const next = [...prev]; next[0] = data; return next; });
+    }).catch(() => {});
+    categoryApi.getLevelNames().then(names => {
+      const labels = [...levelNames];
+      if (names) { for (let i = 0; i <= 3; i++) { if (names[i]) labels[i] = names[i]; } }
+      setLevelNames(labels);
+    }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setPage(0);
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const handleCategoryChange = useCallback(async (level: number, catId: number | undefined) => {
+    setSelectedCategoryIds(prev => {
+      const next = [...prev];
+      next[level] = catId;
+      for (let l = level + 1; l < next.length; l++) next[l] = undefined;
+      return next;
+    });
+    setCategoryOptions(prev => {
+      const next = [...prev];
+      for (let l = level + 1; l < next.length; l++) next[l] = [];
+      return next;
+    });
+    if (catId && level < 3) {
+      try {
+        const children = await categoryApi.getChildren(catId);
+        setCategoryOptions(prev => {
+          const next = [...prev];
+          next[level + 1] = children;
+          return next;
+        });
+      } catch (err) {
+        console.error('Failed to fetch children:', err);
+      }
+    }
+    setCategoryFilterId(catId);
+    setPage(0);
+  }, []);
+
+  const clearCategoryFilter = useCallback(() => {
+    setSelectedCategoryIds([undefined, undefined, undefined, undefined]);
+    setCategoryOptions(prev => {
+      const next = [...prev];
+      for (let i = 1; i < next.length; i++) next[i] = [];
+      return next;
+    });
+    setCategoryFilterId(undefined);
+    setPage(0);
+  }, []);
+
+  useEffect(() => {
+    fetchPage(page, debouncedSearch, pageSize, categoryFilterId);
+  }, [page, pageSize, debouncedSearch, categoryFilterId, fetchPage]);
 
   const toggleViewMode = (mode: 'grid' | 'table') => {
     setViewMode(mode);
@@ -81,7 +148,7 @@ export default function ProductsPage() {
     if (!confirm('Bạn có chắc chắn muốn xoá sản phẩm này?')) return;
     try {
       await productApi.delete(id);
-      loadProducts();
+      fetchPage(page, debouncedSearch, pageSize, categoryFilterId);
     } catch (err: any) {
       alert(err.message);
     }
@@ -90,13 +157,9 @@ export default function ProductsPage() {
   const isAuthorized = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ADMIN'].includes(r));
   const isCompanyAdmin = user?.roles.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
-  const filtered = products.filter(p =>
-    p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.description?.toLowerCase().includes(search.toLowerCase()) ||
-    p.categoryName?.toLowerCase().includes(search.toLowerCase())
-  );
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
-  const paginatedData = filtered.slice(page * pageSize, (page + 1) * pageSize);
+  const products = pageData?.content || [];
+  const totalPages = pageData?.totalPages || 1;
+  const totalElements = pageData?.totalElements || 0;
 
   const formatPrice = (price: number) => {
     if (price === -1 || price === undefined) return 'Liên hệ';
@@ -311,6 +374,38 @@ export default function ProductsPage() {
           }
         />
 
+        {/* Category Filter */}
+        <GlassCard style={{ padding: '12px 20px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}>
+                <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="20" y2="12" /><line x1="12" y1="18" x2="20" y2="18" />
+              </svg>
+              Danh mục:
+            </span>
+            {categoryOptions.map((options, level) => (
+              <SearchableSelect
+                key={level}
+                options={options.map(c => ({ value: c.id, label: c.name }))}
+                value={selectedCategoryIds[level]}
+                onChange={(val) => handleCategoryChange(level, val !== undefined ? Number(val) : undefined)}
+                placeholder={levelNames[level] || `Cấp ${level}`}
+                disabled={level > 0 && (selectedCategoryIds[level - 1] === undefined || categoryOptions[level - 1].length === 0)}
+                style={{ minWidth: 150, flex: '0 1 auto' }}
+              />
+            ))}
+            {categoryFilterId !== undefined && (
+              <button
+                onClick={clearCategoryFilter}
+                className="btn-outline"
+                style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem', whiteSpace: 'nowrap', marginLeft: 4 }}
+              >
+                Xoá bộ lọc
+              </button>
+            )}
+          </div>
+        </GlassCard>
+
         {/* States */}
         {loading ? (
           <GlassCard style={{ padding: '80px 0', textAlign: 'center' }}>
@@ -321,9 +416,9 @@ export default function ProductsPage() {
           <GlassCard style={{ padding: 40, textAlign: 'center', borderColor: 'var(--danger)' }}>
             <h3 style={{ color: 'var(--danger)', marginBottom: 12 }}>⚠️ Không thể tải dữ liệu</h3>
             <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
-            <button onClick={loadProducts} className="btn-outline" style={{ marginTop: 20 }}>Thử lại</button>
+            <button onClick={() => fetchPage(page, debouncedSearch, pageSize, categoryFilterId)} className="btn-outline" style={{ marginTop: 20 }}>Thử lại</button>
           </GlassCard>
-        ) : filtered.length === 0 ? (
+        ) : products.length === 0 ? (
           <GlassCard style={{ padding: '80px 0', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}><Package size={64} style={{ margin: '0 auto' }} /></div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
@@ -333,7 +428,7 @@ export default function ProductsPage() {
         ) : (
           <>
             <div style={{ marginBottom: 20, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Hiển thị {filtered.length} sản phẩm</span>
+              <span>Hiển thị {totalElements} sản phẩm</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span>Chế độ: {viewMode === 'grid' ? 'Lưới' : 'Bảng'}</span>
                 <select
@@ -360,7 +455,7 @@ export default function ProductsPage() {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                 gap: 24,
               }}>
-                {paginatedData.map((product, i) => (
+                {products.map((product, i) => (
                   <GlassCard
                     key={product.id}
                     hoverable
@@ -507,7 +602,7 @@ export default function ProductsPage() {
               </>
             ) : (
               <DataTable 
-                data={paginatedData}
+                data={products}
                 columns={tableColumns}
                 loading={loading}
                 page={page}

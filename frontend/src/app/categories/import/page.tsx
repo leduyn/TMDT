@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { productImportApi, ProductImportResult } from '@/lib/api';
+import { categoryImportApi, CategoryImportResult } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import * as XLSX from 'xlsx';
 import Link from 'next/link';
@@ -18,79 +18,39 @@ interface ColumnInfo {
   sampleValues: string[];
 }
 
-interface FieldOption {
-  value: string;
-  label: string;
-  required?: boolean;
-}
-
-const FIELD_OPTIONS: FieldOption[] = [
-  { value: 'name', label: 'Tên sản phẩm' },
-  { value: 'basePrice', label: 'Giá cơ bản' },
-  { value: 'stockQuantity', label: 'Số lượng kho' },
-  { value: 'productCode', label: 'Mã sản phẩm*', required: true },
-  { value: 'description', label: 'Mô tả' },
-  { value: 'userManual', label: 'Hướng dẫn sử dụng' },
-  { value: 'dropshipPrice', label: 'Giá Dropship' },
-  { value: 'unit', label: 'Đơn vị tính' },
-  { value: 'innerPackaging', label: 'Quy cách trong' },
-  { value: 'outerPackaging', label: 'Quy cách ngoài' },
-  { value: 'minPurchaseQuantity', label: 'SL mua tối thiểu' },
-  { value: 'quantityStep', label: 'Bước nhảy SL' },
-  { value: 'tags', label: 'Tags' },
-  { value: 'bravoOrder', label: 'Thứ tự' },
-  { value: 'isDropship', label: 'Dropship (true/false)' },
-  { value: 'isAppVisible', label: 'Hiển thị App (true/false)' },
-  { value: 'isWebVisible', label: 'Hiển thị Web (true/false)' },
-  { value: 'showDiscount', label: 'Hiển thị giảm giá (true/false)' },
-  { value: 'categoryName', label: 'Danh mục (theo tên)' },
-  { value: 'brandName', label: 'Tên thương hiệu' },
-  { value: 'productTypeName', label: 'Tên loại SP' },
-  { value: 'retailWarrantyPeriod', label: 'Bảo hành bán thường' },
-  { value: 'wholesaleWarrantyPeriod', label: 'Bảo hành bán sỉ' },
-  { value: 'status', label: 'Trạng thái (ACTIVE/INACTIVE/DISCONTINUED)' },
-  { value: 'otherName', label: 'Tên khác' },
-  { value: 'shortName', label: 'Tên rút gọn' },
-  { value: 'specification', label: 'Quy cách' },
-  { value: 'feature1', label: 'Đặc điểm 1' },
-  { value: 'feature2', label: 'Đặc điểm 2' },
+const FIELD_OPTIONS: { value: string; label: string; required?: boolean }[] = [
+  { value: 'id', label: 'ID danh mục' },
+  { value: 'name', label: 'Tên danh mục*', required: true },
+  { value: 'parentId', label: 'Danh mục cha (ID)' },
+  { value: 'imageUrl', label: 'Image URL' },
+  { value: 'bravoId', label: 'Bravo ID' },
+  { value: 'status', label: 'Trạng thái (0/1)' },
+  { value: 'priority', label: 'Thứ tự ưu tiên' },
+  { value: 'bravoSortValue', label: 'Bravo Sort Value' },
+  { value: 'isBranch', label: 'Is Branch (0/1)' },
+  { value: 'showOnLeftMenu', label: 'Hiển thị menu trái (0/1)' },
+  { value: 'displayStatus', label: 'Trạng thái hiển thị' },
+  { value: 'backgroundColor', label: 'Màu nền' },
 ];
 
-const REQUIRED_FIELDS = ['productCode'];
+const REQUIRED_FIELDS = ['name'];
 
 const FIELD_AUTO_DETECT: Record<string, string[]> = {
-  name: ['tên', 'tên sản phẩm', 'product', 'product name', 'name'],
-  basePrice: ['giá', 'giá cơ bản', 'giá bán', 'base price', 'price', 'đơn giá'],
-  stockQuantity: ['số lượng', 'tồn kho', 'kho', 'stock', 'quantity', 'sl'],
-  description: ['mô tả', 'description', 'desc', 'chi tiết'],
-  userManual: ['hướng dẫn sử dụng', 'user manual', 'manual', 'hdsd'],
-  dropshipPrice: ['giá dropship', 'dropship', 'giá ship'],
-  unit: ['đơn vị', 'đơn vị tính', 'unit'],
-  innerPackaging: ['quy cách trong', 'qc trong', 'inner'],
-  outerPackaging: ['quy cách ngoài', 'qc ngoài', 'outer'],
-  minPurchaseQuantity: ['mua tối thiểu', 'min', 'min purchase'],
-  quantityStep: ['bước nhảy', 'step', 'quantity step'],
-  tags: ['tags', 'tag', 'thẻ'],
-  bravoOrder: ['thứ tự', 'bravo', 'order'],
-  isDropship: ['dropship', 'is dropship'],
-  isAppVisible: ['hiển thị app', 'app', 'app visible'],
-  isWebVisible: ['hiển thị web', 'web', 'web visible'],
-  showDiscount: ['hiển thị giảm giá', 'giảm giá', 'discount'],
-  categoryName: ['danh mục', 'category', 'loại'],
-  brandName: ['thương hiệu', 'brand', 'tên thương hiệu', 'hãng'],
-  productTypeName: ['loại sp', 'product type', 'tên loại', 'loại sản phẩm'],
-  productCode: ['mã sản phẩm', 'product code', 'productcode', 'mã sp'],
-  retailWarrantyPeriod: ['bảo hành thường', 'bảo hành bán thường', 'retail warranty'],
-  wholesaleWarrantyPeriod: ['bảo hành sỉ', 'bảo hành bán sỉ', 'wholesale warranty'],
+  id: ['id', 'mã', 'code', 'category id'],
+  name: ['tên', 'tên danh mục', 'category', 'category name', 'name'],
+  parentId: ['parent id', 'parent_id', 'mã cha', 'id cha', 'danh mục cha id'],
+  imageUrl: ['image', 'image url', 'hình ảnh', 'url ảnh'],
+  bravoId: ['bravo id', 'bravo', 'mã bravo'],
   status: ['trạng thái', 'status'],
-  otherName: ['tên khác', 'other name', 'alias'],
-  shortName: ['tên rút gọn', 'short name', 'viết tắt'],
-  specification: ['quy cách', 'spec', 'specification'],
-  feature1: ['đặc điểm 1', 'feature 1', 'feature1'],
-  feature2: ['đặc điểm 2', 'feature 2', 'feature2'],
+  priority: ['thứ tự', 'priority', 'ưu tiên'],
+  bravoSortValue: ['bravo sort', 'sort value'],
+  isBranch: ['is branch', 'branch', 'nhánh'],
+  showOnLeftMenu: ['menu trái', 'left menu', 'show on left'],
+  displayStatus: ['display status', 'trạng thái hiển thị'],
+  backgroundColor: ['màu nền', 'background', 'background color'],
 };
 
-export default function ImportProductsPage() {
+export default function ImportCategoriesPage() {
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [hasHeader, setHasHeader] = useState(true);
@@ -98,7 +58,7 @@ export default function ImportProductsPage() {
   const [previewRows, setPreviewRows] = useState<string[][]>([]);
   const [mappings, setMappings] = useState<Record<string, number | null>>({});
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ProductImportResult | null>(null);
+  const [result, setResult] = useState<CategoryImportResult | null>(null);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -221,7 +181,7 @@ export default function ImportProductsPage() {
         }
       });
 
-      const res = await productImportApi.importProducts(file, {
+      const res = await categoryImportApi.importCategories(file, {
         columnMappings: colMappings,
         hasHeaderRow: hasHeader,
         sheetIndex: 0,
@@ -240,12 +200,12 @@ export default function ImportProductsPage() {
       <Navbar />
       <Main maxWidth={1000}>
         <div className="fade-in-up" style={{ marginBottom: 32 }}>
-          <Link href="/products" style={{ color: 'var(--accent-light)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <ArrowLeft size={16} /> Quay lại danh sách sản phẩm
+          <Link href="/categories" style={{ color: 'var(--accent-light)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <ArrowLeft size={16} /> Quay lại danh sách danh mục
           </Link>
           <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700 }}>
             <Upload size={28} style={{ marginRight: 12, verticalAlign: 'middle' }} />
-            <span className="gradient-text">Import sản phẩm từ Excel</span>
+            <span className="gradient-text">Import danh mục từ Excel</span>
           </h1>
         </div>
 
@@ -314,7 +274,7 @@ export default function ImportProductsPage() {
                 <span style={{ fontSize: '0.9rem' }}>Dòng đầu là tiêu đề</span>
               </label>
               <a
-                href={productImportApi.downloadTemplateUrl}
+                href={categoryImportApi.downloadTemplateUrl}
                 className="btn-outline"
                 style={{ marginLeft: 'auto', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: '0.85rem' }}
               >
@@ -355,7 +315,7 @@ export default function ImportProductsPage() {
             )}
 
             <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
-              <button className="btn-outline" onClick={() => router.push('/products')}>Hủy</button>
+              <button className="btn-outline" onClick={() => router.push('/categories')}>Hủy</button>
               <button className="btn-primary" disabled={!file || columns.length === 0} onClick={() => setStep('map')}>
                 Tiếp theo <ArrowRight size={16} style={{ marginLeft: 6 }} />
               </button>
@@ -367,9 +327,9 @@ export default function ImportProductsPage() {
         {step === 'map' && (
           <div className="fade-in-up">
             <div className="glass-card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>Chọn cột Excel cho từng trường sản phẩm</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>Chọn cột Excel cho từng trường danh mục</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>
-                Với mỗi trường sản phẩm (cố định bên trái), chọn cột Excel tương ứng.
+                Với mỗi trường danh mục (cố định bên trái), chọn cột Excel tương ứng.
                 Trường có <span style={{ color: '#ef4444' }}>*</span> là bắt buộc.
               </p>
 
@@ -377,7 +337,7 @@ export default function ImportProductsPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                   <thead>
                     <tr>
-                      <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Trường sản phẩm</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Trường danh mục</th>
                       <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Dữ liệu mẫu</th>
                       <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Cột Excel</th>
                     </tr>
@@ -439,7 +399,7 @@ export default function ImportProductsPage() {
             <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
               <button className="btn-outline" onClick={() => setStep('upload')}><ArrowLeft size={16} style={{ marginRight: 6 }} /> Quay lại</button>
               <button className="btn-primary" disabled={loading} onClick={handleImport}>
-                {loading ? 'Đang import...' : '🚀 Thực hiện import'}
+                {loading ? 'Đang import...' : 'Thực hiện import'}
               </button>
             </div>
           </div>
@@ -454,7 +414,7 @@ export default function ImportProductsPage() {
                   <CheckCircle2 size={64} style={{ margin: '0 auto 16px' }} />
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Import thành công!</h2>
                   <p style={{ color: 'var(--text-secondary)' }}>
-                    Đã import <strong>{result.successCount}</strong> / {result.totalRows} sản phẩm
+                    Đã import <strong>{result.successCount}</strong> / {result.totalRows} danh mục
                   </p>
                 </div>
               ) : (
@@ -510,39 +470,22 @@ export default function ImportProductsPage() {
             {result.rowResults.filter((r: { success: boolean }) => r.success).length > 0 && (
               <div className="glass-card" style={{ padding: 20, marginTop: 16, overflow: 'auto' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: 16, color: '#10b981' }}>
-                  <CheckCircle2 size={16} style={{ marginRight: 8 }} /> Sản phẩm đã import
+                  <CheckCircle2 size={16} style={{ marginRight: 8 }} /> Danh mục đã import
                 </h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr>
                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Dòng</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Sản phẩm</th>
-                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Hành động</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Danh mục</th>
                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>ID</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {result.rowResults.filter((r: { success: boolean }) => r.success).map((r: { rowIndex: number; productId?: number; productName?: string; action?: string }) => (
+                    {result.rowResults.filter((r: { success: boolean }) => r.success).map((r: { rowIndex: number; categoryId?: number; categoryName?: string }) => (
                       <tr key={r.rowIndex}>
                         <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontFamily: 'monospace' }}>#{r.rowIndex}</td>
-                        <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontWeight: 600 }}>
-                          <Link href={`/products/${r.productId}`} style={{ color: 'var(--accent-light)', textDecoration: 'none' }}>
-                            {r.productName}
-                          </Link>
-                        </td>
-                        <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            padding: '2px 10px', borderRadius: 12, fontSize: '0.8rem', fontWeight: 600,
-                            background: r.action === 'CREATE' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)',
-                            color: r.action === 'CREATE' ? '#10b981' : '#818cf8',
-                          }}>
-                            {r.action === 'CREATE' ? 'Tạo mới' : r.action === 'UPDATE' ? 'Cập nhật' : r.action || '—'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'var(--text-muted)' }}>
-                          {r.productId}
-                        </td>
+                        <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontWeight: 600 }}>{r.categoryName}</td>
+                        <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', color: 'var(--text-muted)' }}>{r.categoryId}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -554,8 +497,8 @@ export default function ImportProductsPage() {
               <button className="btn-outline" onClick={() => { setStep('upload'); setFile(null); setColumns([]); setMappings({}); setResult(null); }}>
                 Import file khác
               </button>
-              <Link href="/products" className="btn-primary" style={{ textDecoration: 'none' }}>
-                Quay lại danh sách sản phẩm
+              <Link href="/categories" className="btn-primary" style={{ textDecoration: 'none' }}>
+                Quay lại danh sách danh mục
               </Link>
             </div>
           </div>

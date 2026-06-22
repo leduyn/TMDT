@@ -5,6 +5,13 @@ import java.time.LocalDateTime;
 public class BrandDTO {
     public BrandDTO() {}
 
+    public BrandDTO(Long id, String code, String name, String logoUrl) {
+        this.id = id;
+        this.code = code;
+        this.name = name;
+        this.logoUrl = logoUrl;
+    }
+
     public BrandDTO(Long id, String code, String name, String logoUrl,
                     Long bravoId, Integer isHighlight, Integer highlightPriority,
                     Integer status, LocalDateTime createdDate, String bravoSortValue,

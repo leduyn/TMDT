@@ -1,18 +1,11 @@
 package com.anhtin.tmdt.backend.modules.product.dto;
 
-import jakarta.validation.constraints.NotBlank;
-
-public class CategoryRequest {
-    @NotBlank(message = "Tên danh mục không được để trống")
-    private String name;
-
+public class CategoryJsonItem {
     private Long id;
-    private Long parentId;
-
+    private String name;
+    private String parentName;
     private String imageUrl;
-
-    private Long bravoId;
-    private Integer status;
+    private String status;
     private Integer priority;
     private String bravoSortValue;
     private Integer isBranch;
@@ -20,18 +13,16 @@ public class CategoryRequest {
     private Integer displayStatus;
     private String backgroundColor;
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getParentId() { return parentId; }
-    public void setParentId(Long parentId) { this.parentId = parentId; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getParentName() { return parentName; }
+    public void setParentName(String parentName) { this.parentName = parentName; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    public Long getBravoId() { return bravoId; }
-    public void setBravoId(Long bravoId) { this.bravoId = bravoId; }
-    public Integer getStatus() { return status; }
-    public void setStatus(Integer status) { this.status = status; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public Integer getPriority() { return priority; }
     public void setPriority(Integer priority) { this.priority = priority; }
     public String getBravoSortValue() { return bravoSortValue; }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { creditApi, agencyApi, agencyDebtApi, CreditDetail, AgencyDTO } from '@/lib/api';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const fmt = (n: number | null | undefined) =>
@@ -219,21 +220,13 @@ function CreditManagementContent() {
             <label style={{ color: '#94a3b8', fontSize: 13, display: 'block', marginBottom: 8 }}>
               Chọn Khách hàng
             </label>
-            <select
-              id="credit-agency-select"
-              value={selectedId ?? ''}
-              onChange={e => setSelectedId(Number(e.target.value))}
-              style={{
-                background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155',
-                borderRadius: 10, padding: '10px 16px', fontSize: 14, minWidth: 320,
-                outline: 'none', cursor: 'pointer',
-              }}
-            >
-              <option value="">-- Chọn Khách hàng --</option>
-              {agencies.map(a => (
-                <option key={a.id} value={a.id}>{a.name} (ID: {a.id})</option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={agencies.map(a => ({ value: a.id, label: `${a.name} (ID: ${a.id})` }))}
+              value={selectedId ?? undefined}
+              onChange={(val) => setSelectedId(val ? Number(val) : 0)}
+              placeholder="-- Chọn Khách hàng --"
+              style={{ minWidth: 320 }}
+            />
           </div>
         )}
 

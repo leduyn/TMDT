@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
 import { customerApi, agencyApi, customerGroupApi, AgencyDTO } from '@/lib/api';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -235,16 +236,12 @@ export default function EditCustomerPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Nhóm người mua</label>
-                <select
-                  className="input-field"
-                  value={formData.customerGroupId}
-                  onChange={e => setFormData({ ...formData, customerGroupId: e.target.value })}
-                >
-                  <option value="">-- Mặc định (Vãng lai) --</option>
-                  {groups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={groups.map(g => ({ value: String(g.id), label: g.name }))}
+                  value={formData.customerGroupId || undefined}
+                  onChange={(val) => setFormData(prev => ({ ...prev, customerGroupId: val !== undefined ? String(val) : '' }))}
+                  placeholder="-- Mặc định (Vãng lai) --"
+                />
               </div>
               
               {!isAgency && (

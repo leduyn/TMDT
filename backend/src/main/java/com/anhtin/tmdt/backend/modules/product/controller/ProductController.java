@@ -1,5 +1,6 @@
 package com.anhtin.tmdt.backend.modules.product.controller;
 
+import com.anhtin.tmdt.backend.modules.product.dto.JsonImportRequest;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductRequest;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductImportRequest;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductImportResult;
@@ -7,9 +8,12 @@ import com.anhtin.tmdt.backend.modules.common.dto.ProductDTO;
 import com.anhtin.tmdt.backend.modules.product.service.ProductService;
 import com.anhtin.tmdt.backend.modules.product.service.ProductImportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.util.Base64;
 import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -37,6 +42,16 @@ public class ProductController {
             @RequestParam(required = false) Long agencyId,
             @RequestParam(required = false) Long customerId) {
         return ResponseEntity.ok(productService.getAllProducts(agencyId, customerId));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<ProductDTO>> getPagedProducts(
+            @RequestParam(required = false) Long agencyId,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            Pageable pageable) {
+        return ResponseEntity.ok(productService.getPagedProducts(agencyId, customerId, search, categoryId, pageable));
     }
 
     @GetMapping("/{id}")
@@ -68,6 +83,12 @@ public class ProductController {
         return ResponseEntity.ok("Product deleted successfully");
     }
 
+    @GetMapping("/import")
+    public ResponseEntity<?> importProductsGet() {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED)
+                .body(java.util.Map.of("message", "Vui lòng sử dụng phương thức POST để import sản phẩm"));
+    }
+
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
     @PostMapping("/import")
     public ResponseEntity<ProductImportResult> importProducts(
@@ -80,6 +101,25 @@ public class ProductController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             throw new RuntimeException("Error parsing import config: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/import-json")
+    public ResponseEntity<?> importProductsJsonGet(HttpServletRequest request) {
+        System.err.println(">>> GET /import-json called from " + request.getRemoteAddr() + " method=" + request.getMethod());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED)
+                .body(java.util.Map.of("message", "Vui lòng sử dụng phương thức POST để import sản phẩm"));
+    }
+
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    @PostMapping("/import-json")
+    public ResponseEntity<ProductImportResult> importProductsJson(@RequestBody JsonImportRequest request) {
+        try {
+            byte[] fileBytes = Base64.getDecoder().decode(request.getFileContent());
+            ProductImportResult result = productImportService.importProducts(fileBytes, request.getMapping());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            throw new RuntimeException("Error importing products: " + e.getMessage(), e);
         }
     }
 

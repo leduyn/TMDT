@@ -1,5 +1,29 @@
 import { fetchJSON } from "@/lib/fetcher";
 
+async function fetchFormData<T>(path: string, formData: FormData): Promise<T> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(path, { method: 'POST', headers, body: formData });
+
+  if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('agencyId');
+      window.location.href = '/login';
+    }
+    let err: any = {};
+    try { err = await res.json(); } catch (e) { /* ignore */ }
+    throw new Error(err.message || err.error || `Lỗi kết nối API (Status: ${res.status})`);
+  }
+
+  const text = await res.text();
+  if (!text) return null as unknown as T;
+  try { return JSON.parse(text) as T; } catch { return null as unknown as T; }
+}
+
 export interface CategoryDTO {
   id: number;
   name: string;
@@ -76,6 +100,17 @@ export interface ProductTypeRequest {
   code: string;
   name: string;
   description?: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 export interface ProductDTO {
@@ -228,6 +263,8 @@ export const categoryApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  getByLevel: (level: number) => fetchJSON<CategoryDTO[]>(`/api/categories/level/${level}`),
+  getChildren: (id: number) => fetchJSON<CategoryDTO[]>(`/api/categories/${id}/children`),
 };
 
 export const productApi = {
@@ -236,6 +273,18 @@ export const productApi = {
     if (agencyId) params += `?agencyId=${agencyId}`;
     if (customerId) params += `${params ? '&' : '?'}customerId=${customerId}`;
     return fetchJSON<ProductDTO[]>(`/api/products${params}`);
+  },
+  getPage: (params: { page?: number; size?: number; sort?: string; search?: string; agencyId?: number; customerId?: number; categoryId?: number }) => {
+    const sp = new URLSearchParams();
+    if (params.page !== undefined) sp.set('page', String(params.page));
+    if (params.size !== undefined) sp.set('size', String(params.size));
+    if (params.sort) sp.set('sort', params.sort);
+    if (params.search) sp.set('search', params.search);
+    if (params.agencyId) sp.set('agencyId', String(params.agencyId));
+    if (params.customerId) sp.set('customerId', String(params.customerId));
+    if (params.categoryId !== undefined) sp.set('categoryId', String(params.categoryId));
+    const qs = sp.toString();
+    return fetchJSON<PageResponse<ProductDTO>>(`/api/products/page${qs ? '?' + qs : ''}`);
   },
   getById: (id: number, agencyId?: number, customerId?: number) => {
     let params = '';
@@ -323,6 +372,7 @@ export interface ProductImportRowResult {
   message: string;
   productId?: number;
   productName?: string;
+  action?: string;
 }
 
 export interface ProductImportResult {
@@ -351,27 +401,86 @@ export const productTypeApi = {
     }),
 };
 
-export const productImportApi = {
-  importProducts: (file: File, mapping: ProductImportRequest) => {
+export interface CategoryImportRequest {
+  columnMappings: Record<string, string>;
+  hasHeaderRow: boolean;
+  sheetIndex: number;
+}
+
+export interface CategoryImportRowResult {
+  rowIndex: number;
+  success: boolean;
+  message: string;
+  categoryId?: number;
+  categoryName?: string;
+}
+
+export interface CategoryImportResult {
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  rowResults: CategoryImportRowResult[];
+}
+
+export const categoryImportApi = {
+  importCategories: (file: File, mapping: CategoryImportRequest) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('mapping', JSON.stringify(mapping));
-    const token = localStorage.getItem('token');
-    return fetch('/api/products/import', {
+    return fetchFormData<CategoryImportResult>('/api/categories/import', formData);
+  },
+  downloadTemplateUrl: '/api/categories/import/template',
+};
+
+export interface JsonImportRequest {
+  fileName: string;
+  fileContent: string;
+  mapping: ProductImportRequest;
+}
+
+export const productImportApi = {
+  importProducts: async (file: File, mapping: ProductImportRequest) => {
+    const fileContent = await fileToBase64(file);
+    const body: JsonImportRequest = {
+      fileName: file.name,
+      fileContent,
+      mapping,
+    };
+
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${backendUrl}/api/products/import-json`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    }).then(async (res) => {
-      if (!res.ok) {
-        let err = { message: 'Import failed' };
-        try { err = await res.json(); } catch {}
-        throw new Error((err as any).message || 'Import failed');
-      }
-      return res.json() as Promise<ProductImportResult>;
+      headers,
+      body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      let err: any = {};
+      try { err = await res.json(); } catch (e) { /* ignore */ }
+      throw new Error(err.message || err.error || `Lỗi kết nối API (Status: ${res.status})`);
+    }
+
+    return res.json();
   },
   downloadTemplateUrl: '/api/products/import/template',
 };
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export const facetedSearchApi = {
   search: (request: FacetedSearchRequest) =>

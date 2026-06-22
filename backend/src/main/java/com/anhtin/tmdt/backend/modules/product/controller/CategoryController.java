@@ -1,15 +1,24 @@
 package com.anhtin.tmdt.backend.modules.product.controller;
 
+import com.anhtin.tmdt.backend.modules.product.dto.CategoryImportRequest;
+import com.anhtin.tmdt.backend.modules.product.dto.CategoryImportResult;
 import com.anhtin.tmdt.backend.modules.product.dto.CategoryRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.CategoryDTO;
 import com.anhtin.tmdt.backend.modules.product.service.CategoryService;
+import com.anhtin.tmdt.backend.modules.product.service.CategoryImportService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
 import com.anhtin.tmdt.backend.modules.product.entity.Category;
@@ -23,6 +32,9 @@ public class CategoryController {
 
     @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private CategoryImportService categoryImportService;
 
     @GetMapping
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
@@ -86,6 +98,32 @@ public class CategoryController {
     public ResponseEntity<?> deleteCategory(@PathVariable @NonNull Long id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok("Category deleted successfully");
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('COMPANY') or hasRole('AGENCY')")
+    @PostMapping("/import")
+    public ResponseEntity<CategoryImportResult> importCategories(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("mapping") String mappingJson) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            CategoryImportRequest request = mapper.readValue(mappingJson, CategoryImportRequest.class);
+            CategoryImportResult result = categoryImportService.importCategories(file, request);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            throw new RuntimeException("Error parsing import config: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/import/template")
+    public ResponseEntity<InputStreamResource> downloadTemplate() {
+        ByteArrayInputStream in = categoryImportService.exportTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=category_import_template.xlsx");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new InputStreamResource(in));
     }
 }
 

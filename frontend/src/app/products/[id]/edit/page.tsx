@@ -9,6 +9,7 @@ import ImageUploader from '@/modules/common/components/ImageUploader';
 import RichTextEditor from '@/modules/common/components/RichTextEditor';
 import Modal from '@/components/ui/Modal';
 import { productApi, categoryApi, CategoryDTO, brandApi, BrandDTO, productTypeApi, ProductTypeDTO, attributeApi, AttributeDTO, facetedSearchApi } from '@/lib/api';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 export default function EditProductPage() {
   const { id } = useParams();
@@ -92,7 +93,7 @@ export default function EditProductPage() {
           facetedSearchApi.getProductAttributes(Number(id)),
           attributeApi.getAll(),
         ]);
-        setCategories(allCats);
+        setCategories(allCats.filter((c: CategoryDTO) => c.level === 4));
         setBrands(allBrands);
         setProductTypes(allProductTypes);
         setAllAttributes(allAttrs);
@@ -238,7 +239,7 @@ export default function EditProductPage() {
         ...(newCategoryImageUrl && { imageUrl: newCategoryImageUrl }),
       });
       const updated = await categoryApi.getAll();
-      setCategories(updated);
+      setCategories(updated.filter((c: CategoryDTO) => c.level === 4));
       setFormData(prev => ({ ...prev, categoryId: created.id }));
       setShowCategoryModal(false);
       setNewCategoryName('');
@@ -405,30 +406,39 @@ export default function EditProductPage() {
             <div>
               <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Danh mục</label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <select className="input-field" name="categoryId" required value={formData.categoryId} onChange={handleChange} style={{ flex: 1 }}>
-                  <option value={0}>-- Chọn danh mục --</option>
-                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                </select>
+                <SearchableSelect
+                  options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+                  value={formData.categoryId || undefined}
+                  onChange={(val) => setFormData(prev => ({ ...prev, categoryId: val ? Number(val) : 0 }))}
+                  placeholder="-- Chọn danh mục --"
+                  style={{ flex: 1 }}
+                />
                 <button type="button" onClick={() => setShowCategoryModal(true)} title="Thêm danh mục mới" style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(99,102,241,0.1)', color: 'var(--accent-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>+</button>
               </div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Thương hiệu (Tùy chọn)</label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <select className="input-field" name="brandId" value={formData.brandId} onChange={handleChange} style={{ flex: 1 }}>
-                  <option value={0}>-- Chọn thương hiệu --</option>
-                  {brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
-                </select>
+                <SearchableSelect
+                  options={brands.map(brand => ({ value: brand.id, label: brand.name }))}
+                  value={formData.brandId || undefined}
+                  onChange={(val) => setFormData(prev => ({ ...prev, brandId: val ? Number(val) : 0 }))}
+                  placeholder="-- Chọn thương hiệu --"
+                  style={{ flex: 1 }}
+                />
                 <button type="button" onClick={() => setShowBrandModal(true)} title="Thêm thương hiệu mới" style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(99,102,241,0.1)', color: 'var(--accent-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>+</button>
               </div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loại sản phẩm (Tùy chọn)</label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <select className="input-field" name="productTypeId" value={formData.productTypeId} onChange={handleChange} style={{ flex: 1 }}>
-                  <option value={0}>-- Chọn loại sản phẩm --</option>
-                  {productTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-                </select>
+                <SearchableSelect
+                  options={productTypes.map(type => ({ value: type.id, label: type.name }))}
+                  value={formData.productTypeId || undefined}
+                  onChange={(val) => setFormData(prev => ({ ...prev, productTypeId: val ? Number(val) : 0 }))}
+                  placeholder="-- Chọn loại sản phẩm --"
+                  style={{ flex: 1 }}
+                />
                 <button type="button" onClick={() => setShowProductTypeModal(true)} title="Thêm loại sản phẩm mới" style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(99,102,241,0.1)', color: 'var(--accent-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>+</button>
               </div>
             </div>
@@ -620,14 +630,12 @@ export default function EditProductPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Danh mục cha (Tùy chọn)</label>
-                  <select className="input-field" value={newCategoryParentId} onChange={e => setNewCategoryParentId(Number(e.target.value))}>
-                    <option value={0}>-- Không có danh mục cha --</option>
-                    {categories.filter(c => c.id !== formData.categoryId).map(cat => (
-                      <option key={cat.id} value={cat.id}>
-                        {'—'.repeat(cat.level || 0)} {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={categories.filter(c => c.id !== formData.categoryId).map(cat => ({ value: cat.id, label: cat.name }))}
+                    value={newCategoryParentId || undefined}
+                    onChange={(val) => setNewCategoryParentId(val ? Number(val) : 0)}
+                    placeholder="-- Không có danh mục cha --"
+                  />
                 </div>
                 <div>
                   <ImageUploader

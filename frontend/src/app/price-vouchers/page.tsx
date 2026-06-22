@@ -13,6 +13,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import { Plus } from 'lucide-react';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import Pagination from '@/components/ui/Pagination';
 
 export default function PriceVouchersPage() {
@@ -278,13 +279,12 @@ export default function PriceVouchersPage() {
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Bảng giá áp dụng</label>
-                  <select 
-                    className="input-field" 
-                    value={priceListId} 
-                    onChange={e => setPriceListId(Number(e.target.value))}
-                  >
-                    {priceLists.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
-                  </select>
+                  <SearchableSelect
+                    options={priceLists.map(pl => ({ value: pl.id, label: pl.name }))}
+                    value={priceListId}
+                    onChange={(val) => setPriceListId(val ? Number(val) : 0)}
+                    placeholder="Chọn bảng giá"
+                  />
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
@@ -317,18 +317,24 @@ export default function PriceVouchersPage() {
                 {type === 'DIRECT_AGENCY' && (
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Chọn Khách hàng</label>
-                    <select className="input-field" value={selectedAgencyId} onChange={e => setSelectedAgencyId(Number(e.target.value))}>
-                      {agencies.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
+                    <SearchableSelect
+                      options={agencies.map(a => ({ value: a.id, label: a.name }))}
+                      value={selectedAgencyId}
+                      onChange={(val) => setSelectedAgencyId(val ? Number(val) : 0)}
+                      placeholder="Chọn Khách hàng"
+                    />
                   </div>
                 )}
 
                 {type === 'DIRECT_CUSTOMER' && (
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem' }}>Chọn Người mua</label>
-                    <select className="input-field" value={selectedCustomerId} onChange={e => setSelectedCustomerId(Number(e.target.value))}>
-                      {customers.map(c => <option key={c.id} value={c.id}>{c.username} ({c.email})</option>)}
-                    </select>
+                    <SearchableSelect
+                      options={customers.map(c => ({ value: c.id, label: `${c.username} (${c.email})` }))}
+                      value={selectedCustomerId}
+                      onChange={(val) => setSelectedCustomerId(val ? Number(val) : 0)}
+                      placeholder="Chọn Người mua"
+                    />
                   </div>
                 )}
 
