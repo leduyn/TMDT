@@ -40,7 +40,11 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductDTO>> getAllProducts(
             @RequestParam(required = false) Long agencyId,
-            @RequestParam(required = false) Long customerId) {
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long categoryId) {
+        if (categoryId != null) {
+            return ResponseEntity.ok(productService.getProductsByCategory(categoryId, agencyId, customerId));
+        }
         return ResponseEntity.ok(productService.getAllProducts(agencyId, customerId));
     }
 
@@ -50,8 +54,9 @@ public class ProductController {
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long brandId,
             Pageable pageable) {
-        return ResponseEntity.ok(productService.getPagedProducts(agencyId, customerId, search, categoryId, pageable));
+        return ResponseEntity.ok(productService.getPagedProducts(agencyId, customerId, search, categoryId, brandId, pageable));
     }
 
     @GetMapping("/{id}")

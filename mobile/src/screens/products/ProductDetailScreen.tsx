@@ -69,7 +69,7 @@ export function ProductDetailScreen({ route, navigation }: any) {
             <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
               <Ionicons name="share-social-outline" size={22} color={Colors.white} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Cart')}>
+            <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Cart' })}>
               <Ionicons name="cart-outline" size={22} color={Colors.white} />
               {items.length > 0 && (
                 <View style={styles.cartCountBadge}>
@@ -189,14 +189,14 @@ export function ProductDetailScreen({ route, navigation }: any) {
     addItem(product, qty);
     Alert.alert('Đã thêm', `Đã thêm ${qty} ${product.unit || 'sản phẩm'} vào giỏ hàng`, [
       { text: 'Tiếp tục mua' },
-      { text: 'Xem giỏ hàng', onPress: () => navigation.navigate('Cart') },
+      { text: 'Xem giỏ hàng', onPress: () => navigation.navigate('MainTabs', { screen: 'Cart' }) },
     ]);
   };
 
   const handleBuyNow = () => {
     if (!product) return;
     addItem(product, qty);
-    navigation.navigate('Cart');
+    navigation.navigate('MainTabs', { screen: 'Cart' });
   };
 
   if (loading) {
@@ -363,7 +363,10 @@ export function ProductDetailScreen({ route, navigation }: any) {
         {/* Tabs: Description / Specifications / Usage Instructions */}
         {(() => {
           const cleanDesc = product.description ? stripHtml(product.description) : '';
-          const hasSpecs = attributes.length > 0;
+          const hasSpecs = attributes.length > 0
+            || hasContent(product.specification)
+            || hasContent(product.feature1)
+            || hasContent(product.feature2);
           const hasUsage = hasContent(product.userManual);
 
           const tabs = [
@@ -398,12 +401,41 @@ export function ProductDetailScreen({ route, navigation }: any) {
                 {safeTabIndex === 1 && (
                   hasSpecs ? (
                     <View>
-                      {attributes.map((attr, idx) => (
-                        <View key={idx} style={styles.specRow}>
-                          <Text style={styles.specName}>{attr.attributeName}</Text>
-                          <Text style={styles.specValue}>{attr.value}</Text>
+                      {attributes.length > 0 && (
+                        <>
+                          {attributes.map((attr, idx) => (
+                            <View key={idx} style={styles.specRow}>
+                              <Text style={styles.specName}>{attr.attributeName}</Text>
+                              <Text style={styles.specValue}>{attr.value}</Text>
+                            </View>
+                          ))}
+                          <View style={{ height: 12 }} />
+                        </>
+                      )}
+                      {hasContent(product.specification) && (
+                        <>
+                          <Text style={styles.specSectionTitle}>Thông số kỹ thuật</Text>
+                          <Text style={styles.description}>
+                            {stripHtml(product.specification || '')}
+                          </Text>
+                        </>
+                      )}
+                      {hasContent(product.feature1) && (
+                        <View style={styles.featureRow}>
+                          <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
+                          <Text style={styles.featureText}>
+                            {stripHtml(product.feature1 || '')}
+                          </Text>
                         </View>
-                      ))}
+                      )}
+                      {hasContent(product.feature2) && (
+                        <View style={styles.featureRow}>
+                          <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
+                          <Text style={styles.featureText}>
+                            {stripHtml(product.feature2 || '')}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   ) : null
                 )}
@@ -764,6 +796,25 @@ const styles = StyleSheet.create({
     flex: 2,
     color: Colors.textPrimary,
     fontSize: FontSize.sm,
+  },
+  specSectionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: '#0F172A',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 6,
+  },
+  featureText: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    flex: 1,
+    lineHeight: 20,
   },
   qtySection: {
     flexDirection: 'row',

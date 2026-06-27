@@ -5,8 +5,10 @@ import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
 import Pagination from '@/components/ui/Pagination';
 import BrandFormModal from '@/components/ui/BrandFormModal';
-import { brandApi, BrandDTO } from '@/lib/api';
+import { brandApi, brandImportApi, BrandDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import { Upload, Download } from 'lucide-react';
 
 
 export default function BrandsPage() {
@@ -73,9 +75,17 @@ export default function BrandsPage() {
             </p>
           </div>
           {isAuthorized && (
-            <button onClick={handleAdd} className="btn-primary" style={{ height: 42, whiteSpace: 'nowrap' }}>
-              + Thêm thương hiệu
-            </button>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <Link href={brandImportApi.exportBrandsUrl} className="btn-outline" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, height: 42, padding: '0 16px', fontSize: '0.85rem' }}>
+                <Download size={16} /> Export
+              </Link>
+              <Link href="/brands/import" className="btn-outline" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, height: 42, padding: '0 16px', fontSize: '0.85rem' }}>
+                <Upload size={16} /> Import Excel
+              </Link>
+              <button onClick={handleAdd} className="btn-primary" style={{ height: 42, whiteSpace: 'nowrap' }}>
+                + Thêm thương hiệu
+              </button>
+            </div>
           )}
         </div>
 

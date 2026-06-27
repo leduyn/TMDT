@@ -19,4 +19,7 @@ public interface AgencyProductPriceHistoryRepository extends JpaRepository<Agenc
     // Find the most recent price history at or before a specific date (to determine what the price was at that time)
     @Query("SELECT h FROM AgencyProductPriceHistory h WHERE h.agency.id = :agencyId AND h.product.id = :productId AND h.changedAt <= :beforeDate ORDER BY h.changedAt DESC LIMIT 1")
     Optional<AgencyProductPriceHistory> findPriceAtDate(@Param("agencyId") Long agencyId, @Param("productId") Long productId, @Param("beforeDate") LocalDateTime beforeDate);
+
+    @Query(value = "SELECT DISTINCT ON (h.product_id) h.* FROM agency_product_price_histories h WHERE h.agency_id = :agencyId AND h.product_id IN :productIds ORDER BY h.product_id, h.changed_at DESC", nativeQuery = true)
+    List<AgencyProductPriceHistory> findLatestByAgencyIdAndProductIdIn(@Param("agencyId") Long agencyId, @Param("productIds") List<Long> productIds);
 }

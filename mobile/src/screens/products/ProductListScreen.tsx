@@ -9,22 +9,28 @@ import { ProductCard } from '../../components/ProductCard';
 import type { ProductDTO } from '../../types';
 
 export function ProductListScreen({ route, navigation }: any) {
-  const { categoryId, categoryName } = route.params || {};
+  const { categoryId, categoryName, brandId, brandName } = route.params || {};
   const { agencyId } = useAuth();
   const { addItem } = useCart();
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    navigation.setOptions({ title: categoryName || 'Sản phẩm' });
+    navigation.setOptions({ title: categoryName || brandName || 'Sản phẩm' });
     loadProducts();
   }, []);
 
   const loadProducts = async () => {
     try {
-      const data = categoryId
-        ? await productApi.getByCategory(categoryId, agencyId ?? undefined)
-        : await productApi.getAll(agencyId ?? undefined);
+      let data;
+      if (categoryId) {
+        data = await productApi.getByParentCategory(categoryId, agencyId ?? undefined);
+      } else if (brandId) {
+        const res = await productApi.getByBrandPaged(brandId, agencyId ?? undefined, 0, 100);
+        data = res.content;
+      } else {
+        data = await productApi.getAll(agencyId ?? undefined);
+      }
       setProducts(data);
     } catch {} finally {
       setLoading(false);

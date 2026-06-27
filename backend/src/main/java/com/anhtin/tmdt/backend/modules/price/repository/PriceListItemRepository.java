@@ -26,4 +26,7 @@ public interface PriceListItemRepository extends JpaRepository<PriceListItem, Lo
 
     /** Đếm số sản phẩm trong bảng giá (dùng cho thống kê) */
     long countByPriceListId(Long priceListId);
+
+    @Query("SELECT p FROM PriceListItem p WHERE p.priceList.id IN :priceListIds AND p.product.id IN :productIds")
+    List<PriceListItem> findByPriceListIdInAndProductIdIn(@Param("priceListIds") List<Long> priceListIds, @Param("productIds") List<Long> productIds);
 }

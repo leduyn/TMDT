@@ -265,6 +265,7 @@ export const categoryApi = {
     }),
   getByLevel: (level: number) => fetchJSON<CategoryDTO[]>(`/api/categories/level/${level}`),
   getChildren: (id: number) => fetchJSON<CategoryDTO[]>(`/api/categories/${id}/children`),
+  exportUrl: '/api/categories/export',
 };
 
 export const productApi = {
@@ -360,10 +361,17 @@ export const attributeApi = {
     }),
 };
 
+export interface ProductImportAttributeConfig {
+  specColumn: string;
+  specDelimiter: string;
+  variantColumns: string[];
+}
+
 export interface ProductImportRequest {
   columnMappings: Record<string, string>;
   hasHeaderRow: boolean;
   sheetIndex: number;
+  attributeConfig?: ProductImportAttributeConfig;
 }
 
 export interface ProductImportRowResult {
@@ -430,6 +438,38 @@ export const categoryImportApi = {
     return fetchFormData<CategoryImportResult>('/api/categories/import', formData);
   },
   downloadTemplateUrl: '/api/categories/import/template',
+};
+
+export interface BrandImportRequest {
+  columnMappings: Record<string, string>;
+  hasHeaderRow: boolean;
+  sheetIndex: number;
+}
+
+export interface BrandImportRowResult {
+  rowIndex: number;
+  success: boolean;
+  message: string;
+  brandId?: number;
+  brandName?: string;
+}
+
+export interface BrandImportResult {
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  rowResults: BrandImportRowResult[];
+}
+
+export const brandImportApi = {
+  importBrands: (file: File, mapping: BrandImportRequest) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mapping', JSON.stringify(mapping));
+    return fetchFormData<BrandImportResult>('/api/brands/import', formData);
+  },
+  downloadTemplateUrl: '/api/brands/import/template',
+  exportBrandsUrl: '/api/brands/export',
 };
 
 export interface JsonImportRequest {

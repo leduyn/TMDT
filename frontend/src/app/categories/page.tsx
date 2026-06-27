@@ -1,19 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { categoryApi, CategoryDTO } from '@/lib/api';
+import { categoryApi, productApi, CategoryDTO, ProductDTO, PageResponse } from '@/lib/api';
+import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
-import SearchableSelect from '@/components/ui/SearchableSelect';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
-import { Plus, Tag, Edit, Trash2, Settings, Upload, ChevronRight } from 'lucide-react';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import Pagination from '@/components/ui/Pagination';
+import { Plus, Tag, Edit, Trash2, Settings, Upload, ChevronRight, Download, Package } from 'lucide-react';
 
 interface TreeNode {
   category: CategoryDTO;
@@ -21,7 +23,7 @@ interface TreeNode {
   depth: number;
 }
 
-function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNames, searchQuery, onDelete }: {
+function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNames, searchQuery, onDelete, selectedCategoryId, onSelect }: {
   node: TreeNode;
   expandedIds: Set<number>;
   onToggle: (id: number) => void;
@@ -29,11 +31,14 @@ function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNam
   levelNames: Record<number, string>;
   searchQuery: string;
   onDelete: (id: number) => void;
+  selectedCategoryId: number | null;
+  onSelect: (cat: CategoryDTO) => void;
 }) {
   const { category: c, children } = node;
   const hasChildren = children.length > 0;
   const isExpanded = expandedIds.has(c.id);
   const depth = c.level ?? 0;
+  const isActive = selectedCategoryId === c.id;
 
   const highlightText = (text: string) => {
     if (!searchQuery) return text;
@@ -59,37 +64,33 @@ function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNam
     <>
       <div
         style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px', paddingLeft: 20 + depth * 24,
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '8px 12px', paddingLeft: 12 + depth * 20,
           borderBottom: '1px solid rgba(255,255,255,0.04)',
-          transition: 'background 0.15s',
-          cursor: hasChildren ? 'pointer' : 'default',
+          transition: 'all 0.15s',
+          cursor: 'pointer',
+          borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+          background: isActive ? 'rgba(99,102,241,0.08)' : 'transparent',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+        onClick={() => onSelect(c)}
       >
         {/* Toggle */}
         <div
-          onClick={() => hasChildren && onToggle(c.id)}
+          onClick={(e) => { e.stopPropagation(); hasChildren && onToggle(c.id); }}
           style={{
-            width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, visibility: hasChildren ? 'visible' : 'hidden',
             color: 'var(--text-muted)', transition: 'transform 0.2s',
             transform: isExpanded ? 'rotate(90deg)' : 'none',
           }}
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={14} />
         </div>
 
-        {/* Connector line */}
-        {depth > 0 && (
-          <div style={{
-            width: 1, height: 16, background: 'var(--border)', flexShrink: 0, marginRight: 4,
-          }} />
-        )}
-
         {/* Name */}
-        <span style={{ flex: 1, fontWeight: depth === 0 ? 700 : 500, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ flex: 1, fontWeight: depth === 0 ? 700 : 500, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {highlightText(c.name)}
         </span>
 
@@ -100,21 +101,14 @@ function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNam
           icon="Layers"
         />
 
-        {/* Parent name */}
-        {c.parentName && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            ↳ {c.parentName}
-          </span>
-        )}
-
         {/* Actions */}
         {isAuthorized && (
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-            <Link href={`/categories/${c.id}/edit`} className="btn-outline" style={{ padding: '6px', borderRadius: 6, display: 'flex' }}>
-              <Edit size={14} />
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            <Link href={`/categories/${c.id}/edit`} className="btn-outline" style={{ padding: '4px', borderRadius: 6, display: 'flex' }}>
+              <Edit size={12} />
             </Link>
-            <button onClick={() => onDelete(c.id)} className="btn-outline" style={{ padding: '6px', borderRadius: 6, display: 'flex', color: '#ef4444' }}>
-              <Trash2 size={14} />
+            <button onClick={() => onDelete(c.id)} className="btn-outline" style={{ padding: '4px', borderRadius: 6, display: 'flex', color: '#ef4444' }}>
+              <Trash2 size={12} />
             </button>
           </div>
         )}
@@ -132,6 +126,8 @@ function TreeNodeComponent({ node, expandedIds, onToggle, isAuthorized, levelNam
             levelNames={levelNames}
             searchQuery={searchQuery}
             onDelete={onDelete}
+            selectedCategoryId={selectedCategoryId}
+            onSelect={onSelect}
           />
         ))
       )}
@@ -153,8 +149,16 @@ export default function CategoriesPage() {
   });
   const [savingConfig, setSavingConfig] = useState(false);
   const { user } = useAuth();
-  const [levelFilter, setLevelFilter] = useState<number | 'ALL'>('ALL');
-  const [parentFilter, setParentFilter] = useState<number | 'ALL'>('ALL');
+
+  // Category selection
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
+
+  // Product list state
+  const [productData, setProductData] = useState<PageResponse<ProductDTO> | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
+  const [productPage, setProductPage] = useState(0);
+  const [productPageSize] = useState(15);
 
   const loadCategories = () => {
     setLoading(true);
@@ -201,8 +205,35 @@ export default function CategoriesPage() {
 
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-  const uniqueLevels = [...new Set(categories.map(c => c.level).filter((l): l is number => l !== undefined))].sort();
-  const parentCategories = categories.filter(c => c.level === 0);
+  // Load products when selected category changes
+  const loadProducts = useCallback((catId: number, page: number) => {
+    setProductLoading(true);
+    productApi.getPage({ categoryId: catId, page, size: productPageSize })
+      .then(setProductData)
+      .catch(() => setProductData(null))
+      .finally(() => setProductLoading(false));
+  }, [productPageSize]);
+
+  useEffect(() => {
+    if (!selectedCategoryId) { setProductData(null); return; }
+    setProductPage(0);
+    loadProducts(selectedCategoryId, 0);
+  }, [selectedCategoryId, loadProducts]);
+
+  useEffect(() => {
+    if (!selectedCategoryId) return;
+    loadProducts(selectedCategoryId, productPage);
+  }, [productPage, selectedCategoryId, loadProducts]);
+
+  const handleCategorySelect = (cat: CategoryDTO) => {
+    if (selectedCategoryId === cat.id) {
+      setSelectedCategoryId(null);
+      setSelectedCategoryName('');
+    } else {
+      setSelectedCategoryId(cat.id);
+      setSelectedCategoryName(cat.name);
+    }
+  };
 
   const buildTree = (): TreeNode[] => {
     const map = new Map<number, TreeNode>();
@@ -232,10 +263,7 @@ export default function CategoriesPage() {
   };
 
   const matchesFilter = (cat: CategoryDTO): boolean => {
-    const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLevel = levelFilter === 'ALL' || cat.level === levelFilter;
-    const matchesParent = parentFilter === 'ALL' || cat.parentId === parentFilter;
-    return matchesSearch && matchesLevel && matchesParent;
+    return cat.name.toLowerCase().includes(searchQuery.toLowerCase());
   };
 
   const tree = buildTree();
@@ -250,9 +278,7 @@ export default function CategoriesPage() {
     }, []);
   };
 
-  const filteredTree = searchQuery || levelFilter !== 'ALL' || parentFilter !== 'ALL'
-    ? filterTreeNode(tree)
-    : tree;
+  const filteredTree = searchQuery ? filterTreeNode(tree) : tree;
 
   useEffect(() => {
     if (searchQuery) {
@@ -286,24 +312,70 @@ export default function CategoriesPage() {
 
   const isAuthorized = user?.roles.some(r => ['ROLE_ADMIN', 'ROLE_COMPANY', 'ROLE_AGENCY'].includes(r));
 
+  const productColumns: Column<ProductDTO>[] = [
+    {
+      header: '', key: 'imageUrl', width: 48,
+      render: (p) => (
+        <img
+          src={resolveImageUrl(p.imageUrl)}
+          alt=""
+          style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', background: 'rgba(255,255,255,0.05)' }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      )
+    },
+    {
+      header: 'Sản phẩm', key: 'name',
+      render: (p) => (
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{p.name}</div>
+          {p.productCode && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.productCode}</div>}
+        </div>
+      )
+    },
+    {
+      header: 'Giá', key: 'appliedPrice', align: 'right',
+      render: (p) => (
+        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+          {p.appliedPrice != null ? p.appliedPrice.toLocaleString('vi-VN') + '₫' : '—'}
+        </span>
+      )
+    },
+    {
+      header: 'Tồn kho', key: 'stockQuantity', align: 'center',
+      render: (p) => (
+        <span style={{ fontSize: '0.85rem' }}>{p.stockQuantity ?? 0}</span>
+      )
+    },
+    {
+      header: 'Trạng thái', key: 'status', align: 'center',
+      render: (p) => (
+        <Badge
+          label={p.status || 'N/A'}
+          type={p.status === 'ACTIVE' ? 'success' : p.status === 'INACTIVE' ? 'warning' : 'info'}
+        />
+      )
+    },
+  ];
+
   return (
     <>
       <Navbar />
       <Main>
-        <PageHeader 
-          title="Danh mục sản phẩm" 
+        <PageHeader
+          title="Danh mục sản phẩm"
           subtitle="Quản lý phân loại và cấu trúc sản phẩm trong hệ thống"
           icon="Layers"
         />
 
-        <SearchActionHeader 
+        <SearchActionHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           placeholder="Tìm kiếm danh mục..."
           actions={isAuthorized && (
             <div style={{ display: 'flex', gap: 12 }}>
-              <button 
-                onClick={() => setShowConfigModal(true)} 
+              <button
+                onClick={() => setShowConfigModal(true)}
                 className="btn-outline"
                 style={{ display: 'flex', alignItems: 'center', gap: 8 }}
               >
@@ -318,6 +390,15 @@ export default function CategoriesPage() {
                 <Upload size={18} />
                 Import Excel
               </Link>
+              <a
+                href={categoryApi.exportUrl}
+                download
+                className="btn-outline"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+              >
+                <Download size={18} />
+                Xuất Excel
+              </a>
               <Link href="/categories/create" className="btn-primary" style={{ textDecoration: 'none' }}>
                 <Plus size={18} />
                 Thêm danh mục
@@ -326,63 +407,88 @@ export default function CategoriesPage() {
           )}
         />
 
-        <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Cấp danh mục</label>
-            <select
-              className="input-field"
-              value={levelFilter}
-              onChange={e => setLevelFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-              style={{ width: '100%' }}
-            >
-              <option value="ALL">Tất cả cấp</option>
-              {uniqueLevels.map(lvl => (
-                <option key={lvl} value={lvl}>{levelNames[lvl] || `Cấp ${lvl}`}</option>
-              ))}
-            </select>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginTop: 16 }}>
+          {/* LEFT: Category tree */}
+          <div style={{ width: 380, flexShrink: 0 }}>
+            <GlassCard style={{ padding: 0, maxHeight: 'calc(100vh - 260px)', overflowY: 'auto' }}>
+              <div style={{
+                padding: '12px 16px', borderBottom: '1px solid var(--border)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                fontSize: '0.85rem', color: 'var(--text-muted)', position: 'sticky', top: 0,
+                background: 'rgba(15,15,20,0.95)', backdropFilter: 'blur(8px)', zIndex: 1,
+              }}>
+                <span style={{ fontWeight: 600 }}>
+                  <Package size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                  Cây danh mục
+                </span>
+                <span>{loading ? '...' : `${totalTreeItems} mục`}</span>
+              </div>
+              {loading ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <div className="spinner" style={{ margin: '0 auto 12px' }}></div>
+                  Đang tải...
+                </div>
+              ) : filteredTree.length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  {searchQuery ? 'Không tìm thấy danh mục nào phù hợp' : 'Chưa có danh mục nào'}
+                </div>
+              ) : (
+                <div>
+                  {filteredTree.map(node => (
+                    <TreeNodeComponent
+                      key={node.category.id}
+                      node={node}
+                      expandedIds={expandedIds}
+                      onToggle={toggleExpand}
+                      isAuthorized={!!isAuthorized}
+                      levelNames={levelNames}
+                      searchQuery={searchQuery}
+                      onDelete={handleDelete}
+                      selectedCategoryId={selectedCategoryId}
+                      onSelect={handleCategorySelect}
+                    />
+                  ))}
+                </div>
+              )}
+            </GlassCard>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Danh mục cha</label>
-            <SearchableSelect
-              options={parentCategories.map(pc => ({ value: pc.id, label: pc.name }))}
-              value={parentFilter === 'ALL' ? undefined : parentFilter}
-              onChange={(val) => setParentFilter(val !== undefined ? Number(val) : 'ALL')}
-              placeholder="Tất cả cha"
-              style={{ width: '100%' }}
-            />
+
+          {/* RIGHT: Products list */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {!selectedCategoryId ? (
+              <GlassCard style={{ padding: '80px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Package size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+                <p style={{ fontSize: '1rem', fontWeight: 500 }}>Chọn danh mục bên trái để xem sản phẩm</p>
+                <p style={{ fontSize: '0.85rem', marginTop: 8 }}>Sản phẩm sẽ hiển thị theo danh mục và các danh mục con</p>
+              </GlassCard>
+            ) : (
+              <>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  marginBottom: 12, padding: '10px 16px', borderRadius: 10,
+                  background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)',
+                }}>
+                  <div style={{ fontSize: '0.9rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Đang xem: </span>
+                    <strong style={{ color: 'var(--accent-light)' }}>{selectedCategoryName}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    {productData?.totalElements ?? 0} sản phẩm
+                  </div>
+                </div>
+                <DataTable
+                  data={productData?.content || []}
+                  columns={productColumns}
+                  loading={productLoading}
+                  emptyMessage="Không có sản phẩm nào trong danh mục này"
+                  page={productPage}
+                  totalPages={productData?.totalPages || 0}
+                  onPageChange={setProductPage}
+                />
+              </>
+            )}
           </div>
         </div>
-
-        <GlassCard style={{ padding: 0 }}>
-          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            <span>{loading ? 'Đang tải...' : `${totalTreeItems} danh mục`}</span>
-          </div>
-          {loading ? (
-            <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
-              Đang tải danh mục...
-            </div>
-          ) : filteredTree.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              {searchQuery ? 'Không tìm thấy danh mục nào phù hợp' : 'Chưa có danh mục nào'}
-            </div>
-          ) : (
-            <div>
-              {filteredTree.map(node => (
-                <TreeNodeComponent
-                  key={node.category.id}
-                  node={node}
-                  expandedIds={expandedIds}
-                  onToggle={toggleExpand}
-                  isAuthorized={!!isAuthorized}
-                  levelNames={levelNames}
-                  searchQuery={searchQuery}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          )}
-        </GlassCard>
 
         {error && (
           <div className="alert-error" style={{ marginTop: 20 }}>
@@ -485,4 +591,3 @@ export default function CategoriesPage() {
     </>
   );
 }
-

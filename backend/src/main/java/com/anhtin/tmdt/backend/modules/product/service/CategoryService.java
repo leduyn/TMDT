@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -162,37 +163,15 @@ public class CategoryService {
             if (existing.isPresent()) {
                 return updateCategory(request.getId(), request);
             }
-            // Insert with specific ID using native query (IDENTITY generator ignores manual ID)
-            return insertWithSpecificId(request);
+            return insertWithSpecificId(request, request.getId());
         }
 
-        Category category = new Category();
-        category.setName(request.getName());
-        category.setImageUrl(request.getImageUrl());
-        category.setBravoId(request.getBravoId());
-        category.setStatus(request.getStatus());
-        category.setPriority(request.getPriority());
-        category.setBravoSortValue(request.getBravoSortValue());
-        category.setIsBranch(request.getIsBranch());
-        category.setShowOnLeftMenu(request.getShowOnLeftMenu());
-        category.setDisplayStatus(request.getDisplayStatus());
-        category.setBackgroundColor(request.getBackgroundColor());
-
-        Long parentId = resolveParentId(request.getParentId());
-        if (parentId != null) {
-            Category parent = categoryRepository.findById(parentId).orElse(null);
-            if (parent != null) {
-                category.setParent(parent);
-            } else {
-                parentId = null;
-            }
-        }
-
-        Category saved = categoryRepository.save(category);
-        return new CategoryDTO(saved, getLevelNames());
+        // Get next available ID from sequence, then use native INSERT with ON CONFLICT
+        Long nextId = getNextSequenceValue();
+        return insertWithSpecificId(request, nextId);
     }
 
-    private CategoryDTO insertWithSpecificId(CategoryRequest request) {
+    private CategoryDTO insertWithSpecificId(CategoryRequest request, Long id) {
         int level = 0;
         Long parentId = resolveParentId(request.getParentId());
         if (parentId != null) {
@@ -207,10 +186,17 @@ public class CategoryService {
         String sql = "INSERT INTO categories (id, name, image_url, parent_id, level, bravo_id, status, priority, " +
                      "bravo_sort_value, is_branch, show_on_left_menu, display_status, background_color, updated_date) " +
                      "VALUES (:id, :name, :imageUrl, :parentId, :level, :bravoId, :status, :priority, " +
-                     ":bravoSortValue, :isBranch, :showOnLeftMenu, :displayStatus, :backgroundColor, :updatedDate)";
+                     ":bravoSortValue, :isBranch, :showOnLeftMenu, :displayStatus, :backgroundColor, :updatedDate) " +
+                     "ON CONFLICT (id) DO UPDATE SET " +
+                     "name = EXCLUDED.name, image_url = EXCLUDED.image_url, parent_id = EXCLUDED.parent_id, " +
+                     "level = EXCLUDED.level, bravo_id = EXCLUDED.bravo_id, status = EXCLUDED.status, " +
+                     "priority = EXCLUDED.priority, bravo_sort_value = EXCLUDED.bravo_sort_value, " +
+                     "is_branch = EXCLUDED.is_branch, show_on_left_menu = EXCLUDED.show_on_left_menu, " +
+                     "display_status = EXCLUDED.display_status, background_color = EXCLUDED.background_color, " +
+                     "updated_date = EXCLUDED.updated_date";
 
         Query query = entityManager.createNativeQuery(sql)
-                .setParameter("id", request.getId())
+                .setParameter("id", id)
                 .setParameter("name", request.getName())
                 .setParameter("imageUrl", request.getImageUrl())
                 .setParameter("parentId", parentId)
@@ -226,9 +212,65 @@ public class CategoryService {
                 .setParameter("updatedDate", LocalDateTime.now());
         query.executeUpdate();
 
+        syncSequence();
+
         entityManager.clear();
-        Category saved = entityManager.find(Category.class, request.getId());
+        Category saved = entityManager.find(Category.class, id);
         return new CategoryDTO(saved, getLevelNames());
+    }
+
+    private void syncSequence() {
+        try {
+            String seqName = (String) entityManager.createNativeQuery(
+                "SELECT pg_get_serial_sequence('categories', 'id')"
+            ).getSingleResult();
+            if (seqName != null) {
+                entityManager.createNativeQuery(
+                    "SELECT setval('" + seqName + "', (SELECT GREATEST(MAX(id), 1) FROM categories))"
+                ).getSingleResult();
+            }
+        } catch (Exception e) {
+            // Fallback: try common PostgreSQL sequence naming conventions
+            try {
+                String[] seqNames = {"categories_id_seq", "categories_seq", "hibernate_sequence"};
+                for (String s : seqNames) {
+                    try {
+                        entityManager.createNativeQuery(
+                            "SELECT setval('" + s + "', (SELECT GREATEST(MAX(id), 1) FROM categories))"
+                        ).getSingleResult();
+                        break;
+                    } catch (Exception ignored) {
+                    }
+                }
+            } catch (Exception ex) {
+                // silently ignore
+            }
+        }
+    }
+
+    private Long getNextSequenceValue() {
+        try {
+            String seqName = (String) entityManager.createNativeQuery(
+                "SELECT pg_get_serial_sequence('categories', 'id')"
+            ).getSingleResult();
+            if (seqName != null) {
+                // Advance sequence past current max id
+                entityManager.createNativeQuery(
+                    "SELECT setval('" + seqName + "', (SELECT GREATEST(MAX(id), 1) FROM categories))"
+                ).getSingleResult();
+                Number nextVal = (Number) entityManager.createNativeQuery(
+                    "SELECT nextval('" + seqName + "')"
+                ).getSingleResult();
+                return nextVal.longValue();
+            }
+        } catch (Exception e) {
+            // fall through
+        }
+        // Absolute fallback: query max id + 1
+        Number maxId = (Number) entityManager.createNativeQuery(
+            "SELECT COALESCE(MAX(id), 0) + 1 FROM categories"
+        ).getSingleResult();
+        return maxId.longValue();
     }
 
     public CategoryDTO updateCategory(@NonNull Long id, CategoryRequest request) {
@@ -277,6 +319,23 @@ public class CategoryService {
 
     private Long resolveParentId(Long parentId) {
         return (parentId != null && parentId > 0) ? parentId : null;
+    }
+
+    public List<Long> getAllDescendantIds(Long categoryId) {
+        List<Long> allIds = new ArrayList<>();
+        List<Long> currentLevel = List.of(categoryId);
+        while (!currentLevel.isEmpty()) {
+            allIds.addAll(currentLevel);
+            List<Long> nextLevel = new ArrayList<>();
+            for (Long id : currentLevel) {
+                List<Category> children = categoryRepository.findByParentId(id);
+                for (Category child : children) {
+                    nextLevel.add(child.getId());
+                }
+            }
+            currentLevel = nextLevel;
+        }
+        return allIds;
     }
 }
 

@@ -1,15 +1,22 @@
 package com.anhtin.tmdt.backend.modules.product.service;
 
+import com.anhtin.tmdt.backend.modules.product.dto.ProductImportAttributeConfig;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductImportRequest;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductImportResult;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductImportRowResult;
 import com.anhtin.tmdt.backend.modules.product.dto.ProductRequest;
+import com.anhtin.tmdt.backend.modules.product.entity.Attribute;
+import com.anhtin.tmdt.backend.modules.product.entity.AttributeValue;
 import com.anhtin.tmdt.backend.modules.product.entity.Brand;
 import com.anhtin.tmdt.backend.modules.product.entity.Category;
 import com.anhtin.tmdt.backend.modules.product.entity.Product;
+import com.anhtin.tmdt.backend.modules.product.entity.ProductAttributeValue;
 import com.anhtin.tmdt.backend.modules.product.entity.ProductType;
+import com.anhtin.tmdt.backend.modules.product.repository.AttributeRepository;
+import com.anhtin.tmdt.backend.modules.product.repository.AttributeValueRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.BrandRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.CategoryRepository;
+import com.anhtin.tmdt.backend.modules.product.repository.ProductAttributeValueRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductTypeRepository;
 import org.apache.poi.ss.usermodel.*;
@@ -22,7 +29,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +54,15 @@ public class ProductImportService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private AttributeRepository attributeRepository;
+
+    @Autowired
+    private AttributeValueRepository attributeValueRepository;
+
+    @Autowired
+    private ProductAttributeValueRepository productAttributeValueRepository;
+
     public ByteArrayInputStream exportTemplate() {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Import Template");
@@ -55,7 +73,7 @@ public class ProductImportService {
                 "SL mua tối thiểu", "Bước nhảy SL", "Tags",
                 "Thứ tự", "Giá Dropship", "Dropship (true/false)",
                 "Hiển thị App (true/false)", "Hiển thị Web (true/false)",
-                "Hiển thị giảm giá (true/false)", "Danh mục", "Mã thương hiệu", "Mã loại SP",
+                "Hiển thị giảm giá (true/false)", "Mã danh mục", "Danh mục", "Mã thương hiệu", "Mã loại SP",
                 "Bảo hành bán thường", "Bảo hành bán sỉ", "Trạng thái", "Tên khác", "Tên rút gọn",
                 "Quy cách", "Đặc điểm 1", "Đặc điểm 2"
             };
@@ -85,17 +103,18 @@ public class ProductImportService {
             dataRow.createCell(14).setCellValue("true");
             dataRow.createCell(15).setCellValue("true");
             dataRow.createCell(16).setCellValue("false");
-            dataRow.createCell(17).setCellValue("Dụng cụ điện");
-            dataRow.createCell(18).setCellValue("MAKITA");
-            dataRow.createCell(19).setCellValue("MACHINERY");
-            dataRow.createCell(20).setCellValue("12 tháng");
-            dataRow.createCell(21).setCellValue("24 tháng");
-            dataRow.createCell(22).setCellValue("ACTIVE");
-            dataRow.createCell(23).setCellValue("Máy khoan MK");
-            dataRow.createCell(24).setCellValue("MK-01");
-            dataRow.createCell(25).setCellValue("Cơ bản");
-            dataRow.createCell(26).setCellValue("Có dây");
-            dataRow.createCell(27).setCellValue("Công suất lớn");
+            dataRow.createCell(17).setCellValue("");  // Mã danh mục (có thể để trống nếu dùng tên danh mục)
+            dataRow.createCell(18).setCellValue("Dụng cụ điện");
+            dataRow.createCell(19).setCellValue("MAKITA");
+            dataRow.createCell(20).setCellValue("MACHINERY");
+            dataRow.createCell(21).setCellValue("12 tháng");
+            dataRow.createCell(22).setCellValue("24 tháng");
+            dataRow.createCell(23).setCellValue("ACTIVE");
+            dataRow.createCell(24).setCellValue("Máy khoan MK");
+            dataRow.createCell(25).setCellValue("MK-01");
+            dataRow.createCell(26).setCellValue("Cơ bản");
+            dataRow.createCell(27).setCellValue("Có dây");
+            dataRow.createCell(28).setCellValue("Công suất lớn");
 
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
@@ -160,6 +179,9 @@ public class ProductImportService {
                     if (existingProduct != null) {
                         updateProductFromRow(existingProduct, row, mappings, columnHeaders);
                         productRepository.save(existingProduct);
+                        if (request.getAttributeConfig() != null) {
+                            importAttributes(existingProduct.getId(), row, columnHeaders, request.getAttributeConfig());
+                        }
                         successCount++;
                         rowResults.add(new ProductImportRowResult(
                             i + 1, true, "Đã cập nhật", existingProduct.getId(), existingProduct.getName(), "UPDATE"
@@ -168,6 +190,9 @@ public class ProductImportService {
                         ProductRequest productRequest = buildProductRequest(row, mappings, columnHeaders);
                         validateRequiredFields(productRequest);
                         var dto = productService.addProduct(productRequest);
+                        if (request.getAttributeConfig() != null) {
+                            importAttributes(dto.getId(), row, columnHeaders, request.getAttributeConfig());
+                        }
                         successCount++;
                         rowResults.add(new ProductImportRowResult(
                             i + 1, true, "Đã tạo mới", dto.getId(), dto.getName(), "CREATE"
@@ -259,7 +284,7 @@ public class ProductImportService {
         }
 
         if (req.getCategoryId() == null) {
-            throw new IllegalArgumentException("Thiếu danh mục (categoryName)");
+            throw new IllegalArgumentException("Thiếu danh mục (categoryId hoặc categoryName)");
         }
 
         return req;
@@ -368,6 +393,9 @@ public class ProductImportService {
                 case "feature2":
                     product.setFeature2(value);
                     break;
+                case "categoryId":
+                    lookupAndSetCategoryByIdOnEntity(product, value);
+                    break;
                 case "categoryName":
                     lookupAndSetCategoryOnEntity(product, value);
                     break;
@@ -433,6 +461,9 @@ public class ProductImportService {
                     break;
                 case "showDiscount":
                     req.setShowDiscount(parseBoolean(value));
+                    break;
+                case "categoryId":
+                    req.setCategoryId(parseLong(value));
                     break;
                 case "categoryName":
                     lookupAndSetCategory(req, value);
@@ -599,12 +630,26 @@ public class ProductImportService {
         };
     }
 
+    private void lookupAndSetCategoryByIdOnEntity(Product product, String value) {
+        Long id = parseLong(value);
+        Category cat = categoryRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục với ID '" + id + "'"));
+        if (cat.getLevel() == null || cat.getLevel() != 4) {
+            throw new IllegalArgumentException("Danh mục ID '" + id + "' không phải cấp 4 (Dòng sản phẩm)");
+        }
+        product.setCategory(cat);
+    }
+
     private double parseDouble(String value) {
         return Double.parseDouble(value.replace(",", "").replace(" ", ""));
     }
 
     private int parseInt(String value) {
         return Integer.parseInt(value.replace(",", "").replace(" ", ""));
+    }
+
+    private long parseLong(String value) {
+        return Long.parseLong(value.replace(",", "").replace(" ", ""));
     }
 
     private boolean parseBoolean(String value) {
@@ -621,5 +666,238 @@ public class ProductImportService {
         style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         return style;
+    }
+
+    // ─── Attribute Import ───────────────────────────────────────────────────────
+
+    private void importAttributes(Long productId, Row row, String[] columnHeaders, ProductImportAttributeConfig config) {
+        List<Long> valueIds = new ArrayList<>();
+
+        // 1. Handle variant columns (Quy cách, Đặc điểm 1, Đặc điểm 2)
+        if (config.getVariantColumns() != null) {
+            for (String columnName : config.getVariantColumns()) {
+                String value = getCellValueByColumnName(row, columnName, columnHeaders);
+                if (value != null && !value.trim().isEmpty()) {
+                    Attribute attr = findOrCreateAttribute(
+                        generateAttributeName(columnName), columnName, true);
+                    AttributeValue av = findOrCreateAttributeValue(attr, value.trim());
+                    valueIds.add(av.getId());
+                }
+            }
+        }
+
+        // 2. Handle spec text column (Thông số kỹ thuật)
+        if (config.getSpecColumn() != null && !config.getSpecColumn().isEmpty()) {
+            String specText = getCellValueByColumnName(row, config.getSpecColumn(), columnHeaders);
+            if (specText != null && !specText.trim().isEmpty()) {
+                Map<String, String> parsed = parseSpecText(specText.trim(), config.getSpecDelimiter(), config.getVariantColumns());
+                for (Map.Entry<String, String> entry : parsed.entrySet()) {
+                    String attrName = generateAttributeName(entry.getKey());
+                    Attribute attr = findOrCreateAttribute(attrName, entry.getKey(), false);
+                    AttributeValue av = findOrCreateAttributeValue(attr, entry.getValue());
+                    valueIds.add(av.getId());
+                }
+            }
+        }
+
+        // 3. Assign all values to product (delete old + add new)
+        if (!valueIds.isEmpty()) {
+            productAttributeValueRepository.deleteByProductId(productId);
+            Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+            for (Long avId : valueIds) {
+                AttributeValue av = attributeValueRepository.findById(avId)
+                    .orElseThrow(() -> new RuntimeException("AttributeValue not found: " + avId));
+                ProductAttributeValue pav = new ProductAttributeValue();
+                pav.setProduct(product);
+                pav.setAttributeValue(av);
+                productAttributeValueRepository.save(pav);
+            }
+        }
+    }
+
+    private Map<String, String> parseSpecText(String specText, String delimiter, List<String> variantColumns) {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (specText == null || specText.isEmpty()) return result;
+
+        String text = specText.trim();
+
+        if (text.startsWith("- ")) {
+            text = text.substring(2).trim();
+        } else if (delimiter != null && !delimiter.isEmpty() && text.startsWith(delimiter)) {
+            text = text.substring(delimiter.length()).trim();
+        }
+
+        if (delimiter == null || delimiter.isEmpty()) {
+            delimiter = " - ";
+        }
+
+        String pendingLabel = null;
+        String lastCompletedLabel = null;
+        boolean skipNextValue = false;
+
+        String[] lines = text.split("\\n");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+
+            if (!line.contains(delimiter)) {
+                // ── Single segment line ────────────────────────────────────────
+                if (line.contains(":")) {
+                    parseSpecItem(line, result);
+                    lastCompletedLabel = getLastKey(result);
+                    pendingLabel = null;
+                } else {
+                    if (skipNextValue) {
+                        skipNextValue = false;
+                        continue;
+                    }
+                    if (pendingLabel != null) {
+                        if (variantColumns == null || !variantColumns.contains(pendingLabel)) {
+                            result.put(pendingLabel, line);
+                            lastCompletedLabel = pendingLabel;
+                        }
+                        pendingLabel = null;
+                    } else {
+                        if (variantColumns != null && variantColumns.contains(line)) {
+                            skipNextValue = true;
+                        } else {
+                            pendingLabel = line;
+                        }
+                    }
+                }
+            } else {
+                // ── Multi-segment line ─────────────────────────────────────────
+                String[] parts = line.split(delimiter);
+
+                // Process first segment
+                String first = parts[0].trim();
+                if (first.contains(":")) {
+                    parseSpecItem(first, result);
+                    lastCompletedLabel = getLastKey(result);
+                    pendingLabel = null;
+                } else {
+                    if (skipNextValue) {
+                        skipNextValue = false;
+                    } else if (pendingLabel != null) {
+                        if (variantColumns == null || !variantColumns.contains(pendingLabel)) {
+                            result.put(pendingLabel, first);
+                            lastCompletedLabel = pendingLabel;
+                        }
+                        pendingLabel = null;
+                    } else if (lastCompletedLabel != null) {
+                        String currentVal = result.get(lastCompletedLabel);
+                        if (currentVal != null) {
+                            result.put(lastCompletedLabel, currentVal + delimiter + first);
+                        }
+                    }
+                }
+
+                // Process remaining segments
+                for (int i = 1; i < parts.length; i++) {
+                    String part = parts[i].trim();
+                    if (part.isEmpty()) continue;
+
+                    if (part.contains(":")) {
+                        parseSpecItem(part, result);
+                        lastCompletedLabel = getLastKey(result);
+                        pendingLabel = null;
+                    } else {
+                        if (skipNextValue) {
+                            skipNextValue = false;
+                        } else if (i == parts.length - 1) {
+                            if (variantColumns == null || !variantColumns.contains(part)) {
+                                pendingLabel = part;
+                            } else {
+                                skipNextValue = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private String getLastKey(Map<String, String> map) {
+        String last = null;
+        for (String key : map.keySet()) {
+            last = key;
+        }
+        return last;
+    }
+
+    private void parseSpecItem(String part, Map<String, String> result) {
+        if (part == null || part.isEmpty()) return;
+        // Remove leading dash+space if still present (e.g., from partial cleanup)
+        if (part.startsWith("- ")) {
+            part = part.substring(2).trim();
+        }
+        if (part.isEmpty()) return;
+        int colonIndex = part.indexOf(':');
+        if (colonIndex > 0) {
+            String label = part.substring(0, colonIndex).trim();
+            String value = part.substring(colonIndex + 1).trim();
+            if (!label.isEmpty()) {
+                result.put(label, value);
+            }
+        }
+    }
+
+    private Attribute findOrCreateAttribute(String name, String displayName, boolean isVariant) {
+        return attributeRepository.findByName(name)
+            .orElseGet(() -> {
+                Attribute attr = new Attribute();
+                attr.setName(name);
+                attr.setDisplayName(displayName);
+                attr.setIsVariant(isVariant);
+                attr.setValues(new ArrayList<>());
+                return attributeRepository.save(attr);
+            });
+    }
+
+    private AttributeValue findOrCreateAttributeValue(Attribute attribute, String value) {
+        List<AttributeValue> existingValues = attributeValueRepository.findByAttributeId(attribute.getId());
+        for (AttributeValue av : existingValues) {
+            if (av.getValue().equals(value)) {
+                return av;
+            }
+        }
+        AttributeValue av = new AttributeValue();
+        av.setAttribute(attribute);
+        av.setValue(value);
+        return attributeValueRepository.save(av);
+    }
+
+    private String generateAttributeName(String displayName) {
+        if (displayName == null || displayName.isEmpty()) return "unknown";
+
+        String name = displayName.toLowerCase().trim();
+
+        // Replace Vietnamese characters that don't decompose in NFD
+        name = name.replace('đ', 'd');
+        name = name.replace('ư', 'u');
+        name = name.replace('ơ', 'o');
+
+        // Decompose remaining Vietnamese characters and remove diacritics
+        name = Normalizer.normalize(name, Normalizer.Form.NFD);
+        name = name.replaceAll("\\p{M}", "");
+
+        // Replace non-alphanumeric (except spaces) with underscore
+        name = name.replaceAll("[^a-z0-9\\s]", "_");
+        // Replace spaces with underscore
+        name = name.replaceAll("\\s+", "_");
+
+        // Clean up consecutive underscores and trim
+        name = name.replaceAll("_+", "_").replaceAll("^_|_$", "");
+
+        return name.isEmpty() ? "unknown" : name;
+    }
+
+    private String getCellValueByColumnName(Row row, String columnName, String[] columnHeaders) {
+        int colIndex = resolveColumnIndex(columnName, columnHeaders);
+        if (colIndex < 0) return null;
+        return getCellValueAsString(row.getCell(colIndex));
     }
 }

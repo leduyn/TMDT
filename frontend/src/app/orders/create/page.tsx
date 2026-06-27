@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail, salesPolicyApi } from '@/lib/api';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail, salesPolicyApi, categoryApi, CategoryDTO } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { Plus, Trash2, ChevronRight, Check, AlertTriangle, Search, Filter, Building, User, Package, Tag } from 'lucide-react';
 
 interface CartItem {
@@ -50,8 +51,11 @@ export default function CreateOrderPage() {
   const [agencySearch, setAgencySearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [catOptions, setCatOptions] = useState<CategoryDTO[][]>([[], [], [], []]);
+  const [catSelections, setCatSelections] = useState<(number | undefined)[]>([undefined, undefined, undefined, undefined]);
+  const [levelNames, setLevelNames] = useState<string[]>(['Ngành hàng', 'Nhóm hàng', 'Loại SP', 'Dòng SP']);
+  const [allCategories, setAllCategories] = useState<CategoryDTO[]>([]);
 
   useEffect(() => {
     loadAgencies();
@@ -104,8 +108,11 @@ export default function CreateOrderPage() {
     setSelectedCustomer(null);
     setShowNewCustomerForm(false);
     setProductSearch('');
-    setSelectedCategory(null);
     setSelectedBrand(null);
+    // Reset category filters
+    setCatOptions([[], [], [], []]);
+    setCatSelections([undefined, undefined, undefined, undefined]);
+    setAllCategories([]);
     setCart([]); // Clear cart to prevent cross-agency price lists or inventory conflicts
     setStep(2);
   };
@@ -117,10 +124,89 @@ export default function CreateOrderPage() {
     }
     // Reset product searches when buyer changes in case it impacts the price list
     setProductSearch('');
-    setSelectedCategory(null);
     setSelectedBrand(null);
     setStep(3);
   };
+
+  // ─── Category loading for product filter ──────────────────────────
+  useEffect(() => {
+    if (step === 3 && selectedAgency) {
+      categoryApi.getByLevel(0).then(data => {
+        setCatOptions(prev => { const next = [...prev]; next[0] = data; return next; });
+      }).catch(() => {});
+      categoryApi.getLevelNames().then(names => {
+        if (names) {
+          setLevelNames([names[0] || 'Ngành hàng', names[1] || 'Nhóm hàng', names[2] || 'Loại SP', names[3] || 'Dòng SP']);
+        }
+      }).catch(() => {});
+      categoryApi.getAll().then(data => {
+        setAllCategories(data || []);
+      }).catch(() => {});
+    }
+  }, [step, selectedAgency]);
+
+  // ─── Category tree helpers ─────────────────────────────────────────
+  const childrenMap = useMemo(() => {
+    const map = new Map<number, CategoryDTO[]>();
+    allCategories.forEach(cat => {
+      const pid = cat.parentId ?? 0;
+      if (!map.has(pid)) map.set(pid, []);
+      map.get(pid)!.push(cat);
+    });
+    return map;
+  }, [allCategories]);
+
+  const getLeafIds = useCallback((catId: number): Set<number> => {
+    const result = new Set<number>();
+    function traverse(id: number) {
+      const children = childrenMap.get(id) || [];
+      if (children.length === 0) {
+        result.add(id);
+      } else {
+        children.forEach((c: CategoryDTO) => traverse(c.id));
+      }
+    }
+    traverse(catId);
+    return result;
+  }, [childrenMap]);
+
+  const effectiveLeafIds = useMemo(() => {
+    let deepestSelected: number | undefined;
+    for (let i = catSelections.length - 1; i >= 0; i--) {
+      if (catSelections[i] !== undefined) {
+        deepestSelected = catSelections[i];
+        break;
+      }
+    }
+    if (deepestSelected === undefined) return null;
+    return getLeafIds(deepestSelected);
+  }, [catSelections, getLeafIds]);
+
+  const handleCategoryChange = useCallback(async (level: number, catId: number | undefined) => {
+    setCatSelections(prev => {
+      const next = [...prev];
+      next[level] = catId;
+      for (let l = level + 1; l < next.length; l++) next[l] = undefined;
+      return next;
+    });
+    setCatOptions(prev => {
+      const next = [...prev];
+      for (let l = level + 1; l < next.length; l++) next[l] = [];
+      return next;
+    });
+    if (catId && level < 3) {
+      try {
+        const children = await categoryApi.getChildren(catId);
+        setCatOptions(prev => {
+          const next = [...prev];
+          next[level + 1] = children;
+          return next;
+        });
+      } catch (err) {
+        console.error('Failed to load category children:', err);
+      }
+    }
+  }, []);
 
   // Debounce timer refs for quantity-based re-resolve
   const resolvePriceTimers = useRef<Record<number, NodeJS.Timeout>>({});
@@ -688,8 +774,7 @@ export default function CreateOrderPage() {
         )}
 
         {step === 3 && (() => {
-          // Compute unique categories and brands in scope
-          const uniqueCategories = Array.from(new Set(products.map(p => p.categoryName).filter(Boolean))) as string[];
+          // Compute unique brands in scope
           const uniqueBrands = Array.from(new Set(products.map(p => p.brand?.name).filter(Boolean))) as string[];
 
           // Filter products reactively in-memory
@@ -697,7 +782,7 @@ export default function CreateOrderPage() {
             const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase()) || 
                                   (product.brand?.name || '').toLowerCase().includes(productSearch.toLowerCase()) ||
                                   (product.categoryName || '').toLowerCase().includes(productSearch.toLowerCase());
-            const matchesCategory = !selectedCategory || product.categoryName === selectedCategory;
+            const matchesCategory = !effectiveLeafIds || (product.categoryId !== undefined && effectiveLeafIds.has(product.categoryId));
             const matchesBrand = !selectedBrand || product.brand?.name === selectedBrand;
             return matchesSearch && matchesCategory && matchesBrand;
           });
@@ -727,40 +812,43 @@ export default function CreateOrderPage() {
 
               {/* Category and Brand Filter Chips */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20, background: 'rgba(255, 255, 255, 0.02)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
-                {uniqueCategories.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80, fontWeight: 500 }}>Danh mục:</span>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 2 }}>
+                {/* Hierarchical Category Selector */}
+                {catOptions.some(opts => opts.length > 0) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Filter size={14} /> Danh mục:
+                    </span>
+                    {catOptions.map((options, level) => (
+                      <SearchableSelect
+                        key={level}
+                        options={options.map(c => ({ value: c.id, label: c.name }))}
+                        value={catSelections[level]}
+                        onChange={(val) => handleCategoryChange(level, val !== undefined ? Number(val) : undefined)}
+                        placeholder={levelNames[level]}
+                        disabled={level > 0 && (catSelections[level - 1] === undefined || catOptions[level - 1].length === 0)}
+                        style={{ minWidth: 140 }}
+                      />
+                    ))}
+                    {catSelections.some(s => s !== undefined) && (
                       <button
-                        onClick={() => setSelectedCategory(null)}
-                        className="badge"
-                        style={{ 
-                          cursor: 'pointer',
-                          background: !selectedCategory ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
-                          color: !selectedCategory ? 'white' : 'var(--text-secondary)',
-                          border: '1px solid var(--border)',
-                          transition: 'all 0.2s'
+                        onClick={() => {
+                          setCatSelections([undefined, undefined, undefined, undefined]);
+                          setCatOptions(prev => {
+                            const next = [...prev];
+                            for (let i = 1; i < next.length; i++) next[i] = [];
+                            return next;
+                          });
+                        }}
+                        style={{
+                          padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem',
+                          background: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          cursor: 'pointer', whiteSpace: 'nowrap'
                         }}
                       >
-                        Tất cả
+                        Xoá bộ lọc
                       </button>
-                      {uniqueCategories.map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
-                          className="badge"
-                          style={{ 
-                            cursor: 'pointer',
-                            background: selectedCategory === cat ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
-                            color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
-                            border: '1px solid var(--border)',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
+                    )}
                   </div>
                 )}
 

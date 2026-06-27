@@ -340,6 +340,62 @@ public class CategoryImportService {
         return Integer.parseInt(value.replace(",", "").replace(" ", ""));
     }
 
+    public ByteArrayInputStream exportCategories() {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Danh sách danh mục");
+
+            String[] headers = {
+                "ID", "Tên danh mục", "Danh mục cha (ID)", "Tên danh mục cha", "Image URL", "Bravo ID",
+                "Trạng thái", "Thứ tự ưu tiên", "Bravo Sort Value",
+                "Is Branch (0/1)", "Hiển thị menu trái (0/1)",
+                "Trạng thái hiển thị", "Màu nền", "Cấp độ", "Tên cấp độ"
+            };
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(createHeaderStyle(workbook));
+            }
+
+            List<Category> categories = categoryRepository.findAll();
+            Map<Integer, String> levelNames = categoryService.getLevelNames();
+            int rowIdx = 1;
+            for (Category c : categories) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(c.getId());
+                row.createCell(1).setCellValue(c.getName());
+                if (c.getParent() != null) {
+                    row.createCell(2).setCellValue(c.getParent().getId());
+                    row.createCell(3).setCellValue(c.getParent().getName());
+                } else {
+                    row.createCell(2).setCellValue("");
+                    row.createCell(3).setCellValue("");
+                }
+                row.createCell(4).setCellValue(c.getImageUrl() != null ? c.getImageUrl() : "");
+                row.createCell(5).setCellValue(c.getBravoId() != null ? c.getBravoId() : 0);
+                row.createCell(6).setCellValue(c.getStatus() != null ? c.getStatus() : 1);
+                row.createCell(7).setCellValue(c.getPriority() != null ? c.getPriority() : 0);
+                row.createCell(8).setCellValue(c.getBravoSortValue() != null ? c.getBravoSortValue() : "");
+                row.createCell(9).setCellValue(c.getIsBranch() != null ? c.getIsBranch() : 0);
+                row.createCell(10).setCellValue(c.getShowOnLeftMenu() != null ? c.getShowOnLeftMenu() : 0);
+                row.createCell(11).setCellValue(c.getDisplayStatus() != null ? c.getDisplayStatus() : 1);
+                row.createCell(12).setCellValue(c.getBackgroundColor() != null ? c.getBackgroundColor() : "");
+                row.createCell(13).setCellValue(c.getLevel() != null ? c.getLevel() : 0);
+                row.createCell(14).setCellValue(c.getLevel() != null ? levelNames.getOrDefault(c.getLevel(), "Cấp " + c.getLevel()) : "");
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        } catch (Exception e) {
+            throw new RuntimeException("Error exporting categories", e);
+        }
+    }
+
     private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();

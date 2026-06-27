@@ -95,6 +95,9 @@ export interface ProductDTO {
   status?: string;
   otherName?: string;
   shortName?: string;
+  specification?: string;
+  feature1?: string;
+  feature2?: string;
 }
 
 export interface AttributeValueDTO {
@@ -259,6 +262,14 @@ export interface CustomerDebtInfo {
   customerId: number;
   customerName: string;
   totalDebt: number;
+}
+
+export interface PageDTO<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
 }
 
 export interface CartItem {

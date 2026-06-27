@@ -1,17 +1,18 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Colors, BorderRadius, Shadow } from '../theme';
 import type { CartItem } from '../types';
 import { resolveImageUrl } from '../utils';
+import { useCart } from '../context/CartContext';
 
 interface Props {
   item: CartItem;
   onUpdateQuantity: (productId: number, qty: number) => void;
-  onRemove: (productId: number) => void;
 }
 
-export function CartItemRow({ item, onUpdateQuantity, onRemove }: Props) {
+export function CartItemRow({ item, onUpdateQuantity }: Props) {
   const { product, quantity } = item;
+  const { removeItem } = useCart();
   const price = product.appliedPrice ?? product.price ?? 0;
   const hasDiscount = product.appliedPrice && product.appliedPrice < product.price;
   const subtotal = price * quantity;
@@ -55,7 +56,12 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: Props) {
           {/* Delete button */}
           <TouchableOpacity
             style={styles.deleteBtn}
-            onPress={() => onRemove(product.id)}
+            onPress={() => {
+              Alert.alert('Xóa sản phẩm', `Bạn có chắc muốn xóa "${product.name}"?`, [
+                { text: 'Hủy', style: 'cancel' },
+                { text: 'Xóa', style: 'destructive', onPress: () => removeItem(product.id) },
+              ]);
+            }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.deleteIcon}>🗑</Text>

@@ -22,77 +22,29 @@ interface FieldOption {
   value: string;
   label: string;
   required?: boolean;
+  isVariant?: boolean;
+  isSpec?: boolean;
 }
 
 const FIELD_OPTIONS: FieldOption[] = [
-  { value: 'name', label: 'Tên sản phẩm' },
-  { value: 'basePrice', label: 'Giá cơ bản' },
-  { value: 'stockQuantity', label: 'Số lượng kho' },
   { value: 'productCode', label: 'Mã sản phẩm*', required: true },
-  { value: 'description', label: 'Mô tả' },
-  { value: 'userManual', label: 'Hướng dẫn sử dụng' },
-  { value: 'dropshipPrice', label: 'Giá Dropship' },
-  { value: 'unit', label: 'Đơn vị tính' },
-  { value: 'innerPackaging', label: 'Quy cách trong' },
-  { value: 'outerPackaging', label: 'Quy cách ngoài' },
-  { value: 'minPurchaseQuantity', label: 'SL mua tối thiểu' },
-  { value: 'quantityStep', label: 'Bước nhảy SL' },
-  { value: 'tags', label: 'Tags' },
-  { value: 'bravoOrder', label: 'Thứ tự' },
-  { value: 'isDropship', label: 'Dropship (true/false)' },
-  { value: 'isAppVisible', label: 'Hiển thị App (true/false)' },
-  { value: 'isWebVisible', label: 'Hiển thị Web (true/false)' },
-  { value: 'showDiscount', label: 'Hiển thị giảm giá (true/false)' },
-  { value: 'categoryId', label: 'Mã danh mục (ID)' },
-  { value: 'categoryName', label: 'Danh mục (theo tên)' },
-  { value: 'brandName', label: 'Tên thương hiệu' },
-  { value: 'productTypeName', label: 'Tên loại SP' },
-  { value: 'retailWarrantyPeriod', label: 'Bảo hành bán thường' },
-  { value: 'wholesaleWarrantyPeriod', label: 'Bảo hành bán sỉ' },
-  { value: 'status', label: 'Trạng thái (ACTIVE/INACTIVE/DISCONTINUED)' },
-  { value: 'otherName', label: 'Tên khác' },
-  { value: 'shortName', label: 'Tên rút gọn' },
-  { value: 'specification', label: 'Quy cách' },
-  { value: 'feature1', label: 'Đặc điểm 1' },
-  { value: 'feature2', label: 'Đặc điểm 2' },
+  { value: 'specification', label: 'Quy cách', isVariant: true },
+  { value: 'feature1', label: 'Đặc điểm 1', isVariant: true },
+  { value: 'feature2', label: 'Đặc điểm 2', isVariant: true },
+  { value: 'specText', label: 'Thông số kỹ thuật', isSpec: true },
 ];
 
 const REQUIRED_FIELDS = ['productCode'];
 
 const FIELD_AUTO_DETECT: Record<string, string[]> = {
-  name: ['tên', 'tên sản phẩm', 'product', 'product name', 'name'],
-  basePrice: ['giá', 'giá cơ bản', 'giá bán', 'base price', 'price', 'đơn giá'],
-  stockQuantity: ['số lượng', 'tồn kho', 'kho', 'stock', 'quantity', 'sl'],
-  description: ['mô tả', 'description', 'desc', 'chi tiết'],
-  userManual: ['hướng dẫn sử dụng', 'user manual', 'manual', 'hdsd'],
-  dropshipPrice: ['giá dropship', 'dropship', 'giá ship'],
-  unit: ['đơn vị', 'đơn vị tính', 'unit'],
-  innerPackaging: ['quy cách trong', 'qc trong', 'inner'],
-  outerPackaging: ['quy cách ngoài', 'qc ngoài', 'outer'],
-  minPurchaseQuantity: ['mua tối thiểu', 'min', 'min purchase'],
-  quantityStep: ['bước nhảy', 'step', 'quantity step'],
-  tags: ['tags', 'tag', 'thẻ'],
-  bravoOrder: ['thứ tự', 'bravo', 'order'],
-  isDropship: ['dropship', 'is dropship'],
-  isAppVisible: ['hiển thị app', 'app', 'app visible'],
-  isWebVisible: ['hiển thị web', 'web', 'web visible'],
-  showDiscount: ['hiển thị giảm giá', 'giảm giá', 'discount'],
-  categoryId: ['mã danh mục', 'category id', 'id danh mục', 'category_id'],
-  categoryName: ['danh mục', 'category', 'loại'],
-  brandName: ['thương hiệu', 'brand', 'tên thương hiệu', 'hãng'],
-  productTypeName: ['loại sp', 'product type', 'tên loại', 'loại sản phẩm'],
-  productCode: ['mã sản phẩm', 'product code', 'productcode', 'mã sp'],
-  retailWarrantyPeriod: ['bảo hành thường', 'bảo hành bán thường', 'retail warranty'],
-  wholesaleWarrantyPeriod: ['bảo hành sỉ', 'bảo hành bán sỉ', 'wholesale warranty'],
-  status: ['trạng thái', 'status'],
-  otherName: ['tên khác', 'other name', 'alias'],
-  shortName: ['tên rút gọn', 'short name', 'viết tắt'],
+  productCode: ['mã sản phẩm', 'product code', 'productcode', 'mã sp', 'code'],
   specification: ['quy cách', 'spec', 'specification'],
   feature1: ['đặc điểm 1', 'feature 1', 'feature1'],
   feature2: ['đặc điểm 2', 'feature 2', 'feature2'],
+  specText: ['thông số kỹ thuật', 'thông số', 'specs', 'thong so'],
 };
 
-export default function ImportProductsPage() {
+export default function ImportProductAttributesPage() {
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [hasHeader, setHasHeader] = useState(true);
@@ -214,21 +166,46 @@ export default function ImportProductsPage() {
     setError('');
     try {
       const colMappings: Record<string, string> = {};
+      const variantColumns: string[] = [];
+      let specColumn = '';
+
       Object.entries(mappings).forEach(([field, colIdx]) => {
         if (colIdx === null || colIdx === undefined) return;
-        if (hasHeader) {
-          const col = columns.find(c => c && c.index === colIdx);
-          if (col) colMappings[col.header] = field;
+
+        const opt = FIELD_OPTIONS.find(o => o.value === field);
+        if (!opt) return;
+
+        const col = hasHeader && columns.find(c => c && c.index === colIdx);
+        const colKey = col ? col.header : `col_${colIdx}`;
+
+        if (opt.isVariant) {
+          colMappings[colKey] = field;
+          variantColumns.push(colKey);
+        } else if (opt.isSpec) {
+          colMappings[colKey] = field;
+          specColumn = colKey;
         } else {
-          colMappings[`col_${colIdx}`] = field;
+          colMappings[colKey] = field;
         }
       });
 
-      const res = await productImportApi.importProducts(file, {
+      const mapping: any = {
         columnMappings: colMappings,
         hasHeaderRow: hasHeader,
         sheetIndex: 0,
-      });
+      };
+
+      if (variantColumns.length > 0 || specColumn) {
+        mapping.attributeConfig = {
+          specDelimiter: ' - ',
+          variantColumns: variantColumns,
+        };
+        if (specColumn) {
+          mapping.attributeConfig.specColumn = specColumn;
+        }
+      }
+
+      const res = await productImportApi.importProducts(file, mapping);
       setResult(res);
       setStep('result');
     } catch (err: any) {
@@ -248,7 +225,7 @@ export default function ImportProductsPage() {
           </Link>
           <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700 }}>
             <Upload size={28} style={{ marginRight: 12, verticalAlign: 'middle' }} />
-            <span className="gradient-text">Import sản phẩm từ Excel</span>
+            <span className="gradient-text">Import thông số & thuộc tính từ Excel</span>
           </h1>
         </div>
 
@@ -316,13 +293,6 @@ export default function ImportProductsPage() {
                 <input type="checkbox" checked={hasHeader} onChange={e => setHasHeader(e.target.checked)} />
                 <span style={{ fontSize: '0.9rem' }}>Dòng đầu là tiêu đề</span>
               </label>
-              <a
-                href={productImportApi.downloadTemplateUrl}
-                className="btn-outline"
-                style={{ marginLeft: 'auto', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: '0.85rem' }}
-              >
-                <Download size={16} /> Tải template mẫu
-              </a>
             </div>
 
             {error && <div className="alert-error" style={{ marginTop: 16 }}>{error}</div>}
@@ -370,17 +340,21 @@ export default function ImportProductsPage() {
         {step === 'map' && (
           <div className="fade-in-up">
             <div className="glass-card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>Chọn cột Excel cho từng trường sản phẩm</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>Chọn cột Excel cho từng trường</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>
-                Với mỗi trường sản phẩm (cố định bên trái), chọn cột Excel tương ứng.
+                Với mỗi trường bên dưới, chọn cột Excel tương ứng.
                 Trường có <span style={{ color: '#ef4444' }}>*</span> là bắt buộc.
+                <br />
+                <span style={{ color: '#818cf8' }}>🟣 Quy cách, Đặc điểm 1, Đặc điểm 2</span> sẽ được tạo dưới dạng thuộc tính biến thể (variant).
+                <br />
+                <span style={{ color: '#10b981' }}>🟢 Thông số kỹ thuật</span> sẽ được phân tích thành các thuộc tính thông số kỹ thuật.
               </p>
 
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                   <thead>
                     <tr>
-                      <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Trường sản phẩm</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Trường</th>
                       <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Dữ liệu mẫu</th>
                       <th style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Cột Excel</th>
                     </tr>
@@ -391,11 +365,14 @@ export default function ImportProductsPage() {
                       const sampleText = selectedCol !== null && selectedCol !== undefined
                         ? columns.find(c => c && c.index === selectedCol)?.sampleValues.slice(0, 2).join(', ') || '—'
                         : '—';
+                      const labelColor = opt.isVariant ? '#818cf8' : opt.isSpec ? '#10b981' : 'var(--text-primary)';
                       return (
                         <tr key={opt.value}>
-                          <td style={{ padding: '10px 16px', fontWeight: opt.required ? 700 : 400, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '10px 16px', fontWeight: opt.required ? 700 : 400, borderBottom: '1px solid rgba(255,255,255,0.04)', color: labelColor }}>
                             {opt.required ? <span style={{ color: '#ef4444' }}>* </span> : null}
                             {opt.label}
+                            {opt.isVariant && <span style={{ fontSize: '0.75rem', marginLeft: 8, opacity: 0.7 }}>(variant)</span>}
+                            {opt.isSpec && <span style={{ fontSize: '0.75rem', marginLeft: 8, opacity: 0.7 }}>(spec text)</span>}
                           </td>
                           <td style={{ padding: '10px 16px', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             {sampleText}

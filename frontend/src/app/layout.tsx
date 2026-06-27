@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 import DashboardLayout from "@/components/DashboardLayout";
 import { CartProvider } from "@/context/CartContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import QueryProvider from "@/lib/QueryProvider";
 
 export default function RootLayout({
   children,
@@ -31,13 +32,15 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem>
-          <AuthProvider>
-            <CartProvider>
-              <DashboardLayout>
-                {children}
-              </DashboardLayout>
-            </CartProvider>
-          </AuthProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <CartProvider>
+                <DashboardLayout>
+                  {children}
+                </DashboardLayout>
+              </CartProvider>
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

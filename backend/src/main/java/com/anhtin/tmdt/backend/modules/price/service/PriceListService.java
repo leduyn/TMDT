@@ -11,10 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.anhtin.tmdt.backend.modules.price.repository.PriceListItemRepository;
 import com.anhtin.tmdt.backend.modules.price.repository.PriceListConditionRepository;
@@ -371,76 +369,103 @@ public class PriceListService {
         return getResolvedPriceInfo(productId, agencyId, null);
     }
 
-    public ResolvedPriceInfo getResolvedPriceInfo(Long productId, Long agencyId, Long customerId) {
+    public List<PriceList> resolveCandidates(Long agencyId, Long customerId) {
         List<PriceList> candidates = new ArrayList<>();
-        
         LocalDateTime now = LocalDateTime.now();
+
         if (customerId != null) {
-            // Hierarchy for Customer: Direct -> Store -> Group -> All Customer -> Default
             priceListConditionRepository.findActiveByCustomer(
                     PriceListConditionType.DIRECT_CUSTOMER, customerId, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
-
             agencyStorePriceListRepository.findByAgencyId(agencyId).ifPresent(s -> candidates.add(s.getPriceList()));
-            
             User user = userRepository.findById(customerId).orElse(null);
             if (user != null && user.getCustomerGroup() != null) {
                 priceListConditionRepository.findActiveByCustomerGroup(
                         PriceListConditionType.CUSTOMER_GROUP, user.getCustomerGroup().getId(), now)
                         .forEach(c -> candidates.add(c.getPriceList()));
             }
-            
             priceListConditionRepository.findActiveByConditionType(PriceListConditionType.ALL_CUSTOMER, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
         } else if (agencyId != null) {
-            // Hierarchy for Agency: Direct -> Rank -> All Agency -> Default
-            // Lấy gán trực tiếp mới nhất đã có hiệu lực
             agencyPriceListRepository.findFirstByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(agencyId, now)
                     .ifPresent(a -> candidates.add(a.getPriceList()));
-            
-            // Lấy rank thực tế của đại lý
             String rank = getAgencyRank(agencyId);
             priceListConditionRepository.findActiveByRank(
                     PriceListConditionType.AGENCY_RANK, rank, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
-            
             priceListConditionRepository.findActiveByConditionType(PriceListConditionType.ALL_AGENCY, now)
                     .forEach(c -> candidates.add(c.getPriceList()));
         }
-        
-        // Add default price list as last resort
+
         priceListRepository.findByIsDefaultTrue().ifPresent(candidates::add);
-        
-        // Fallback: If no default and no candidates, take the first active price list
         if (candidates.isEmpty()) {
             priceListRepository.findAll().stream().filter(PriceList::getActive).findFirst().ifPresent(candidates::add);
         }
-        
-        ResolvedPriceInfo result = new ResolvedPriceInfo();
-        
+        return candidates;
+    }
+
+    public ResolvedPriceInfo getResolvedPriceInfo(Long productId, Long agencyId, Long customerId) {
+        List<PriceList> candidates = resolveCandidates(agencyId, customerId);
         for (int i = 0; i < candidates.size(); i++) {
             PriceList pl = candidates.get(i);
             boolean isLast = (i == candidates.size() - 1);
-            
             Optional<PriceListItem> item = priceListItemRepository.findByPriceListIdAndProductId(pl.getId(), productId);
-            if (item.isPresent()) {
+            if (item.isPresent() && Boolean.TRUE.equals(item.get().getIsVisible())) {
                 Double p = item.get().getPrice();
-                if (Boolean.TRUE.equals(item.get().getIsVisible())) {
-                    // Ưu tiên 1: Nếu là bảng giá chỉ định trực tiếp (vị trí 0), lấy ngay kể cả là giá -1 (Liên hệ)
-                    // Ưu tiên 2: Nếu giá > 0, lấy ngay
-                    // Ưu tiên 3: Nếu là bảng giá cuối cùng (mặc định), lấy ngay kể cả giá -1
-                    if (i == 0 || p != null && p > 0 || isLast) {
-                        result.setPrice(p);
-                        result.setPriceListName(pl.getName());
-                        result.setPriceListId(pl.getId());
-                        result.setOldPrice(item.get().getOldPrice());
-                        return result;
-                    }
+                if (i == 0 || (p != null && p > 0) || isLast) {
+                    ResolvedPriceInfo result = new ResolvedPriceInfo();
+                    result.setPrice(p);
+                    result.setPriceListName(pl.getName());
+                    result.setPriceListId(pl.getId());
+                    result.setOldPrice(item.get().getOldPrice());
+                    return result;
                 }
             }
         }
-        
-        return result;
+        return new ResolvedPriceInfo();
+    }
+
+    public Map<Long, ResolvedPriceInfo> getResolvedPriceInfoForProducts(List<Long> productIds, Long agencyId, Long customerId) {
+        if (productIds == null || productIds.isEmpty()) return Collections.emptyMap();
+
+        List<PriceList> candidates = resolveCandidates(agencyId, customerId);
+        List<Long> candidateIds = candidates.stream().map(PriceList::getId).collect(Collectors.toList());
+
+        List<PriceListItem> allItems = priceListItemRepository.findByPriceListIdInAndProductIdIn(candidateIds, productIds);
+        Map<Long, Map<Long, PriceListItem>> itemsByPriceList = allItems.stream()
+                .collect(Collectors.groupingBy(
+                        item -> item.getPriceList().getId(),
+                        Collectors.toMap(item -> item.getProduct().getId(), Function.identity())
+                ));
+
+        Map<Long, ResolvedPriceInfo> results = new HashMap<>();
+        for (Long productId : productIds) {
+            ResolvedPriceInfo result = resolvePriceFromCandidates(productId, candidates, itemsByPriceList);
+            results.put(productId, result);
+        }
+        return results;
+    }
+
+    private ResolvedPriceInfo resolvePriceFromCandidates(Long productId, List<PriceList> candidates,
+                                                          Map<Long, Map<Long, PriceListItem>> itemsByPriceList) {
+        for (int i = 0; i < candidates.size(); i++) {
+            PriceList pl = candidates.get(i);
+            boolean isLast = (i == candidates.size() - 1);
+            Map<Long, PriceListItem> itemsForPl = itemsByPriceList.getOrDefault(pl.getId(), Collections.emptyMap());
+            PriceListItem item = itemsForPl.get(productId);
+            if (item != null && Boolean.TRUE.equals(item.getIsVisible())) {
+                Double p = item.getPrice();
+                if (i == 0 || (p != null && p > 0) || isLast) {
+                    ResolvedPriceInfo result = new ResolvedPriceInfo();
+                    result.setPrice(p);
+                    result.setPriceListName(pl.getName());
+                    result.setPriceListId(pl.getId());
+                    result.setOldPrice(item.getOldPrice());
+                    return result;
+                }
+            }
+        }
+        return new ResolvedPriceInfo();
     }
 
     public Double getResolvedPrice(Long productId, Long agencyId, Long customerId) {

@@ -23,6 +23,7 @@ import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
 import com.anhtin.tmdt.backend.modules.common.service.SystemConfigService;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyProductPriceHistoryRepository;
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyProductPriceHistory;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
 import com.anhtin.tmdt.backend.modules.salespolicy.dto.ProductPolicyPreviewDTO;
 import com.anhtin.tmdt.backend.modules.salespolicy.service.SalesPolicyService;
@@ -53,6 +54,9 @@ public class ProductService {
     private ProductTypeRepository productTypeRepository;
 
     @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
     private AttributeValueRepository attributeValueRepository;
 
     @Autowired
@@ -73,6 +77,17 @@ public class ProductService {
     @Autowired
     private AgencyRepository agencyRepository;
 
+    @Transactional(readOnly = true)
+    public List<ProductDTO> getProductsByCategory(Long categoryId, Long agencyId, Long customerId) {
+        List<Long> expandedIds = categoryService.getAllDescendantIds(categoryId);
+        List<Product> products = productRepository.findProductsByCategoryIdIn(expandedIds);
+
+        if (products.isEmpty()) return List.of();
+
+        List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
+        return batchBuildProductDTOs(products, productIds, agencyId, customerId);
+    }
+
     public List<ProductDTO> getAllProducts() {
         return getAllProducts(null, null);
     }
@@ -80,60 +95,30 @@ public class ProductService {
     @Transactional(readOnly = true)
     public List<ProductDTO> getAllProducts(Long agencyId, Long customerId) {
         List<Product> products = productRepository.findAllWithEagerRelations();
-
         if (products.isEmpty()) return List.of();
-
         List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
-
-        Map<Long, List<ProductImage>> imagesByProduct = productImageRepository.findByProductIdIn(productIds)
-                .stream()
-                .collect(Collectors.groupingBy(pi -> pi.getProduct().getId()));
-
-        Integer discountDays = systemConfigService.getDiscountMaxDays();
-
-        return products.stream()
-                .map(p -> {
-                    List<ProductImage> images = imagesByProduct.getOrDefault(p.getId(), List.of());
-                    ProductDTO dto = new ProductDTO(p, images);
-                    PriceListService.ResolvedPriceInfo priceInfo = priceListService.getResolvedPriceInfo(p.getId(), agencyId, customerId);
-                    dto.setAppliedPrice(priceInfo.getPrice());
-                    dto.setAppliedPriceListName(priceInfo.getPriceListName());
-                    dto.setAppliedPriceListId(priceInfo.getPriceListId());
-                    java.time.LocalDateTime changeAt = null;
-                    if (agencyId != null) {
-                        var latestHist = agencyProductPriceHistoryRepository
-                                .findTopByAgencyIdAndProductIdOrderByChangedAtDesc(agencyId, p.getId());
-                        if (latestHist != null) {
-                            changeAt = latestHist.getChangedAt();
-                        }
-                    }
-                    boolean showDiscount = true;
-                    if (changeAt != null) {
-                        long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(changeAt, java.time.LocalDateTime.now());
-                        if (daysDiff > discountDays) {
-                            showDiscount = false;
-                        }
-                    }
-                    if (showDiscount && priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
-                        dto.setOldAppliedPrice(priceInfo.getOldPrice());
-                        double diff = priceInfo.getPrice() - priceInfo.getOldPrice();
-                        dto.setPriceChangeRatio((diff / priceInfo.getOldPrice()) * 100);
-                    } else {
-                        dto.setOldAppliedPrice(null);
-                        dto.setPriceChangeRatio(null);
-                    }
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        return batchBuildProductDTOs(products, productIds, agencyId, customerId);
     }
 
     @Transactional(readOnly = true)
-    public Page<ProductDTO> getPagedProducts(Long agencyId, Long customerId, String search, Long categoryId, Pageable pageable) {
+    public Page<ProductDTO> getPagedProducts(Long agencyId, Long customerId, String search, Long categoryId, Long brandId, Pageable pageable) {
         Page<Product> productPage;
-        if (categoryId != null && search != null && !search.isBlank()) {
-            productPage = productRepository.findByCategoryIdAndSearch(categoryId, search, pageable);
-        } else if (categoryId != null) {
-            productPage = productRepository.findByCategoryId(categoryId, pageable);
+
+        List<Long> expandedCategoryIds = null;
+        if (categoryId != null) {
+            expandedCategoryIds = categoryService.getAllDescendantIds(categoryId);
+        }
+
+        if (expandedCategoryIds != null && brandId != null) {
+            productPage = productRepository.findByCategoryIdInAndBrandId(expandedCategoryIds, brandId, pageable);
+        } else if (expandedCategoryIds != null && search != null && !search.isBlank()) {
+            productPage = productRepository.findByCategoryIdInAndSearch(expandedCategoryIds, search, pageable);
+        } else if (expandedCategoryIds != null) {
+            productPage = productRepository.findByCategoryIdIn(expandedCategoryIds, pageable);
+        } else if (brandId != null && search != null && !search.isBlank()) {
+            productPage = productRepository.findByBrandIdAndSearch(brandId, search, pageable);
+        } else if (brandId != null) {
+            productPage = productRepository.findByBrandId(brandId, pageable);
         } else if (search != null && !search.isBlank()) {
             productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCase(search, search, pageable);
         } else {
@@ -148,24 +133,29 @@ public class ProductService {
                 .stream()
                 .collect(Collectors.groupingBy(pi -> pi.getProduct().getId()));
 
+        Map<Long, PriceListService.ResolvedPriceInfo> pricesByProduct =
+                priceListService.getResolvedPriceInfoForProducts(productIds, agencyId, customerId);
+
+        Map<Long, java.time.LocalDateTime> latestChangeByProduct = new HashMap<>();
+        if (agencyId != null) {
+            List<AgencyProductPriceHistory> histories = agencyProductPriceHistoryRepository
+                    .findLatestByAgencyIdAndProductIdIn(agencyId, productIds);
+            for (var h : histories) {
+                latestChangeByProduct.put(h.getProduct().getId(), h.getChangedAt());
+            }
+        }
+
         Integer discountDays = systemConfigService.getDiscountMaxDays();
 
         List<ProductDTO> dtos = productPage.getContent().stream()
                 .map(p -> {
                     List<ProductImage> images = imagesByProduct.getOrDefault(p.getId(), List.of());
                     ProductDTO dto = new ProductDTO(p, images);
-                    PriceListService.ResolvedPriceInfo priceInfo = priceListService.getResolvedPriceInfo(p.getId(), agencyId, customerId);
+                    PriceListService.ResolvedPriceInfo priceInfo = pricesByProduct.getOrDefault(p.getId(), new PriceListService.ResolvedPriceInfo());
                     dto.setAppliedPrice(priceInfo.getPrice());
                     dto.setAppliedPriceListName(priceInfo.getPriceListName());
                     dto.setAppliedPriceListId(priceInfo.getPriceListId());
-                    java.time.LocalDateTime changeAt = null;
-                    if (agencyId != null) {
-                        var latestHist = agencyProductPriceHistoryRepository
-                                .findTopByAgencyIdAndProductIdOrderByChangedAtDesc(agencyId, p.getId());
-                        if (latestHist != null) {
-                            changeAt = latestHist.getChangedAt();
-                        }
-                    }
+                    java.time.LocalDateTime changeAt = latestChangeByProduct.get(p.getId());
                     boolean showDiscount = true;
                     if (changeAt != null) {
                         long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(changeAt, java.time.LocalDateTime.now());
@@ -186,6 +176,54 @@ public class ProductService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(dtos, pageable, productPage.getTotalElements());
+    }
+
+    private List<ProductDTO> batchBuildProductDTOs(List<Product> products, List<Long> productIds, Long agencyId, Long customerId) {
+        Map<Long, List<ProductImage>> imagesByProduct = productImageRepository.findByProductIdIn(productIds)
+                .stream()
+                .collect(Collectors.groupingBy(pi -> pi.getProduct().getId()));
+
+        Map<Long, PriceListService.ResolvedPriceInfo> pricesByProduct =
+                priceListService.getResolvedPriceInfoForProducts(productIds, agencyId, customerId);
+
+        Map<Long, java.time.LocalDateTime> latestChangeByProduct = new HashMap<>();
+        if (agencyId != null) {
+            List<AgencyProductPriceHistory> histories = agencyProductPriceHistoryRepository
+                    .findLatestByAgencyIdAndProductIdIn(agencyId, productIds);
+            for (var h : histories) {
+                latestChangeByProduct.put(h.getProduct().getId(), h.getChangedAt());
+            }
+        }
+
+        Integer discountDays = systemConfigService.getDiscountMaxDays();
+
+        return products.stream()
+                .map(p -> {
+                    List<ProductImage> images = imagesByProduct.getOrDefault(p.getId(), List.of());
+                    ProductDTO dto = new ProductDTO(p, images);
+                    PriceListService.ResolvedPriceInfo priceInfo = pricesByProduct.getOrDefault(p.getId(), new PriceListService.ResolvedPriceInfo());
+                    dto.setAppliedPrice(priceInfo.getPrice());
+                    dto.setAppliedPriceListName(priceInfo.getPriceListName());
+                    dto.setAppliedPriceListId(priceInfo.getPriceListId());
+                    java.time.LocalDateTime changeAt = latestChangeByProduct.get(p.getId());
+                    boolean showDiscount = true;
+                    if (changeAt != null) {
+                        long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(changeAt, java.time.LocalDateTime.now());
+                        if (daysDiff > discountDays) {
+                            showDiscount = false;
+                        }
+                    }
+                    if (showDiscount && priceInfo.getOldPrice() != null && priceInfo.getOldPrice() > 0) {
+                        dto.setOldAppliedPrice(priceInfo.getOldPrice());
+                        double diff = priceInfo.getPrice() - priceInfo.getOldPrice();
+                        dto.setPriceChangeRatio((diff / priceInfo.getOldPrice()) * 100);
+                    } else {
+                        dto.setOldAppliedPrice(null);
+                        dto.setPriceChangeRatio(null);
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     public ProductDTO getProductById(@NonNull Long id) {

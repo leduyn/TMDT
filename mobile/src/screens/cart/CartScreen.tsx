@@ -16,7 +16,7 @@ import { CartItemRow } from '../../components/CartItemRow';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
 
 export function CartScreen({ navigation }: any) {
-  const { items, updateQuantity, removeItem, clearCart, totalAmount, totalItems } = useCart();
+  const { items, updateQuantity, clearCart, totalAmount, totalItems } = useCart();
   const [couponCode, setCouponCode] = useState('');
 
   // Computed values
@@ -90,12 +90,6 @@ export function CartScreen({ navigation }: any) {
               key={String(item.product.id)}
               item={item}
               onUpdateQuantity={updateQuantity}
-              onRemove={(productId) => {
-                Alert.alert('Xóa sản phẩm', `Bạn có chắc muốn xóa "${item.product.name}"?`, [
-                  { text: 'Hủy', style: 'cancel' },
-                  { text: 'Xóa', style: 'destructive', onPress: () => removeItem(productId) },
-                ]);
-              }}
             />
           ))}
         </View>

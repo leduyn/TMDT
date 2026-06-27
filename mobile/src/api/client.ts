@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE = 'http://192.168.1.105:8080';
+export const API_BASE = 'http://lt-it.anhtin.local:8080';
 
 export async function fetchJSON<T>(
   path: string,

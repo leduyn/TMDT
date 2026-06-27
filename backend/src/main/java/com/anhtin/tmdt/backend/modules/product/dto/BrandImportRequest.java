@@ -2,11 +2,10 @@ package com.anhtin.tmdt.backend.modules.product.dto;
 
 import java.util.Map;
 
-public class ProductImportRequest {
+public class BrandImportRequest {
     private Map<String, String> columnMappings;
     private boolean hasHeaderRow = true;
     private int sheetIndex = 0;
-    private ProductImportAttributeConfig attributeConfig;
 
     public Map<String, String> getColumnMappings() { return columnMappings; }
     public void setColumnMappings(Map<String, String> columnMappings) { this.columnMappings = columnMappings; }
@@ -14,6 +13,4 @@ public class ProductImportRequest {
     public void setHasHeaderRow(boolean hasHeaderRow) { this.hasHeaderRow = hasHeaderRow; }
     public int getSheetIndex() { return sheetIndex; }
     public void setSheetIndex(int sheetIndex) { this.sheetIndex = sheetIndex; }
-    public ProductImportAttributeConfig getAttributeConfig() { return attributeConfig; }
-    public void setAttributeConfig(ProductImportAttributeConfig attributeConfig) { this.attributeConfig = attributeConfig; }
 }

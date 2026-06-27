@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ProductDTO, CartItem } from '../types';
 
@@ -62,48 +62,38 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  const loaded = useRef(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     AsyncStorage.getItem(CART_KEY).then(val => {
       if (val) {
         try { dispatch({ type: 'LOAD', items: JSON.parse(val) }); } catch {}
       }
+      loaded.current = true;
     });
   }, []);
 
-  const persist = useCallback(async (items: CartItem[]) => {
-    await AsyncStorage.setItem(CART_KEY, JSON.stringify(items));
-  }, []);
+  useEffect(() => {
+    if (loaded.current) {
+      AsyncStorage.setItem(CART_KEY, JSON.stringify(state.items));
+    }
+  }, [state.items]);
 
   const addItem = useCallback(async (product: ProductDTO, quantity = 1) => {
     dispatch({ type: 'ADD_ITEM', product, quantity });
-    const newItems = [...state.items];
-    const idx = newItems.findIndex(i => i.product.id === product.id);
-    if (idx >= 0) {
-      newItems[idx].quantity += quantity;
-    } else {
-      newItems.push({ product, quantity });
-    }
-    await persist(newItems);
-  }, [state.items, persist]);
+  }, []);
 
   const removeItem = useCallback(async (productId: number) => {
     dispatch({ type: 'REMOVE_ITEM', productId });
-    const newItems = state.items.filter(i => i.product.id !== productId);
-    await persist(newItems);
-  }, [state.items, persist]);
+  }, []);
 
   const updateQuantity = useCallback(async (productId: number, quantity: number) => {
     if (quantity <= 0) {
-      await removeItem(productId);
+      dispatch({ type: 'REMOVE_ITEM', productId });
       return;
     }
     dispatch({ type: 'UPDATE_QUANTITY', productId, quantity });
-    const newItems = state.items.map(i =>
-      i.product.id === productId ? { ...i, quantity } : i,
-    );
-    await persist(newItems);
-  }, [state.items, persist, removeItem]);
+  }, []);
 
   const clearCart = useCallback(async () => {
     dispatch({ type: 'CLEAR' });

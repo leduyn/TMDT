@@ -1,0 +1,2886 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": "backend/.gitattributes",
+      "language": "unknown",
+      "sizeLines": 2,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/.mvn/wrapper/maven-wrapper.properties",
+      "language": "properties",
+      "sizeLines": 3,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/DropConstraint.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/mvnw",
+      "language": "unknown",
+      "sizeLines": 295,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/mvnw.cmd",
+      "language": "batch",
+      "sizeLines": 189,
+      "fileCategory": "script"
+    },
+    {
+      "path": "backend/pom.xml",
+      "language": "xml",
+      "sizeLines": 139,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/provinces_v2.json",
+      "language": "json",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/Replace.java",
+      "language": "java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/ReplaceSync.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/ReplaceSyncVoucher.java",
+      "language": "java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/config/WebMvcConfig.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/config/WebSecurityConfig.java",
+      "language": "java",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/config/WebSocketAuthConfig.java",
+      "language": "java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/config/WebSocketConfig.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/exception/GlobalExceptionHandler.java",
+      "language": "java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/fix_all_imports.ps1",
+      "language": "powershell",
+      "sizeLines": 67,
+      "fileCategory": "script"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/fix_all_refs.ps1",
+      "language": "powershell",
+      "sizeLines": 62,
+      "fileCategory": "script"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/fix_imports_final.ps1",
+      "language": "powershell",
+      "sizeLines": 106,
+      "fileCategory": "script"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/fix_imports_v2.ps1",
+      "language": "powershell",
+      "sizeLines": 76,
+      "fileCategory": "script"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/fix_imports.ps1",
+      "language": "powershell",
+      "sizeLines": 49,
+      "fileCategory": "script"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/mapping.csv",
+      "language": "csv",
+      "sizeLines": 179,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/controller/AccumulationController.java",
+      "language": "java",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/AccumulationDebtDetailDTO.java",
+      "language": "java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/AccumulationProgramDTO.java",
+      "language": "java",
+      "sizeLines": 190,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/AccumulationProgramRequest.java",
+      "language": "java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/AccumulationSummaryDTO.java",
+      "language": "java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/dto/TierProgressDTO.java",
+      "language": "java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/entity/AccumulationPayment.java",
+      "language": "java",
+      "sizeLines": 99,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/entity/AccumulationProgram.java",
+      "language": "java",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/entity/AccumulationProgramTier.java",
+      "language": "java",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/repository/AccumulationPaymentRepository.java",
+      "language": "java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/repository/AccumulationProgramRepository.java",
+      "language": "java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/accumulation/service/AccumulationProgramService.java",
+      "language": "java",
+      "sizeLines": 685,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/controller/AgencyController.java",
+      "language": "java",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/controller/AgencyProductPriceController.java",
+      "language": "java",
+      "sizeLines": 104,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/dto/AgencyDTO.java",
+      "language": "java",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/dto/AgencyPriceListRequest.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/dto/AgencyProductPriceDTO.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/dto/AgencyProductPriceHistoryDTO.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/dto/AgencyRequest.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/dto/AgencyWithAccountRequest.java",
+      "language": "java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/Agency.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyCustomerAssignment.java",
+      "language": "java",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyPriceList.java",
+      "language": "java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyProduct.java",
+      "language": "java",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyProductPrice.java",
+      "language": "java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyProductPriceHistory.java",
+      "language": "java",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyRanking.java",
+      "language": "java",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyReview.java",
+      "language": "java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyStatus.java",
+      "language": "java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/entity/AgencyStorePriceList.java",
+      "language": "java",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyCustomerAssignmentRepository.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyPriceListRepository.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyProductPriceHistoryRepository.java",
+      "language": "java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyProductPriceRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyProductRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyRankingRepository.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyReviewRepository.java",
+      "language": "java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/repository/AgencyStorePriceListRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/service/AgencyProductPriceService.java",
+      "language": "java",
+      "sizeLines": 329,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/service/AgencyService.java",
+      "language": "java",
+      "sizeLines": 248,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/agency/service/CustomerPriceSyncService.java",
+      "language": "java",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/controller/ChatController.java",
+      "language": "java",
+      "sizeLines": 135,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/controller/ChatWebSocketController.java",
+      "language": "java",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/dto/ChatMessageRequest.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/entity/ChatMessage.java",
+      "language": "java",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/entity/ChatRoom.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/repository/ChatMessageRepository.java",
+      "language": "java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/repository/ChatRoomRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/chat/service/ChatService.java",
+      "language": "java",
+      "sizeLines": 140,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/controller/FileUploadController.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/controller/SystemConfigController.java",
+      "language": "java",
+      "sizeLines": 128,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/AttributeDTO.java",
+      "language": "java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/AttributeValueDTO.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/BrandDTO.java",
+      "language": "java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/CategoryDTO.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/ChatMessageDTO.java",
+      "language": "java",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/ChatRoomDTO.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/CustomerGroupDTO.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/FacetedSearchResponse.java",
+      "language": "java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/FacetGroupDTO.java",
+      "language": "java",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/FacetValueDTO.java",
+      "language": "java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/LoyaltyPointDTO.java",
+      "language": "java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/MessageResponse.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/PriceAssignmentVoucherDTO.java",
+      "language": "java",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/PriceListDTO.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/PriceListItemDTO.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/PriceUpdateVoucherDTO.java",
+      "language": "java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/ProductDTO.java",
+      "language": "java",
+      "sizeLines": 202,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/ProductTypeDTO.java",
+      "language": "java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/PromotionDTO.java",
+      "language": "java",
+      "sizeLines": 41,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/dto/ReviewDTO.java",
+      "language": "java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/entity/SenderType.java",
+      "language": "java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/entity/SystemConfig.java",
+      "language": "java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/entity/SystemConfigAudit.java",
+      "language": "java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/entity/VoucherStatus.java",
+      "language": "java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/repository/SystemConfigAuditRepository.java",
+      "language": "java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/repository/SystemConfigRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/service/FileStorageService.java",
+      "language": "java",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/service/SchemaUpdateService.java",
+      "language": "java",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/common/service/SystemConfigService.java",
+      "language": "java",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/config/DatabaseFixConfig.java",
+      "language": "java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/controller/AgencyDebtController.java",
+      "language": "java",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/controller/CreditController.java",
+      "language": "java",
+      "sizeLines": 184,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/dto/AgencyCreditSummaryDTO.java",
+      "language": "java",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/dto/AgencyDebtDTO.java",
+      "language": "java",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/dto/CreditDetailResponse.java",
+      "language": "java",
+      "sizeLines": 220,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/dto/CreditOrderRequest.java",
+      "language": "java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/dto/CreditTermsRequest.java",
+      "language": "java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/dto/PaymentRequest.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/entity/AgencyDebt.java",
+      "language": "java",
+      "sizeLines": 138,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/entity/AgentCredit.java",
+      "language": "java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/entity/CreditLedger.java",
+      "language": "java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/entity/OverdueDebt.java",
+      "language": "java",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/repository/AgencyDebtRepository.java",
+      "language": "java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/repository/AgentCreditRepository.java",
+      "language": "java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/repository/CreditLedgerRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/repository/OverdueDebtRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/scheduler/DebtOverdueScheduler.java",
+      "language": "java",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/service/AgencyDebtService.java",
+      "language": "java",
+      "sizeLines": 297,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/service/CreditService.java",
+      "language": "java",
+      "sizeLines": 277,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/credit/service/InterestScheduler.java",
+      "language": "java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/customer/controller/CustomerGroupController.java",
+      "language": "java",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/customer/dto/CustomerGroupRequest.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/customer/dto/CustomerRequest.java",
+      "language": "java",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/customer/entity/CustomerGroup.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/customer/repository/CustomerGroupRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/customer/service/CustomerGroupService.java",
+      "language": "java",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/dashboard/controller/DashboardController.java",
+      "language": "java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/dashboard/dto/DashboardDTO.java",
+      "language": "java",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/dashboard/service/DashboardService.java",
+      "language": "java",
+      "sizeLines": 129,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/controller/LoyaltyController.java",
+      "language": "java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/LoyaltyPoint.java",
+      "language": "java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/PointTransaction.java",
+      "language": "java",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/PointTransactionType.java",
+      "language": "java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/LoyaltyPointRepository.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/PointTransactionRepository.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/service/LoyaltyService.java",
+      "language": "java",
+      "sizeLines": 107,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/controller/OrderController.java",
+      "language": "java",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/dto/OrderDTO.java",
+      "language": "java",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/dto/OrderItemDTO.java",
+      "language": "java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/dto/OrderItemRequest.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/dto/OrderRequest.java",
+      "language": "java",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/entity/Order.java",
+      "language": "java",
+      "sizeLines": 120,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/entity/OrderItem.java",
+      "language": "java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/entity/OrderType.java",
+      "language": "java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/entity/PaymentStatus.java",
+      "language": "java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/entity/PromotionUsage.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/entity/Transaction.java",
+      "language": "java",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/repository/OrderRepository.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/repository/PromotionUsageRepository.java",
+      "language": "java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/repository/TransactionRepository.java",
+      "language": "java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/order/service/OrderService.java",
+      "language": "java",
+      "sizeLines": 753,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/controller/CommissionController.java",
+      "language": "java",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/controller/PriceAssignmentVoucherController.java",
+      "language": "java",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/controller/PriceListController.java",
+      "language": "java",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/controller/PriceUpdateVoucherController.java",
+      "language": "java",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/dto/CommissionConfigRequest.java",
+      "language": "java",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/dto/PriceAssignmentVoucherRequest.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/dto/PriceListConditionRequest.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/dto/PriceListItemUpdateRequest.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/dto/PriceListRequest.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/dto/PriceUpdateVoucherRequest.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/CommissionConfig.java",
+      "language": "java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceAssignmentVoucher.java",
+      "language": "java",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceList.java",
+      "language": "java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceListCondition.java",
+      "language": "java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceListConditionType.java",
+      "language": "java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceListItem.java",
+      "language": "java",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceUpdateVoucher.java",
+      "language": "java",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceUpdateVoucherItem.java",
+      "language": "java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/entity/PriceUpdateVoucherPriceList.java",
+      "language": "java",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/CommissionConfigRepository.java",
+      "language": "java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceAssignmentVoucherRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceListConditionRepository.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceListItemRepository.java",
+      "language": "java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceListRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceUpdateVoucherItemRepository.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceUpdateVoucherPriceListRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/repository/PriceUpdateVoucherRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/service/CommissionService.java",
+      "language": "java",
+      "sizeLines": 118,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/service/PriceAssignmentService.java",
+      "language": "java",
+      "sizeLines": 193,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/service/PriceListService.java",
+      "language": "java",
+      "sizeLines": 449,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/price/service/PriceUpdateVoucherService.java",
+      "language": "java",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/controller/AttributeController.java",
+      "language": "java",
+      "sizeLines": 129,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/controller/BrandController.java",
+      "language": "java",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/controller/CategoryController.java",
+      "language": "java",
+      "sizeLines": 140,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/controller/ProductController.java",
+      "language": "java",
+      "sizeLines": 141,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/controller/ProductTypeController.java",
+      "language": "java",
+      "sizeLines": 51,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/controller/ReviewController.java",
+      "language": "java",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/BrandImportRequest.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/BrandImportResult.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/BrandImportRowResult.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/BrandRequest.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/CategoryImportRequest.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/CategoryImportResult.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/CategoryImportRowResult.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/CategoryJsonImportRequest.java",
+      "language": "java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/CategoryJsonItem.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/CategoryRequest.java",
+      "language": "java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/FacetedSearchRequest.java",
+      "language": "java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/JsonImportRequest.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/ProductImportRequest.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/ProductImportResult.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/ProductImportRowResult.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/ProductRequest.java",
+      "language": "java",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/ProductTypeRequest.java",
+      "language": "java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/dto/ReviewRequest.java",
+      "language": "java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/Attribute.java",
+      "language": "java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/AttributeValue.java",
+      "language": "java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/Brand.java",
+      "language": "java",
+      "sizeLines": 74,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/Category.java",
+      "language": "java",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/Product.java",
+      "language": "java",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/ProductAttributeValue.java",
+      "language": "java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/ProductImage.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/ProductReview.java",
+      "language": "java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/entity/ProductType.java",
+      "language": "java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/AttributeRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/AttributeValueRepository.java",
+      "language": "java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/BrandRepository.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/CategoryRepository.java",
+      "language": "java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/ProductAttributeValueRepository.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/ProductImageRepository.java",
+      "language": "java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/ProductRepository.java",
+      "language": "java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/ProductReviewRepository.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/repository/ProductTypeRepository.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/AttributeService.java",
+      "language": "java",
+      "sizeLines": 309,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/BrandImportService.java",
+      "language": "java",
+      "sizeLines": 317,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/BrandService.java",
+      "language": "java",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/CategoryImportService.java",
+      "language": "java",
+      "sizeLines": 409,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/CategoryService.java",
+      "language": "java",
+      "sizeLines": 341,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/ProductImportService.java",
+      "language": "java",
+      "sizeLines": 646,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/ProductService.java",
+      "language": "java",
+      "sizeLines": 521,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/ProductTypeService.java",
+      "language": "java",
+      "sizeLines": 74,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/product/service/ReviewService.java",
+      "language": "java",
+      "sizeLines": 120,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/controller/PromotionController.java",
+      "language": "java",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/dto/PromotionRequest.java",
+      "language": "java",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/entity/DiscountType.java",
+      "language": "java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/entity/Promotion.java",
+      "language": "java",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/entity/PromotionStatus.java",
+      "language": "java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/repository/PromotionRepository.java",
+      "language": "java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/promotion/service/PromotionService.java",
+      "language": "java",
+      "sizeLines": 140,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/controller/BusinessRegionController.java",
+      "language": "java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/controller/LocationController.java",
+      "language": "java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/controller/LocationSyncController.java",
+      "language": "java",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/dto/BusinessRegionDTO.java",
+      "language": "java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/dto/BusinessRegionRequest.java",
+      "language": "java",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/dto/LocationDTO.java",
+      "language": "java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/entity/BusinessRegion.java",
+      "language": "java",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/entity/Province.java",
+      "language": "java",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/entity/Ward.java",
+      "language": "java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/repository/BusinessRegionRepository.java",
+      "language": "java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/repository/ProvinceRepository.java",
+      "language": "java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/repository/WardRepository.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/service/BusinessRegionService.java",
+      "language": "java",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/service/LocationService.java",
+      "language": "java",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/service/LocationSyncService.java",
+      "language": "java",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/region/service/RegionSeeder.java",
+      "language": "java",
+      "sizeLines": 118,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/controller/SalesPolicyController.java",
+      "language": "java",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/dto/ProductPolicyPreviewDTO.java",
+      "language": "java",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/dto/SalesPolicyDTO.java",
+      "language": "java",
+      "sizeLines": 350,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/dto/SalesPolicyRequest.java",
+      "language": "java",
+      "sizeLines": 225,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicy.java",
+      "language": "java",
+      "sizeLines": 230,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicyAdjustmentType.java",
+      "language": "java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicyAudienceFilter.java",
+      "language": "java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicyConditionType.java",
+      "language": "java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicyProductGroup.java",
+      "language": "java",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicyProductGroupItem.java",
+      "language": "java",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/entity/SalesPolicyTier.java",
+      "language": "java",
+      "sizeLines": 72,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/repository/SalesPolicyRepository.java",
+      "language": "java",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/salespolicy/service/SalesPolicyService.java",
+      "language": "java",
+      "sizeLines": 1130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/controller/AuthController.java",
+      "language": "java",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/controller/UserController.java",
+      "language": "java",
+      "sizeLines": 140,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/dto/JwtResponse.java",
+      "language": "java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/dto/LoginRequest.java",
+      "language": "java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/dto/RegisterRequest.java",
+      "language": "java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/dto/UserDTO.java",
+      "language": "java",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/entity/Role.java",
+      "language": "java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/entity/User.java",
+      "language": "java",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/repository/UserRepository.java",
+      "language": "java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/modules/user/service/UserService.java",
+      "language": "java",
+      "sizeLines": 266,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/scheduler/AccumulationScheduler.java",
+      "language": "java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/scheduler/PendingPaymentScheduler.java",
+      "language": "java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/scheduler/PriceAssignmentScheduler.java",
+      "language": "java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/scheduler/PriceUpdateScheduler.java",
+      "language": "java",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/scheduler/RankingScheduler.java",
+      "language": "java",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/security/jwt/AuthEntryPointJwt.java",
+      "language": "java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/security/jwt/AuthTokenFilter.java",
+      "language": "java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/security/jwt/JwtUtils.java",
+      "language": "java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/security/services/UserDetailsImpl.java",
+      "language": "java",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/security/services/UserDetailsServiceImpl.java",
+      "language": "java",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/TestRunner.java",
+      "language": "java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/java/com/anhtin/tmdt/backend/TmdtBackendApplication.java",
+      "language": "java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/main/resources/application.yml",
+      "language": "yaml",
+      "sizeLines": 42,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260601__create_system_config.sql",
+      "language": "sql",
+      "sizeLines": 19,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260602__drop_old_sales_policy_columns.sql",
+      "language": "sql",
+      "sizeLines": 11,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260603__create_product_groups.sql",
+      "language": "sql",
+      "sizeLines": 18,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260604__create_accumulation_tables.sql",
+      "language": "sql",
+      "sizeLines": 52,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260605__add_condition_type.sql",
+      "language": "sql",
+      "sizeLines": 1,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260606__add_item_adjustment_fields.sql",
+      "language": "sql",
+      "sizeLines": 7,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260607__make_fk_nullable.sql",
+      "language": "sql",
+      "sizeLines": 2,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260608__add_policy_type_and_promotion_fields.sql",
+      "language": "sql",
+      "sizeLines": 7,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260609__add_order_payment_method_and_source.sql",
+      "language": "sql",
+      "sizeLines": 3,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260611__create_promotion_usage_table.sql",
+      "language": "sql",
+      "sizeLines": 9,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260613__add_category_level.sql",
+      "language": "sql",
+      "sizeLines": 24,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260614__create_product_types.sql",
+      "language": "sql",
+      "sizeLines": 16,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260615__add_new_product_fields.sql",
+      "language": "sql",
+      "sizeLines": 16,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V20260616__add_product_version_fields.sql",
+      "language": "sql",
+      "sizeLines": 3,
+      "fileCategory": "data"
+    },
+    {
+      "path": "backend/src/test/java/com/anhtin/tmdt/backend/modules/agency/service/AgencyProductPriceServiceTest.java",
+      "language": "java",
+      "sizeLines": 106,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/test/java/com/anhtin/tmdt/backend/modules/salespolicy/service/DbDumpTest.java",
+      "language": "java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/test/java/com/anhtin/tmdt/backend/modules/salespolicy/service/SalesPolicyServiceTest.java",
+      "language": "java",
+      "sizeLines": 453,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/src/test/java/com/anhtin/tmdt/backend/TmdtBackendApplicationTests.java",
+      "language": "java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "Docs/api_reference.md",
+      "language": "markdown",
+      "sizeLines": 428,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/implementation_CSBH_plan.md",
+      "language": "markdown",
+      "sizeLines": 102,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/implementation_CTTL_plan",
+      "language": "unknown",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "Docs/implementation_product_groups_plan.md",
+      "language": "markdown",
+      "sizeLines": 73,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/implementation_product_pricing_detail_plan.md",
+      "language": "markdown",
+      "sizeLines": 90,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/implementation_updatelogic_plan",
+      "language": "unknown",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "Docs/stitch-screens/quan-ly-cong-no.html",
+      "language": "html",
+      "sizeLines": 440,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "Docs/task.md",
+      "language": "markdown",
+      "sizeLines": 30,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/Thiet_ke_Chinh_sach_Hoa_hong_Gia_ban.md",
+      "language": "markdown",
+      "sizeLines": 443,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/tmdt_push_sale_dev_plan.md",
+      "language": "markdown",
+      "sizeLines": 194,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "Docs/walkthrough_CSBH_v2.md",
+      "language": "markdown",
+      "sizeLines": 65,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "frontend/eslint.config.mjs",
+      "language": "javascript",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/final-fix.js",
+      "language": "javascript",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/fix-terms.js",
+      "language": "javascript",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/next.config.ts",
+      "language": "typescript",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/package.json",
+      "language": "json",
+      "sizeLines": 35,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/postcss.config.mjs",
+      "language": "javascript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/README.md",
+      "language": "markdown",
+      "sizeLines": 36,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "frontend/replace-terms.js",
+      "language": "javascript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/search-terms.js",
+      "language": "javascript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/accumulation-programs/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 445,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/accumulation-programs/new/page.tsx",
+      "language": "typescript",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/accumulation-programs/page.tsx",
+      "language": "typescript",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/agencies/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 925,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/agencies/page.tsx",
+      "language": "typescript",
+      "sizeLines": 596,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/agency/customers/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 303,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/agency/customers/create/page.tsx",
+      "language": "typescript",
+      "sizeLines": 217,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/attributes/page.tsx",
+      "language": "typescript",
+      "sizeLines": 452,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/brands/import/page.tsx",
+      "language": "typescript",
+      "sizeLines": 501,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/brands/page.tsx",
+      "language": "typescript",
+      "sizeLines": 158,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/categories/[id]/edit/page.tsx",
+      "language": "typescript",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/categories/create/page.tsx",
+      "language": "typescript",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/categories/import/page.tsx",
+      "language": "typescript",
+      "sizeLines": 509,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/categories/page.tsx",
+      "language": "typescript",
+      "sizeLines": 497,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/checkout/page.tsx",
+      "language": "typescript",
+      "sizeLines": 241,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/credit/config/page.tsx",
+      "language": "typescript",
+      "sizeLines": 281,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/credit/debts/page.tsx",
+      "language": "typescript",
+      "sizeLines": 504,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/credit/page.tsx",
+      "language": "typescript",
+      "sizeLines": 725,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/customer-groups/page.tsx",
+      "language": "typescript",
+      "sizeLines": 181,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/customers/[id]/edit/page.tsx",
+      "language": "typescript",
+      "sizeLines": 314,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/customers/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 304,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/customers/create/page.tsx",
+      "language": "typescript",
+      "sizeLines": 294,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/customers/page.tsx",
+      "language": "typescript",
+      "sizeLines": 274,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/dashboard/page.tsx",
+      "language": "typescript",
+      "sizeLines": 324,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/globals.css",
+      "language": "css",
+      "sizeLines": 537,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "frontend/src/app/layout.tsx",
+      "language": "typescript",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/login/page.tsx",
+      "language": "typescript",
+      "sizeLines": 144,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/my-customers/page.tsx",
+      "language": "typescript",
+      "sizeLines": 180,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/orders/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 475,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/orders/create/page.tsx",
+      "language": "typescript",
+      "sizeLines": 1231,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/orders/page.tsx",
+      "language": "typescript",
+      "sizeLines": 271,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/page.tsx",
+      "language": "typescript",
+      "sizeLines": 144,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/price-lists/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 267,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/price-lists/my-store/page.tsx",
+      "language": "typescript",
+      "sizeLines": 128,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/price-lists/page.tsx",
+      "language": "typescript",
+      "sizeLines": 256,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/price-update-vouchers/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 208,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/price-update-vouchers/page.tsx",
+      "language": "typescript",
+      "sizeLines": 798,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/price-vouchers/page.tsx",
+      "language": "typescript",
+      "sizeLines": 415,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/product-types/page.tsx",
+      "language": "typescript",
+      "sizeLines": 183,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/products/[id]/edit/page.tsx",
+      "language": "typescript",
+      "sizeLines": 780,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/products/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 803,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/products/create/page.tsx",
+      "language": "typescript",
+      "sizeLines": 705,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/products/import/page.tsx",
+      "language": "typescript",
+      "sizeLines": 569,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/products/page.tsx",
+      "language": "typescript",
+      "sizeLines": 619,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/products/search/page.tsx",
+      "language": "typescript",
+      "sizeLines": 661,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/profile/page.tsx",
+      "language": "typescript",
+      "sizeLines": 261,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/regions/page.tsx",
+      "language": "typescript",
+      "sizeLines": 346,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/register/page.tsx",
+      "language": "typescript",
+      "sizeLines": 172,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/sales-policies/[id]/page.tsx",
+      "language": "typescript",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/sales-policies/new/page.tsx",
+      "language": "typescript",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/sales-policies/page.tsx",
+      "language": "typescript",
+      "sizeLines": 286,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/settings/page.tsx",
+      "language": "typescript",
+      "sizeLines": 525,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/app/users/page.tsx",
+      "language": "typescript",
+      "sizeLines": 353,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/DashboardLayout.tsx",
+      "language": "typescript",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/Main.tsx",
+      "language": "typescript",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/Navbar.tsx",
+      "language": "typescript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/NotificationModal.tsx",
+      "language": "typescript",
+      "sizeLines": 85,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/SalesPolicyForm.tsx",
+      "language": "typescript",
+      "sizeLines": 3522,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/Sidebar.tsx",
+      "language": "typescript",
+      "sizeLines": 168,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ThemeProvider.tsx",
+      "language": "typescript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/TierProgressBar.tsx",
+      "language": "typescript",
+      "sizeLines": 157,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/TopBar.tsx",
+      "language": "typescript",
+      "sizeLines": 205,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/Badge.tsx",
+      "language": "typescript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/BrandFormModal.tsx",
+      "language": "typescript",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/DataTable.tsx",
+      "language": "typescript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/GlassCard.tsx",
+      "language": "typescript",
+      "sizeLines": 63,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/Modal.tsx",
+      "language": "typescript",
+      "sizeLines": 56,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/PageHeader.tsx",
+      "language": "typescript",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/Pagination.tsx",
+      "language": "typescript",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/SearchableSelect.tsx",
+      "language": "typescript",
+      "sizeLines": 329,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/ui/SearchActionHeader.tsx",
+      "language": "typescript",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/context/AuthContext.tsx",
+      "language": "typescript",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/context/CartContext.tsx",
+      "language": "typescript",
+      "sizeLines": 100,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "language": "typescript",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/lib/fetcher.ts",
+      "language": "typescript",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/lib/utils.ts",
+      "language": "typescript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/accumulation/accumulationApi.ts",
+      "language": "typescript",
+      "sizeLines": 202,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/agency/agencyApi.ts",
+      "language": "typescript",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/agency/customerPriceApi.ts",
+      "language": "typescript",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/chat/chatApi.ts",
+      "language": "typescript",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/common/commonApi.ts",
+      "language": "typescript",
+      "sizeLines": 120,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/common/components/GalleryUploader.tsx",
+      "language": "typescript",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/common/components/ImageUploader.tsx",
+      "language": "typescript",
+      "sizeLines": 161,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/common/components/RichTextEditor.tsx",
+      "language": "typescript",
+      "sizeLines": 153,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/credit/creditApi.ts",
+      "language": "typescript",
+      "sizeLines": 136,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/customer/customerApi.ts",
+      "language": "typescript",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/dashboard/dashboardApi.ts",
+      "language": "typescript",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/order/orderApi.ts",
+      "language": "typescript",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/price/priceApi.ts",
+      "language": "typescript",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/product/components/FacetPanel.tsx",
+      "language": "typescript",
+      "sizeLines": 283,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/product/productApi.ts",
+      "language": "typescript",
+      "sizeLines": 531,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/region/LocationSelector.tsx",
+      "language": "typescript",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/region/regionApi.ts",
+      "language": "typescript",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/salespolicy/salesPolicyApi.ts",
+      "language": "typescript",
+      "sizeLines": 163,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/modules/user/userApi.ts",
+      "language": "typescript",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "language": "json",
+      "sizeLines": 34,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/UpdateApi.java",
+      "language": "java",
+      "sizeLines": 74,
+      "fileCategory": "code"
+    },
+    {
+      "path": "implementation_CSBH_plan",
+      "language": "unknown",
+      "sizeLines": 111,
+      "fileCategory": "code"
+    },
+    {
+      "path": "implementation_n_days_plan",
+      "language": "unknown",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "implementation_order_plan",
+      "language": "unknown",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "implementation_plan.md",
+      "language": "markdown",
+      "sizeLines": 144,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "mobile/app.json",
+      "language": "json",
+      "sizeLines": 31,
+      "fileCategory": "config"
+    },
+    {
+      "path": "mobile/App.tsx",
+      "language": "typescript",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/assets/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/babel.config.js",
+      "language": "javascript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/package.json",
+      "language": "json",
+      "sizeLines": 35,
+      "fileCategory": "config"
+    },
+    {
+      "path": "mobile/src/api/agency.ts",
+      "language": "typescript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/auth.ts",
+      "language": "typescript",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/client.ts",
+      "language": "typescript",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/credit.ts",
+      "language": "typescript",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/debt.ts",
+      "language": "typescript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/notification.ts",
+      "language": "typescript",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/order.ts",
+      "language": "typescript",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/product.ts",
+      "language": "typescript",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/api/promotion.ts",
+      "language": "typescript",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/components/CartItemRow.tsx",
+      "language": "typescript",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/components/ConfirmModal.tsx",
+      "language": "typescript",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/components/LoadingSpinner.tsx",
+      "language": "typescript",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/components/OrderStatusBadge.tsx",
+      "language": "typescript",
+      "sizeLines": 57,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/components/ProductCard.tsx",
+      "language": "typescript",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/context/AuthContext.tsx",
+      "language": "typescript",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/context/CartContext.tsx",
+      "language": "typescript",
+      "sizeLines": 134,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/navigation/AppNavigator.tsx",
+      "language": "typescript",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/auth/LoginScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 217,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/auth/RegisterScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 92,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/cart/CartScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 600,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/cart/CheckoutScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 1179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/debt/DebtScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 1056,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/home/HomeScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 752,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/notifications/NotificationsScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/products/CategoryListScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 569,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/products/ProductDetailScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 937,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/products/ProductListScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/profile/ProfileScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 199,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/screens/promotions/PromotionsScreen.tsx",
+      "language": "typescript",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/theme/index.ts",
+      "language": "typescript",
+      "sizeLines": 127,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/types/index.ts",
+      "language": "typescript",
+      "sizeLines": 275,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/src/utils.ts",
+      "language": "typescript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mobile/tsconfig.json",
+      "language": "json",
+      "sizeLines": 10,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 0,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "task.md",
+      "language": "markdown",
+      "sizeLines": 9,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "walkthrough.md",
+      "language": "markdown",
+      "sizeLines": 56,
+      "fileCategory": "docs"
+    }
+  ],
+  "totalFiles": 475,
+  "filteredByIgnore": 28,
+  "estimatedComplexity": "large",
+  "stats": {
+    "filesScanned": 475,
+    "byCategory": {
+      "code": 430,
+      "config": 9,
+      "script": 6,
+      "data": 15,
+      "docs": 13,
+      "markup": 2
+    },
+    "byLanguage": {
+      "unknown": 8,
+      "properties": 1,
+      "java": 287,
+      "batch": 1,
+      "xml": 1,
+      "json": 6,
+      "powershell": 5,
+      "csv": 1,
+      "yaml": 1,
+      "sql": 14,
+      "markdown": 13,
+      "html": 1,
+      "javascript": 7,
+      "typescript": 128,
+      "css": 1
+    }
+  }
+}

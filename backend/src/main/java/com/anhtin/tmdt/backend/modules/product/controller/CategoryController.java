@@ -115,6 +115,17 @@ public class CategoryController {
         }
     }
 
+    @GetMapping("/export")
+    public ResponseEntity<InputStreamResource> exportCategories() {
+        ByteArrayInputStream in = categoryImportService.exportCategories();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=categories.xlsx");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new InputStreamResource(in));
+    }
+
     @GetMapping("/import/template")
     public ResponseEntity<InputStreamResource> downloadTemplate() {
         ByteArrayInputStream in = categoryImportService.exportTemplate();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
 import { productApi, categoryApi, ProductDTO, PageResponse, CategoryDTO } from '@/lib/api';
@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { resolveImageUrl } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProductPage, productKeys } from '@/modules/product/hooks';
 
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
@@ -32,9 +34,6 @@ import {
 } from 'lucide-react';
 
 export default function ProductsPage() {
-  const [pageData, setPageData] = useState<PageResponse<ProductDTO> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -42,40 +41,32 @@ export default function ProductsPage() {
   const [pageSize, setPageSize] = useState(20);
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const queryClient = useQueryClient();
 
   const [categoryOptions, setCategoryOptions] = useState<CategoryDTO[][]>([[], [], [], []]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<(number | undefined)[]>([undefined, undefined, undefined, undefined]);
   const [levelNames, setLevelNames] = useState<string[]>(['Ngành hàng', 'Nhóm hàng', 'Loại SP', 'Dòng SP']);
   const [categoryFilterId, setCategoryFilterId] = useState<number | undefined>(undefined);
 
+  const getAgencyId = () => {
+    if (typeof window === 'undefined') return undefined;
+    const stored = localStorage.getItem('agencyId');
+    return stored ? Number(stored) : undefined;
+  };
+
+  const { data: pageData, isLoading: loading, error: queryError } = useProductPage({
+    page,
+    size: pageSize,
+    search: debouncedSearch || undefined,
+    agencyId: getAgencyId(),
+    categoryId: categoryFilterId,
+  });
+  const error = queryError ? (queryError as Error).message : '';
+
   useEffect(() => {
     const savedMode = localStorage.getItem('productViewMode');
     if (savedMode === 'table' || savedMode === 'grid') {
       setViewMode(savedMode);
-    }
-  }, []);
-
-  const fetchPage = useCallback(async (p: number, s: string, ps: number, catId?: number) => {
-    setLoading(true);
-    try {
-      let currentAgencyId: number | undefined = undefined;
-      const storedAgencyId = localStorage.getItem('agencyId');
-      if (storedAgencyId) {
-        currentAgencyId = Number(storedAgencyId);
-      }
-      const data = await productApi.getPage({
-        page: p,
-        size: ps,
-        search: s || undefined,
-        agencyId: currentAgencyId,
-        categoryId: catId,
-      });
-      setPageData(data);
-      setError('');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -95,6 +86,21 @@ export default function ProductsPage() {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(timer);
   }, [search]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+    queryClient.prefetchQuery({
+      queryKey: productKeys.page({
+        page: newPage + 1, size: pageSize, search: debouncedSearch || undefined,
+        agencyId: getAgencyId(), categoryId: categoryFilterId,
+      }),
+      queryFn: () => productApi.getPage({
+        page: newPage + 1, size: pageSize, search: debouncedSearch || undefined,
+        agencyId: getAgencyId(), categoryId: categoryFilterId,
+      }),
+      staleTime: 30 * 1000,
+    });
+  }, [pageSize, debouncedSearch, categoryFilterId]);
 
   const handleCategoryChange = useCallback(async (level: number, catId: number | undefined) => {
     setSelectedCategoryIds(prev => {
@@ -135,10 +141,6 @@ export default function ProductsPage() {
     setPage(0);
   }, []);
 
-  useEffect(() => {
-    fetchPage(page, debouncedSearch, pageSize, categoryFilterId);
-  }, [page, pageSize, debouncedSearch, categoryFilterId, fetchPage]);
-
   const toggleViewMode = (mode: 'grid' | 'table') => {
     setViewMode(mode);
     localStorage.setItem('productViewMode', mode);
@@ -148,7 +150,7 @@ export default function ProductsPage() {
     if (!confirm('Bạn có chắc chắn muốn xoá sản phẩm này?')) return;
     try {
       await productApi.delete(id);
-      fetchPage(page, debouncedSearch, pageSize, categoryFilterId);
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
     } catch (err: any) {
       alert(err.message);
     }
@@ -368,6 +370,10 @@ export default function ProductsPage() {
                     <Upload size={18} />
                     Import Excel
                   </Link>
+                  <Link href="/products/import-attributes" className="btn-outline" style={{ textDecoration: 'none' }}>
+                    <Upload size={18} />
+                    Import Thuộc tính
+                  </Link>
                 </>
               )}
             </div>
@@ -406,17 +412,24 @@ export default function ProductsPage() {
           </div>
         </GlassCard>
 
-        {/* States */}
-        {loading ? (
-          <GlassCard style={{ padding: '80px 0', textAlign: 'center' }}>
-            <div className="spinner" style={{ marginBottom: 16 }}></div>
-            <p style={{ color: 'var(--text-secondary)' }}>Đang tải danh sách sản phẩm...</p>
-          </GlassCard>
+        {/* Skeleton loading */}
+        {loading && !pageData ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
+            {Array.from({ length: pageSize > 12 ? 12 : pageSize }).map((_, i) => (
+              <GlassCard key={i} style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ height: 180, borderRadius: 12, marginBottom: 16, background: 'rgba(255,255,255,0.05)', animation: 'pulse 2s infinite' }} />
+                <div style={{ height: 14, width: '40%', borderRadius: 6, marginBottom: 10, background: 'rgba(255,255,255,0.05)', animation: 'pulse 2s infinite' }} />
+                <div style={{ height: 18, width: '80%', borderRadius: 6, marginBottom: 6, background: 'rgba(255,255,255,0.08)', animation: 'pulse 2s infinite' }} />
+                <div style={{ height: 12, width: '60%', borderRadius: 6, marginBottom: 16, background: 'rgba(255,255,255,0.05)', animation: 'pulse 2s infinite' }} />
+                <div style={{ height: 24, width: '30%', borderRadius: 6, marginTop: 'auto', background: 'rgba(255,255,255,0.08)', animation: 'pulse 2s infinite' }} />
+              </GlassCard>
+            ))}
+          </div>
         ) : error ? (
           <GlassCard style={{ padding: 40, textAlign: 'center', borderColor: 'var(--danger)' }}>
             <h3 style={{ color: 'var(--danger)', marginBottom: 12 }}>⚠️ Không thể tải dữ liệu</h3>
             <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
-            <button onClick={() => fetchPage(page, debouncedSearch, pageSize, categoryFilterId)} className="btn-outline" style={{ marginTop: 20 }}>Thử lại</button>
+            <button onClick={() => queryClient.refetchQueries({ queryKey: productKeys.all })} className="btn-outline" style={{ marginTop: 20 }}>Thử lại</button>
           </GlassCard>
         ) : products.length === 0 ? (
           <GlassCard style={{ padding: '80px 0', textAlign: 'center' }}>
@@ -598,7 +611,7 @@ export default function ProductsPage() {
                   </GlassCard>
                 ))}
               </div>
-              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
               </>
             ) : (
               <DataTable 
@@ -607,7 +620,7 @@ export default function ProductsPage() {
                 loading={loading}
                 page={page}
                 totalPages={totalPages}
-                onPageChange={setPage}
+                onPageChange={handlePageChange}
               />
             )}
           </>

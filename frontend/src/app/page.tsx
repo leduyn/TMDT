@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { usePrefetchProducts } from '@/modules/product/hooks';
 
 export default function HomePage() {
+  const { prefetch } = usePrefetchProducts();
   return (
     <>
       <main style={{
@@ -55,7 +57,7 @@ export default function HomePage() {
           </p>
 
           <div className="fade-in-up" style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', animationDelay: '0.3s' }}>
-            <Link href="/products">
+            <Link href="/products" onMouseEnter={() => prefetch({ page: 0, size: 20 })}>
               <button className="btn-primary" style={{ width: 'auto', padding: '14px 32px', fontSize: '1rem' }}>
                 🛍️ Xem sản phẩm
               </button>
