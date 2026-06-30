@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
 
 @Entity
 @Table(name = "agencies")
@@ -15,28 +14,42 @@ public class Agency {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(unique = true, nullable = false)
+    private String code;
 
     @Column(nullable = false)
     private String name;
 
+    private String representativeName;
+
+    @Column(unique = true)
+    private String taxCode;
+
+    private String billingAddress;
+    private String shippingAddress;
+    private String receiverName;
+    private String receiverPhone;
+    private String nickname;
+
+    @Column(unique = true, nullable = false)
     private String phone;
-    private String address;
 
     @Column(nullable = false)
-    private Double latitude = 0.0;
-
-    @Column(nullable = false)
-    private Double longitude = 0.0;
-
-    @Column(name = "default_commission_rate")
-    private Double defaultCommissionRate;
+    private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(255) default 'PENDING'")
     private AgencyStatus status = AgencyStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(20) default 'RETAIL'")
+    private AgencyType type = AgencyType.RETAIL;
+
+    @Column(name = "has_hmn")
+    private boolean hasHmn = false;
+
+    @Column(name = "hmn_amount")
+    private Double hmnAmount = 0.0;
 
     private boolean active = false;
 
@@ -45,22 +58,36 @@ public class Agency {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public String getRepresentativeName() { return representativeName; }
+    public void setRepresentativeName(String representativeName) { this.representativeName = representativeName; }
+    public String getTaxCode() { return taxCode; }
+    public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
+    public String getBillingAddress() { return billingAddress; }
+    public void setBillingAddress(String billingAddress) { this.billingAddress = billingAddress; }
+    public String getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
+    public String getReceiverName() { return receiverName; }
+    public void setReceiverName(String receiverName) { this.receiverName = receiverName; }
+    public String getReceiverPhone() { return receiverPhone; }
+    public void setReceiverPhone(String receiverPhone) { this.receiverPhone = receiverPhone; }
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public Double getLatitude() { return latitude; }
-    public void setLatitude(Double latitude) { this.latitude = latitude; }
-    public Double getLongitude() { return longitude; }
-    public void setLongitude(Double longitude) { this.longitude = longitude; }
-    public Double getDefaultCommissionRate() { return defaultCommissionRate; }
-    public void setDefaultCommissionRate(Double defaultCommissionRate) { this.defaultCommissionRate = defaultCommissionRate; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
     public AgencyStatus getStatus() { return status; }
     public void setStatus(AgencyStatus status) { this.status = status; }
+    public AgencyType getType() { return type; }
+    public void setType(AgencyType type) { this.type = type; }
+    public boolean isHasHmn() { return hasHmn; }
+    public void setHasHmn(boolean hasHmn) { this.hasHmn = hasHmn; }
+    public Double getHmnAmount() { return hmnAmount; }
+    public void setHmnAmount(Double hmnAmount) { this.hmnAmount = hmnAmount; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public LocalDateTime getCreatedAt() { return createdAt; }

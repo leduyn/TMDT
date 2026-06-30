@@ -1,4 +1,5 @@
 import { fetchJSON } from "@/lib/fetcher";
+import type { PageResponse } from "@/modules/product/productApi";
 
 export interface PriceListDTO {
   id: number;
@@ -55,11 +56,28 @@ export interface PriceUpdateVoucherRequest {
   items: { productId: number; newPrice: number; isVisible: boolean }[];
 }
 
+export interface PriceListItemDTO {
+  id: number;
+  productId: number;
+  productName: string;
+  productImageUrl: string;
+  price: number;
+  isVisible: boolean;
+  oldPrice?: number;
+}
+
 export const priceListApi = {
   getAll: () => fetchJSON<PriceListDTO[]>('/api/price-lists'),
   getById: (id: number) => fetchJSON<PriceListDTO>(`/api/price-lists/${id}`),
   resolveForAgency: (agencyId: number) => fetchJSON<PriceListDTO>(`/api/price-lists/resolve/agency/${agencyId}`),
-  getItems: (id: number) => fetchJSON<any[]>(`/api/price-lists/${id}/items`),
+  getItems: (id: number, page?: number, size?: number, search?: string) => {
+    const params = new URLSearchParams();
+    if (page !== undefined) params.set('page', page.toString());
+    if (size !== undefined) params.set('size', size.toString());
+    if (search) params.set('search', search);
+    const qs = params.toString();
+    return fetchJSON<PageResponse<PriceListItemDTO>>(`/api/price-lists/${id}/items${qs ? '?' + qs : ''}`);
+  },
 };
 
 export const priceAssignmentVoucherApi = {

@@ -29,9 +29,9 @@ public class PromotionService {
 
     @Transactional
     public PromotionDTO createPromotion(PromotionRequest request) {
-        // Kiá»ƒm tra mÃ£ Ä‘Ã£ tá»“n táº¡i chÆ°a
+        // Kiểm tra mã đã tồn tại chưa
         if (promotionRepository.findByCode(request.getCode()).isPresent()) {
-            throw new RuntimeException("MÃ£ khuyáº¿n mÃ£i Ä‘Ã£ tá»“n táº¡i: " + request.getCode());
+            throw new RuntimeException("Mã khuyến mãi đã tồn tại: " + request.getCode());
         }
 
         Promotion promotion = new Promotion();
@@ -48,7 +48,7 @@ public class PromotionService {
         Long agencyId = request.getAgencyId();
         if (agencyId != null) {
             Agency agency = agencyRepository.findById(agencyId)
-                    .orElseThrow(() -> new RuntimeException("Äáº¡i lÃ½ khÃ´ng tá»“n táº¡i"));
+                    .orElseThrow(() -> new RuntimeException("Đại lý không tồn tại"));
             promotion.setAgency(agency);
         }
 
@@ -74,33 +74,33 @@ public class PromotionService {
     }
 
     /**
-     * Validate vÃ  tÃ­nh toÃ¡n giÃ¡ trá»‹ giáº£m giÃ¡ cho 1 Ä‘Æ¡n hÃ ng.
-     * @return Sá»‘ tiá»n Ä‘Æ°á»£c giáº£m
+     * Validate và tính toán giá trị giảm giá cho 1 đơn hàng.
+     * @return Số tiền được giảm
      */
     public double validateAndCalculateDiscount(String code, double orderTotal) {
         Promotion promo = promotionRepository.findByCodeAndStatus(code.toUpperCase(), PromotionStatus.ACTIVE)
-                .orElseThrow(() -> new RuntimeException("MÃ£ giáº£m giÃ¡ khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n"));
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá không hợp lệ hoặc đã hết hạn"));
 
-        // Kiá»ƒm tra thá»i háº¡n
+        // Kiểm tra thời hạn
         LocalDateTime now = LocalDateTime.now();
         if (promo.getStartDate() != null && now.isBefore(promo.getStartDate())) {
-            throw new RuntimeException("MÃ£ giáº£m giÃ¡ chÆ°a cÃ³ hiá»‡u lá»±c");
+            throw new RuntimeException("Mã giảm giá chưa có hiệu lực");
         }
         if (promo.getEndDate() != null && now.isAfter(promo.getEndDate())) {
-            throw new RuntimeException("MÃ£ giáº£m giÃ¡ Ä‘Ã£ háº¿t háº¡n");
+            throw new RuntimeException("Mã giảm giá đã hết hạn");
         }
 
-        // Kiá»ƒm tra giá»›i háº¡n sá»­ dá»¥ng
+        // Kiểm tra giới hạn sử dụng
         if (promo.getUsageLimit() != null && promo.getUsedCount() >= promo.getUsageLimit()) {
-            throw new RuntimeException("MÃ£ giáº£m giÃ¡ Ä‘Ã£ háº¿t lÆ°á»£t sá»­ dá»¥ng");
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
         }
 
-        // Kiá»ƒm tra giÃ¡ trá»‹ Ä‘Æ¡n tá»‘i thiá»ƒu
+        // Kiểm tra giá trị đơn tối thiểu
         if (orderTotal < promo.getMinOrderValue()) {
-            throw new RuntimeException("ÄÆ¡n hÃ ng chÆ°a Ä‘áº¡t giÃ¡ trá»‹ tá»‘i thiá»ƒu " + promo.getMinOrderValue());
+            throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu " + promo.getMinOrderValue());
         }
 
-        // TÃ­nh giÃ¡ trá»‹ giáº£m
+        // Tính giá trị giảm
         double discount;
         if (promo.getDiscountType() == DiscountType.PERCENTAGE) {
             discount = orderTotal * (promo.getDiscountValue() / 100.0);
@@ -111,19 +111,19 @@ public class PromotionService {
             discount = promo.getDiscountValue();
         }
 
-        return Math.min(discount, orderTotal); // KhÃ´ng giáº£m quÃ¡ tá»•ng Ä‘Æ¡n
+        return Math.min(discount, orderTotal); // Không giảm quá tổng đơn
     }
 
     /**
-     * TÄƒng sá»‘ láº§n sá»­ dá»¥ng khi Ä‘Æ¡n hÃ ng chá»‘t thÃ nh cÃ´ng.
+     * Tăng số lần sử dụng khi đơn hàng chốt thành công.
      */
     @Transactional
     public void incrementUsage(String code) {
         Promotion promo = promotionRepository.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new RuntimeException("MÃ£ giáº£m giÃ¡ khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại"));
         promo.setUsedCount(promo.getUsedCount() + 1);
 
-        // Auto disable náº¿u Ä‘Ã£ háº¿t lÆ°á»£t
+        // Auto disable nếu đã hết lượt
         if (promo.getUsageLimit() != null && promo.getUsedCount() >= promo.getUsageLimit()) {
             promo.setStatus(PromotionStatus.DISABLED);
         }
@@ -133,7 +133,7 @@ public class PromotionService {
     @Transactional
     public void disablePromotion(Long id) {
         Promotion promo = promotionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("MÃ£ giáº£m giÃ¡ khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại"));
         promo.setStatus(PromotionStatus.DISABLED);
         promotionRepository.save(promo);
     }

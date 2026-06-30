@@ -15,7 +15,7 @@ import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Pagination from '@/components/ui/Pagination';
-import { Plus, Tag, Edit, Trash2, Settings, Upload, ChevronRight, Download, Package } from 'lucide-react';
+import { Plus, Tag, Edit, Trash2, Settings, Upload, ChevronRight, Download, Package, Eye } from 'lucide-react';
 
 interface TreeNode {
   category: CategoryDTO;
@@ -354,6 +354,14 @@ export default function CategoriesPage() {
           label={p.status || 'N/A'}
           type={p.status === 'ACTIVE' ? 'success' : p.status === 'INACTIVE' ? 'warning' : 'info'}
         />
+      )
+    },
+    {
+      header: '', key: 'id', align: 'right',
+      render: (p) => (
+        <Link href={`/products/${p.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8, display: 'inline-flex' }}>
+          <Eye size={16} />
+        </Link>
       )
     },
   ];

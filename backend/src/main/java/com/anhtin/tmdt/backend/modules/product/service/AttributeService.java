@@ -54,7 +54,7 @@ public class AttributeService {
     @Autowired
     private PriceListService priceListService;
 
-    // â”€â”€â”€ CRUD Attributes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── CRUD Attributes ────────────────────────────────────────────────────────
 
     public List<AttributeDTO> getAllAttributes() {
         return attributeRepository.findAll().stream()
@@ -82,7 +82,7 @@ public class AttributeService {
     @Transactional
     public AttributeDTO createAttribute(String name, String displayName, Long categoryId, Boolean isVariant) {
         attributeRepository.findByName(name).ifPresent(a -> {
-            throw new IllegalArgumentException("Thuá»™c tÃ­nh vá»›i mÃ£ '" + name + "' Ä‘Ã£ tá»“n táº¡i.");
+            throw new IllegalArgumentException("Thuộc tính với mã '" + name + "' đã tồn tại.");
         });
         
         Attribute attr = new Attribute();
@@ -106,7 +106,7 @@ public class AttributeService {
                 
         attributeRepository.findByName(name).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
-                throw new IllegalArgumentException("Thuá»™c tÃ­nh vá»›i mÃ£ '" + name + "' Ä‘Ã£ tá»“n táº¡i.");
+                throw new IllegalArgumentException("Thuộc tính với mã '" + name + "' đã tồn tại.");
             }
         });
         
@@ -129,7 +129,7 @@ public class AttributeService {
         attributeRepository.deleteById(id);
     }
 
-    // â”€â”€â”€ CRUD Attribute Values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── CRUD Attribute Values ──────────────────────────────────────────────────
 
     public List<AttributeValueDTO> getValuesByAttributeId(Long attributeId) {
         return attributeValueRepository.findByAttributeId(attributeId).stream()
@@ -154,11 +154,11 @@ public class AttributeService {
         attributeValueRepository.deleteById(valueId);
     }
 
-    // â”€â”€â”€ Product â†” Attribute Values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Product ↔ Attribute Values ─────────────────────────────────────────────
 
     /**
-     * GÃ¡n danh sÃ¡ch attribute value IDs cho product.
-     * XÃ³a háº¿t báº£n ghi cÅ© rá»“i thÃªm má»›i.
+     * Gán danh sách attribute value IDs cho product.
+     * Xóa hết bản ghi cũ rồi thêm mới.
      */
     @Transactional
     public List<AttributeValueDTO> assignAttributeValues(Long productId, List<Long> attributeValueIds) {
@@ -166,10 +166,10 @@ public class AttributeService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
-        // XÃ³a táº¥t cáº£ attribute values cÅ©
+        // Xóa tất cả attribute values cũ
         productAttributeValueRepository.deleteByProductId(productId);
 
-        // ThÃªm má»›i
+        // Thêm mới
         List<AttributeValueDTO> result = new ArrayList<>();
         if (attributeValueIds != null) {
             for (Long avId : attributeValueIds) {
@@ -187,7 +187,7 @@ public class AttributeService {
     }
 
     /**
-     * Láº¥y táº¥t cáº£ attribute values hiá»‡n táº¡i cá»§a product.
+     * Lấy tất cả attribute values hiện tại của product.
      */
     public List<AttributeValueDTO> getProductAttributeValues(Long productId) {
         return productAttributeValueRepository.findByProductId(productId).stream()
@@ -195,37 +195,37 @@ public class AttributeService {
                 .collect(Collectors.toList());
     }
 
-    // â”€â”€â”€ CORE: Faceted Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── CORE: Faceted Search ───────────────────────────────────────────────────
 
     /**
      * Core faceted search logic:
-     * 1. Náº¿u cÃ³ selectedValueIds â†’ lá»c product theo AND logic
-     * 2. Náº¿u khÃ´ng â†’ láº¥y táº¥t cáº£ product (cÃ³ thá»ƒ filter theo category)
-     * 3. Tá»« danh sÃ¡ch product Ä‘Ã£ lá»c â†’ tÃ­nh facets (count per value)
-     * 4. Tráº£ vá» products + facets + totalCount
+     * 1. Nếu có selectedValueIds → lọc product theo AND logic
+     * 2. Nếu không → lấy tất cả product (có thể filter theo category)
+     * 3. Từ danh sách product đã lọc → tính facets (count per value)
+     * 4. Trả về products + facets + totalCount
      */
     @Transactional(readOnly = true)
     public FacetedSearchResponse facetedSearch(FacetedSearchRequest request) {
         List<Long> filteredProductIds;
 
-        // Step 1: Lá»c sáº£n pháº©m
+        // Step 1: Lọc sản phẩm
         boolean hasFilters = request.getSelectedValueIds() != null
                 && !request.getSelectedValueIds().isEmpty();
 
         if (hasFilters) {
-            // AND logic: sáº£n pháº©m pháº£i chá»©a Táº¤T Cáº¢ cÃ¡c value Ä‘Ã£ chá»n
+            // AND logic: sản phẩm phải chứa TẤT CẢ các value đã chọn
             filteredProductIds = productAttributeValueRepository.findProductIdsMatchingAllValues(
                     request.getSelectedValueIds(),
                     request.getSelectedValueIds().size()
             );
         } else {
-            // KhÃ´ng cÃ³ filter â†’ láº¥y táº¥t cáº£ product IDs
+            // Không có filter → lấy tất cả product IDs
             filteredProductIds = productRepository.findAll().stream()
                     .map(Product::getId)
                     .collect(Collectors.toList());
         }
 
-        // Filter by category náº¿u cÃ³
+        // Filter by category nếu có
         if (request.getCategoryId() != null) {
             List<Long> categoryProductIds = productRepository.findAll().stream()
                     .filter(p -> p.getCategory() != null
@@ -239,7 +239,7 @@ public class AttributeService {
 
         long totalCount = filteredProductIds.size();
 
-        // Step 2: PhÃ¢n trang
+        // Step 2: Phân trang
         int page = request.getPage();
         int size = request.getSize();
         int fromIndex = Math.min(page * size, filteredProductIds.size());
@@ -261,12 +261,12 @@ public class AttributeService {
                         }
                         return dto;
                     })
-                    // Náº¿u lÃ  Agency/Customer vÃ  khÃ´ng láº¥y Ä‘Æ°á»£c giÃ¡ (bá»‹ áº©n hoáº·c khÃ´ng cÃ³ trong báº£ng giÃ¡), loáº¡i bá» khá»i káº¿t quáº£
+                    // Nếu là Agency/Customer và không lấy được giá (bị ẩn hoặc không có trong bảng giá), loại bỏ khỏi kết quả
                     .filter(dto -> request.getAgencyId() == null || dto.getAppliedPrice() != null)
                     .collect(Collectors.toList());
         }
 
-        // Step 4: TÃ­nh facets tá»« Táº¤T Cáº¢ product Ä‘Ã£ lá»c (khÃ´ng phÃ¢n trang)
+        // Step 4: Tính facets từ TẤT CẢ product đã lọc (không phân trang)
         List<FacetGroupDTO> facets = buildFacets(filteredProductIds);
 
         FacetedSearchResponse response = new FacetedSearchResponse();
@@ -279,8 +279,8 @@ public class AttributeService {
     }
 
     /**
-     * Build facet groups tá»« danh sÃ¡ch product IDs.
-     * Tráº£ vá»: List<FacetGroupDTO>, má»—i group lÃ  1 attribute + danh sÃ¡ch values kÃ¨m count.
+     * Build facet groups từ danh sách product IDs.
+     * Trả về: List<FacetGroupDTO>, mỗi group là 1 attribute + danh sách values kèm count.
      */
     private List<FacetGroupDTO> buildFacets(List<Long> productIds) {
         if (productIds.isEmpty()) {

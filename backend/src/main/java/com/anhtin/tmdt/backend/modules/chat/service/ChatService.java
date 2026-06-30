@@ -39,16 +39,16 @@ public class ChatService {
     private UserRepository userRepository;
 
     /**
-     * Khá»Ÿi táº¡o hoáº·c láº¥y phÃ²ng chat giá»¯a KhÃ¡ch vÃ  Äáº¡i lÃ½.
+     * Khởi tạo hoặc lấy phòng chat giữa Khách và Đại lý.
      */
     @Transactional
     public ChatRoomDTO getOrCreateRoom(@NonNull Long customerId, @NonNull Long agencyId) {
         ChatRoom room = chatRoomRepository.findByAgencyIdAndCustomerId(agencyId, customerId)
                 .orElseGet(() -> {
                     Agency agency = agencyRepository.findById(agencyId)
-                            .orElseThrow(() -> new RuntimeException("Äáº¡i lÃ½ khÃ´ng tá»“n táº¡i"));
+                            .orElseThrow(() -> new RuntimeException("Đại lý không tồn tại"));
                     User customer = userRepository.findById(customerId)
-                            .orElseThrow(() -> new RuntimeException("KhÃ¡ch hÃ ng khÃ´ng tá»“n táº¡i"));
+                            .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
 
                     ChatRoom newRoom = new ChatRoom();
                     newRoom.setAgency(agency);
@@ -60,19 +60,14 @@ public class ChatService {
     }
 
     /**
-     * Láº¥y danh sÃ¡ch phÃ²ng chat cá»§a user (Customer hoáº·c Agency).
+     * Lấy danh sách phòng chat của user (Customer hoặc Agency).
      */
     public List<ChatRoomDTO> getUserRooms(@NonNull Long userId, Role userRole) {
         List<ChatRoom> rooms;
-        if (userRole == Role.CUSTOMER) {
-            rooms = chatRoomRepository.findByCustomerIdOrderByCreatedAtDesc(userId);
+        if (userRole == Role.AGENCY) {
+            rooms = chatRoomRepository.findByAgencyIdOrderByCreatedAtDesc(userId);
         } else {
-            // Agency: tÃ¬m theo agency_id (cáº§n láº¥y agencyId tá»« userId)
-            Agency agency = agencyRepository.findAll().stream()
-                    .filter(a -> a.getUser().getId().equals(userId))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("KhÃ´ng tÃ¬m tháº¥y Äáº¡i lÃ½"));
-            rooms = chatRoomRepository.findByAgencyIdOrderByCreatedAtDesc(agency.getId());
+            rooms = chatRoomRepository.findByCustomerIdOrderByCreatedAtDesc(userId);
         }
 
         return rooms.stream()
@@ -81,14 +76,14 @@ public class ChatService {
     }
 
     /**
-     * Gá»­i tin nháº¯n vÃ  tráº£ vá» DTO.
+     * Gửi tin nhắn và trả về DTO.
      */
     @Transactional
     public ChatMessageDTO sendMessage(@NonNull Long senderId, @NonNull Long roomId, String content, SenderType senderType) {
         ChatRoom room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("PhÃ²ng chat khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Phòng chat không tồn tại"));
         User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new RuntimeException("NgÆ°á»i dÃ¹ng khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
 
         ChatMessage message = new ChatMessage();
         message.setRoom(room);
@@ -106,7 +101,7 @@ public class ChatService {
     }
 
     /**
-     * Láº¥y lá»‹ch sá»­ tin nháº¯n (phÃ¢n trang).
+     * Lấy lịch sử tin nhắn (phân trang).
      */
     public Page<ChatMessageDTO> getMessages(@NonNull Long roomId, Pageable pageable) {
         return chatMessageRepository.findByRoomIdOrderByCreatedAtDesc(roomId, pageable)
@@ -118,7 +113,7 @@ public class ChatService {
     }
 
     /**
-     * ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘á»c.
+     * Đánh dấu đã đọc.
      */
     @Transactional
     public void markAsRead(@NonNull Long roomId, @NonNull Long userId) {

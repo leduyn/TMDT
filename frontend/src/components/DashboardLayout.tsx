@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 
@@ -11,6 +12,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const { isPendingAgency } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Don't show layout on login/register pages
@@ -33,11 +35,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="app-layout">
+      {isPendingAgency && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+          color: 'white', textAlign: 'center', padding: '8px 16px',
+          fontSize: '0.9rem', fontWeight: 600,
+          boxShadow: '0 2px 12px rgba(245,158,11,0.4)',
+        }}>
+          Tài khoản đang chờ duyệt — Bạn chỉ có thể xem thông tin sản phẩm
+        </div>
+      )}
       <Sidebar />
       <TopBar />
       <main 
         className="main-content" 
         style={{ 
+          marginTop: isPendingAgency ? 40 : 0,
           marginLeft: isCollapsed ? 80 : 260,
           width: `calc(100% - ${isCollapsed ? 80 : 260}px)`
         }}

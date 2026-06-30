@@ -3,21 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { agencyApi, UserDTO } from '@/lib/api';
+import { customerApi, agencyApi, CustomerDTO } from '@/lib/api';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
-// UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
-import { UserPlus, Eye, Mail, Users as UsersIcon } from 'lucide-react';
-import Pagination from '@/components/ui/Pagination';
+import { UserPlus, Eye, Building, Phone } from 'lucide-react';
 
 export default function MyCustomersPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const [customers, setCustomers] = useState<UserDTO[]>([]);
+  const [customers, setCustomers] = useState<CustomerDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
@@ -30,37 +28,25 @@ export default function MyCustomersPage() {
         window.location.href = '/login';
         return;
       }
-
       if (!user.roles?.includes('ROLE_AGENCY')) {
-        setError('Bạn không có quyền truy cập trang này. Vui lòng đăng nhập bằng tài khoản Khách hàng.');
+        setError('Bạn không có quyền truy cập trang này.');
         setIsLoading(false);
         return;
       }
-
-      if (user.id) {
-        fetchMyCustomers(user.id);
-      } else {
-        setIsLoading(false);
-      }
+      fetchMyCustomers();
     }
   }, [user, authLoading]);
 
-  const fetchMyCustomers = async (userId: number) => {
+  const fetchMyCustomers = async () => {
     try {
       setError('');
       setIsLoading(true);
-      
-      let agencyId = user?.agencyId;
-      if (!agencyId) {
-        const agencyData = await agencyApi.getMe(userId);
-        agencyId = agencyData.id;
-      }
-
+      const agencyId = user?.agencyId;
       if (agencyId) {
-        const customersData = await agencyApi.getCustomers(agencyId);
-        setCustomers(Array.isArray(customersData) ? customersData : []);
+        const allCustomers = await customerApi.getAll();
+        setCustomers(allCustomers.filter(c => c.agencyId === agencyId));
       } else {
-        setError('Không tìm thấy thông tin Khách hàng cho tài khoản này.');
+        setError('Không tìm thấy thông tin Đại lý cho tài khoản này.');
       }
     } catch (err: any) {
       console.error(err);
@@ -70,63 +56,50 @@ export default function MyCustomersPage() {
     }
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCustomers = customers.filter(c =>
+    (c.organizationName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.receiverName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.receiverPhone || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
   const paginatedCustomers = filteredCustomers.slice(page * pageSize, (page + 1) * pageSize);
 
-  const columns: Column<UserDTO>[] = [
-    { 
-      header: 'Người mua', 
-      key: 'username',
-      width: '30%',
-      render: (c) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{c.username}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {c.id}</div>
-        </div>
-      )
-    },
-    { 
-      header: 'Liên hệ', 
-      key: 'email',
+  const columns: Column<CustomerDTO>[] = [
+    {
+      header: 'Tên tổ chức',
+      key: 'organizationName',
       width: '25%',
       render: (c) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem' }}>
-          <Mail size={14} style={{ color: 'var(--accent)' }} /> {c.email}
+        <div>
+          <div style={{ fontWeight: 600 }}>{c.organizationName || `#${c.id}`}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {c.id}{c.taxCode ? ` • MST: ${c.taxCode}` : ''}</div>
         </div>
       )
     },
-    { 
-      header: 'Nhóm', 
-      key: 'customerGroupName',
+    {
+      header: 'Người nhận',
+      key: 'receiverName',
       width: '20%',
       render: (c) => (
-        <Badge 
-          label={c.customerGroupName || 'Vãng lai'} 
-          type={c.customerGroupName ? 'primary' : 'info'} 
-          icon="Users"
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem' }}>
+          <Building size={14} style={{ color: 'var(--accent)' }} /> {c.receiverName || '---'}
+        </div>
       )
     },
-    { 
-      header: 'Trạng thái', 
-      key: 'active',
-      width: '15%',
+    {
+      header: 'Liên hệ',
+      key: 'receiverPhone',
+      width: '20%',
       render: (c) => (
-        <Badge 
-          label={c.active ? 'Đang hoạt động' : 'Chờ Admin duyệt'} 
-          type={c.active ? 'success' : 'warning'} 
-          icon={c.active ? 'CheckCircle' : 'Clock'}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem' }}>
+          <Phone size={14} style={{ color: 'var(--accent)' }} /> {c.receiverPhone || '---'}
+        </div>
       )
     },
-    { 
-      header: 'Thao tác', 
-      key: 'actions', 
+    {
+      header: 'Thao tác',
+      key: 'actions',
       align: 'right',
       render: (c) => (
         <Link href={`/agency/customers/${c.id}`} className="btn-outline" style={{ padding: '8px 16px', borderRadius: 8, fontSize: '0.85rem', textDecoration: 'none' }}>
@@ -140,9 +113,9 @@ export default function MyCustomersPage() {
     <>
       <Navbar />
       <Main>
-        <PageHeader 
-          title="Người mua của tôi" 
-          subtitle="Quản lý danh sách Người mua đang thuộc sự phụ trách của Khách hàng"
+        <PageHeader
+          title="Người mua của tôi"
+          subtitle="Danh sách Người mua thuộc Đại lý của bạn"
           icon="Users"
         />
 
@@ -152,10 +125,10 @@ export default function MyCustomersPage() {
           </div>
         )}
 
-        <SearchActionHeader 
+        <SearchActionHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          placeholder="Tìm kiếm Người mua theo tên hoặc email..."
+          placeholder="Tìm kiếm Người mua..."
           actions={
             <Link href="/agency/customers/create" className="btn-primary" style={{ textDecoration: 'none' }}>
               <UserPlus size={18} />
@@ -164,7 +137,7 @@ export default function MyCustomersPage() {
           }
         />
 
-        <DataTable 
+        <DataTable
           data={paginatedCustomers}
           columns={columns}
           loading={isLoading}
@@ -177,4 +150,3 @@ export default function MyCustomersPage() {
     </>
   );
 }
-

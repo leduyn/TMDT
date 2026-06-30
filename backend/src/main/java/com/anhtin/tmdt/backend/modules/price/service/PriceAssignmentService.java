@@ -64,7 +64,7 @@ public class PriceAssignmentService {
                 
 
 
-                // XÃ³a Táº¤T Cáº¢ báº£n ghi cÅ© cá»§a Ä‘áº¡i lÃ½ nÃ y Ä‘á»ƒ trÃ¡nh vi pháº¡m unique constraint
+                // Xóa TẤT CẢ bản ghi cũ của đại lý này để tránh vi phạm unique constraint
                 agencyPriceListRepository.deleteByAgencyId(agency.getId());
 
                 AgencyPriceList apl = new AgencyPriceList();
@@ -76,7 +76,7 @@ public class PriceAssignmentService {
                 System.err.println(">> Voucher DIRECT_AGENCY but agency is null! Skipping.");
             }
         } else {
-            // Táº¡o báº£n ghi Ä‘iá»u kiá»‡n
+            // Tạo bản ghi điều kiện
             System.out.println(">> Creating PriceListCondition for type: " + voucher.getAssignmentType());
             PriceListCondition plc = new PriceListCondition();
             plc.setPriceList(voucher.getPriceList());
@@ -85,7 +85,7 @@ public class PriceAssignmentService {
             plc.setCustomerGroup(voucher.getCustomerGroup());
             plc.setUser(voucher.getCustomer());
             plc.setEffectiveFrom(voucher.getScheduledAt());
-            plc.setPriority(100); // Máº·c Ä‘á»‹nh Æ°u tiÃªn cao cho cÃ¡c lá»‡nh set thá»§ cÃ´ng
+            plc.setPriority(100); // Mặc định ưu tiên cao cho các lệnh set thủ công
             conditionRepository.save(plc);
         }
 
@@ -109,7 +109,7 @@ public class PriceAssignmentService {
                 .orElseThrow(() -> new RuntimeException("Voucher not found"));
 
         if (voucher.getStatus() != VoucherStatus.APPLIED) {
-            throw new RuntimeException("Chá»‰ cÃ³ thá»ƒ dá»«ng voucher Ä‘Ã£ Ã¡p dá»¥ng");
+            throw new RuntimeException("Chỉ có thể dừng voucher đã áp dụng");
         }
 
         voucher.setStatus(VoucherStatus.STOPPED);
@@ -120,7 +120,7 @@ public class PriceAssignmentService {
             if (agency != null) {
                 agencyPriceListRepository.deleteByAgencyId(agency.getId());
                 
-                // KhÃ´i phá»¥c báº±ng cÃ¡ch tÃ¬m voucher APPLIED gáº§n nháº¥t cho agency nÃ y
+                // Khôi phục bằng cách tìm voucher APPLIED gần nhất cho agency này
                 voucherRepository.findAllByOrderByCreatedAtDesc().stream()
                         .filter(v -> v.getStatus() == VoucherStatus.APPLIED)
                         .filter(v -> v.getAssignmentType() == PriceListConditionType.DIRECT_AGENCY)
@@ -173,20 +173,20 @@ public class PriceAssignmentService {
                 .orElseThrow(() -> new RuntimeException("Voucher not found"));
 
         if (voucher.getStatus() != VoucherStatus.STOPPED) {
-            throw new RuntimeException("Chá»‰ cÃ³ thá»ƒ kÃ­ch hoáº¡t láº¡i voucher Ä‘Ã£ dá»«ng");
+            throw new RuntimeException("Chỉ có thể kích hoạt lại voucher đã dừng");
         }
 
-        // Cáº­p nháº­t láº¡i thá»i gian lÃªn lá»‹ch (náº¿u khÃ´ng truyá»n vÃ o thÃ¬ máº·c Ä‘á»‹nh lÃ  bÃ¢y giá»)
+        // Cập nhật lại thời gian lên lịch (nếu không truyền vào thì mặc định là bây giờ)
         LocalDateTime targetTime = newScheduledAt != null ? newScheduledAt : LocalDateTime.now();
         voucher.setScheduledAt(targetTime);
 
         if (targetTime.isAfter(LocalDateTime.now())) {
-            // Náº¿u lÃ  háº¹n giá» trong tÆ°Æ¡ng lai -> Chuyá»ƒn vá» tráº¡ng thÃ¡i PENDING Ä‘á»ƒ Scheduler xá»­ lÃ½
+            // Nếu là hẹn giờ trong tương lai -> Chuyển về trạng thái PENDING để Scheduler xử lý
             voucher.setStatus(VoucherStatus.PENDING);
             voucher.setAppliedAt(null);
             voucherRepository.save(voucher);
         } else {
-            // Náº¿u lÃ  kÃ­ch hoáº¡t ngay (hoáº·c thá»i gian quÃ¡ khá»©) -> Ãp dá»¥ng luÃ´n
+            // Nếu là kích hoạt ngay (hoặc thời gian quá khứ) -> Áp dụng luôn
             applyVoucher(voucher);
         }
     }

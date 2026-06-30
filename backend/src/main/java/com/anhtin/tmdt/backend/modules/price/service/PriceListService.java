@@ -6,38 +6,39 @@ import com.anhtin.tmdt.backend.modules.price.dto.PriceListRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.PriceListDTO;
 import com.anhtin.tmdt.backend.modules.common.dto.PriceListItemDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import com.anhtin.tmdt.backend.modules.price.repository.PriceListItemRepository;
-import com.anhtin.tmdt.backend.modules.price.repository.PriceListConditionRepository;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyPriceListRepository;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyStorePriceList;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyRanking;
-import com.anhtin.tmdt.backend.modules.price.repository.PriceListRepository;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyStorePriceListRepository;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.context.annotation.Lazy;
+import com.anhtin.tmdt.backend.modules.agency.service.CustomerPriceSyncService;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceList;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRankingRepository;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyPriceList;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.modules.price.entity.PriceListItem;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceListCondition;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceListConditionType;
+import com.anhtin.tmdt.backend.modules.price.repository.PriceListRepository;
+import com.anhtin.tmdt.backend.modules.price.repository.PriceListItemRepository;
+import com.anhtin.tmdt.backend.modules.price.repository.PriceListConditionRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
 import com.anhtin.tmdt.backend.modules.product.entity.Product;
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyPriceList;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyStorePriceList;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyRanking;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyPriceListRepository;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyStorePriceListRepository;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRankingRepository;
+import com.anhtin.tmdt.backend.modules.user.entity.User;
 import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
-import com.anhtin.tmdt.backend.modules.price.entity.PriceListItem;
 import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import com.anhtin.tmdt.backend.modules.agency.service.CustomerPriceSyncService;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class PriceListService {
@@ -157,6 +158,17 @@ public class PriceListService {
                 .collect(Collectors.toList());
     }
 
+    public Page<PriceListItemDTO> getPriceListItems(Long priceListId, int page, int size, String search) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PriceListItem> itemPage;
+        if (search != null && !search.trim().isEmpty()) {
+            itemPage = priceListItemRepository.searchByProductName(priceListId, search.trim(), pageable);
+        } else {
+            itemPage = priceListItemRepository.findByPriceListId(priceListId, pageable);
+        }
+        return itemPage.map(PriceListItemDTO::new);
+    }
+
     @Transactional
     public void updatePriceListItem(Long priceListId, PriceListItemUpdateRequest request) {
         if (priceListId == null || request.getProductId() == null) {
@@ -193,86 +205,86 @@ public class PriceListService {
 
     // --- Resolve Logic ---
 
-    /** Láº¥y báº£ng giÃ¡ hiá»‡u lá»±c cho Äáº¡i lÃ½ */
+    /** Lấy bảng giá hiệu lực cho Đại lý */
     public PriceList resolveForAgency(Long agencyId) {
         if (agencyId == null) {
             throw new IllegalArgumentException("Agency ID cannot be null");
         }
         
-        System.out.println("ðŸ” [resolveForAgency] agencyId=" + agencyId);
+        System.out.println("🔍 [resolveForAgency] agencyId=" + agencyId);
         
-        // Táº§ng 1: Chá»‰ Ä‘á»‹nh trá»±c tiáº¿p (AgencyPriceList)
+        // Tầng 1: Chỉ định trực tiếp (AgencyPriceList)
         LocalDateTime now = LocalDateTime.now();
-        System.out.println("ðŸ” [resolveForAgency] now=" + now);
+        System.out.println("🔍 [resolveForAgency] now=" + now);
         
         Optional<AgencyPriceList> assigned = agencyPriceListRepository.findFirstByAgencyIdAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(agencyId, now);
-        System.out.println("ðŸ” [resolveForAgency] Táº§ng 1 - Direct assignment present=" + assigned.isPresent());
+        System.out.println("🔍 [resolveForAgency] Tầng 1 - Direct assignment present=" + assigned.isPresent());
         if (assigned.isPresent()) {
             PriceList pl = assigned.get().getPriceList();
-            System.out.println("ðŸ” [resolveForAgency] â†’ Tráº£ vá» báº£ng giÃ¡ trá»±c tiáº¿p: id=" + pl.getId() + ", name=" + pl.getName());
+            System.out.println("🔍 [resolveForAgency] → Trả về bảng giá trực tiếp: id=" + pl.getId() + ", name=" + pl.getName());
             return pl;
         }
 
-        // Láº¥y rank hiá»‡n táº¡i cá»§a Ä‘áº¡i lÃ½ (tá»« báº£ng rankings thÃ¡ng gáº§n nháº¥t hoáº·c default)
+        // Lấy rank hiện tại của đại lý (từ bảng rankings tháng gần nhất hoặc default)
         if (!agencyRepository.existsById(agencyId)) {
             throw new RuntimeException("Agency not found");
         }
-        // Láº¥y rank thá»±c táº¿ cá»§a Ä‘áº¡i lÃ½
+        // Lấy rank thực tế của đại lý
         String rank = getAgencyRank(agencyId);
-        System.out.println("ðŸ” [resolveForAgency] Táº§ng 2 - Agency rank=" + rank);
+        System.out.println("🔍 [resolveForAgency] Tầng 2 - Agency rank=" + rank);
 
-        // Táº§ng 2: Theo háº¡ng Ä‘áº¡i lÃ½ (AGENCY_RANK)
+        // Tầng 2: Theo hạng đại lý (AGENCY_RANK)
         List<PriceListCondition> rankConditions = priceListConditionRepository
                 .findActiveByRank(PriceListConditionType.AGENCY_RANK, rank, now);
-        System.out.println("ðŸ” [resolveForAgency] Táº§ng 2 - Rank conditions found=" + rankConditions.size());
+        System.out.println("🔍 [resolveForAgency] Tầng 2 - Rank conditions found=" + rankConditions.size());
         if (!rankConditions.isEmpty()) {
             PriceList pl = rankConditions.get(0).getPriceList();
-            System.out.println("ðŸ” [resolveForAgency] â†’ Tráº£ vá» báº£ng giÃ¡ theo rank: id=" + pl.getId() + ", name=" + pl.getName());
+            System.out.println("🔍 [resolveForAgency] → Trả về bảng giá theo rank: id=" + pl.getId() + ", name=" + pl.getName());
             return pl;
         }
         
-        // Táº§ng 3: ToÃ n bá»™ Ä‘áº¡i lÃ½ (ALL_AGENCY)
+        // Tầng 3: Toàn bộ đại lý (ALL_AGENCY)
         List<PriceListCondition> allAgencyConditions = priceListConditionRepository
                 .findActiveByConditionType(PriceListConditionType.ALL_AGENCY, now);
-        System.out.println("ðŸ” [resolveForAgency] Táº§ng 3 - ALL_AGENCY conditions found=" + allAgencyConditions.size());
+        System.out.println("🔍 [resolveForAgency] Tầng 3 - ALL_AGENCY conditions found=" + allAgencyConditions.size());
         if (!allAgencyConditions.isEmpty()) {
             PriceList pl = allAgencyConditions.get(0).getPriceList();
-            System.out.println("ðŸ” [resolveForAgency] â†’ Tráº£ vá» báº£ng giÃ¡ ALL_AGENCY: id=" + pl.getId() + ", name=" + pl.getName());
+            System.out.println("🔍 [resolveForAgency] → Trả về bảng giá ALL_AGENCY: id=" + pl.getId() + ", name=" + pl.getName());
             return pl;
         }
 
-        // Táº§ng 4: Máº·c Ä‘á»‹nh
-        System.out.println("ðŸ” [resolveForAgency] Táº§ng 4 - Fallback to default");
+        // Tầng 4: Mặc định
+        System.out.println("🔍 [resolveForAgency] Tầng 4 - Fallback to default");
         return priceListRepository.findByIsDefaultTrue()
                 .orElseThrow(() -> new RuntimeException("Default price list not found"));
     }
 
-    /** Láº¥y báº£ng giÃ¡ hiá»‡u lá»±c cho KhÃ¡ch hÃ ng táº¡i Cá»­a hÃ ng Äáº¡i lÃ½ */
+    /** Lấy bảng giá hiệu lực cho Khách hàng tại Cửa hàng Đại lý */
     public PriceList resolveForCustomer(Long customerId, Long agencyId) {
         if (agencyId == null) {
             throw new IllegalArgumentException("Agency ID cannot be null");
         }
         
-        // Táº§ng 1: Äáº¡i lÃ½ tá»± thiáº¿t láº­p cho cá»­a hÃ ng (AgencyStorePriceList)
+        // Tầng 1: Đại lý tự thiết lập cho cửa hàng (AgencyStorePriceList)
         Optional<AgencyStorePriceList> storePl = agencyStorePriceListRepository.findByAgencyId(agencyId);
         if (storePl.isPresent()) return storePl.get().getPriceList();
 
         if (customerId != null) {
             User user = userRepository.findById(customerId).orElse(null);
             if (user != null && user.getCustomerGroup() != null) {
-                // Táº§ng 2: Theo nhÃ³m khÃ¡ch hÃ ng (CUSTOMER_GROUP)
+                // Tầng 2: Theo nhóm khách hàng (CUSTOMER_GROUP)
                 List<PriceListCondition> groupConditions = priceListConditionRepository
                         .findActiveByCustomerGroup(PriceListConditionType.CUSTOMER_GROUP, user.getCustomerGroup().getId(), LocalDateTime.now());
                 if (!groupConditions.isEmpty()) return groupConditions.get(0).getPriceList();
             }
         }
 
-        // Táº§ng 3: ToÃ n bá»™ khÃ¡ch hÃ ng (ALL_CUSTOMER)
+        // Tầng 3: Toàn bộ khách hàng (ALL_CUSTOMER)
         List<PriceListCondition> allCustomerConditions = priceListConditionRepository
                 .findActiveByConditionType(PriceListConditionType.ALL_CUSTOMER, LocalDateTime.now());
         if (!allCustomerConditions.isEmpty()) return allCustomerConditions.get(0).getPriceList();
 
-        // Táº§ng 4: Máº·c Ä‘á»‹nh
+        // Tầng 4: Mặc định
         return priceListRepository.findByIsDefaultTrue()
                 .orElseThrow(() -> new RuntimeException("Default price list not found"));
     }
@@ -284,7 +296,7 @@ public class PriceListService {
         if (request.getAgencyId() == null || request.getPriceListId() == null) {
             throw new IllegalArgumentException("IDs cannot be null");
         }
-        // XÃ³a Táº¤T Cáº¢ cÃ¡c gÃ¡n trá»±c tiáº¿p cÅ© cá»§a Ä‘áº¡i lÃ½ nÃ y (dÃ¹ng deleteByAgencyId Ä‘á»ƒ trÃ¡nh bá» sÃ³t)
+        // Xóa TẤT CẢ các gán trực tiếp cũ của đại lý này (dùng deleteByAgencyId để tránh bỏ sót)
         agencyPriceListRepository.deleteByAgencyId(request.getAgencyId());
         
         Long agencyId = request.getAgencyId();

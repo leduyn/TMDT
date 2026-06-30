@@ -1,0 +1,114 @@
+# Kế hoạch Tích hợp Hệ thống Gamification Engine vào TMDT
+
+Áp dụng mô phỏng từ file [gamification_engine_simulator.tsx](file:///d:/Java%20lean/TMDT/Docs/gamification_engine_simulator.tsx) vào hệ thống thực tế TMDT (B2B2C / Dropshipping & Marketplace).
+
+## User Review Required
+
+> [!IMPORTANT]
+> **1. Quản lý Cấp thành viên (Membership Levels):**
+> Trong simulator có 4 cấp bậc: `Đồng`, `Bạc`, `Vàng`, `Kim Cương`. Chúng tôi đề xuất tích hợp trường `membership_level` trực tiếp vào bảng `loyalty_points` để quản lý cùng với điểm số tích lũy của khách hàng/đại lý, giúp tối ưu hóa truy vấn và đồng bộ dữ liệu.
+> 
+> **2. Cơ chế Đánh giá Luật (Rule Engine Logic):**
+> Chúng tôi đề xuất triển khai một bộ đánh giá luật (Rule Engine) hướng cấu hình động sử dụng cơ sở dữ liệu (`gamification_rules`). Mỗi quy tắc sẽ định nghĩa sự kiện kích hoạt (Đơn hàng, Doanh thu, Cấp bậc), điều kiện (ví dụ: `totalOrders >= 10` hoặc `totalRevenue >= 10000000`) và phần thưởng (Điểm, Huy hiệu, Danh hiệu, Bằng khen). Spring Boot sẽ tự động phân tích và áp dụng các luật này khi đơn hàng hoàn thành hoặc khi nâng cấp thành viên.
+
+## Open Questions
+
+> [!WARNING]
+> **1. Quy đổi giá trị đơn hàng ra Điểm thưởng:**
+> Simulator tính điểm: 10% giá trị đơn hàng (quy ra nghìn đồng), ví dụ đơn 1,500,000đ được 150 điểm. Trong khi [LoyaltyService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/service/LoyaltyService.java) hiện tại đang tính `1000đ = 1 điểm` (tương đương 0.1%). Bạn muốn áp dụng công thức tính điểm nào cho hệ thống thực tế?
+> 
+> **2. Thời điểm kích hoạt và kiểm tra Luật:**
+> Hiện tại sự kiện tích điểm (`earnPoints`) chưa được gọi trong luồng đơn hàng. Chúng tôi đề xuất kích hoạt tích điểm và chạy Rule Engine khi Admin chuyển trạng thái đơn hàng sang `COMPLETED` trong `OrderService.updateOrderStatus`. Bạn có đồng ý với thời điểm kích hoạt này không?
+
+---
+
+## Proposed Changes
+
+### Backend Components
+
+Tạo các thực thể JPA để lưu trữ thông tin huy hiệu, danh hiệu, bằng khen danh dự và các luật gamification động trong database. Vì `spring.jpa.hibernate.ddl-auto: update` đang được bật, các bảng này sẽ tự động được tạo khi khởi chạy backend.
+
+#### [MODIFY] [LoyaltyPoint.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/LoyaltyPoint.java)
+- Thêm các trường:
+  - `String membershipLevel` (Mặc định: "Đồng")
+  - `Integer totalOrders` (Mặc định: 0)
+  - `Double totalRevenue` (Mặc định: 0.0)
+
+#### [NEW] [Badge.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/Badge.java)
+- Đại diện cho Huy hiệu hệ thống (Khởi Đầu Thuận Lợi, Khách Hàng Thân Thiết, Đại Phú Hộ...).
+- Các trường: `id` (String), `name` (String), `description` (String), `icon` (String - emoji hoặc link ảnh), `colorGradient` (String - CSS Tailwind gradient classes), `active` (boolean).
+
+#### [NEW] [CustomerBadge.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/CustomerBadge.java)
+- Bản đồ liên kết Huy hiệu đã đạt được của từng khách hàng.
+- Các trường: `id` (Long), `customer` (User), `badge` (Badge), `earnedAt` (LocalDateTime).
+
+#### [NEW] [CustomerTitle.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/CustomerTitle.java)
+- Danh hiệu vinh danh (Đại Phú Hộ, VIP Chi Tiêu, Chiến Binh Đồng Hành...).
+- Các trường: `id` (Long), `customer` (User), `titleName` (String), `earnedAt` (LocalDateTime).
+
+#### [NEW] [CustomerCertificate.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/CustomerCertificate.java)
+- Bằng khen ảo cấp cho khách hàng khi đạt các thành tích cao quý.
+- Các trường: `id` (Long), `customer` (User), `title` (String), `reason` (String), `earnedAt` (LocalDateTime).
+
+#### [NEW] [GamificationRule.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/entity/GamificationRule.java)
+- Lưu cấu hình luật để Rule Engine đánh giá động.
+- Các trường: `id` (String), `name` (String), `eventTrigger` (String: ORDER, REVENUE, LEVEL), `conditionExpression` (String: e.g. "totalOrders >= 10"), `rewardPoints` (Integer), `rewardBadgeId` (String), `rewardTitle` (String), `active` (boolean).
+
+#### [NEW] [BadgeRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/BadgeRepository.java)
+- Interface repository xử lý thao tác DB cho thực thể `Badge`.
+
+#### [NEW] [CustomerBadgeRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/CustomerBadgeRepository.java)
+- Interface repository xử lý thao tác DB cho thực thể `CustomerBadge`.
+
+#### [NEW] [CustomerTitleRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/CustomerTitleRepository.java)
+- Interface repository xử lý thao tác DB cho thực thể `CustomerTitle`.
+
+#### [NEW] [CustomerCertificateRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/CustomerCertificateRepository.java)
+- Interface repository xử lý thao tác DB cho thực thể `CustomerCertificate`.
+
+#### [NEW] [GamificationRuleRepository.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/repository/GamificationRuleRepository.java)
+- Interface repository xử lý thao tác DB cho thực thể `GamificationRule`.
+
+#### [NEW] [GamificationRuleEngineService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/service/GamificationRuleEngineService.java)
+- Đánh giá quy tắc khi có sự kiện (Đơn hàng mới hoàn thành, Thăng cấp bậc...).
+- Tự động cộng điểm, gán huy hiệu, danh hiệu và cấp bằng khen cho khách hàng phù hợp.
+
+#### [MODIFY] [LoyaltyService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/service/LoyaltyService.java)
+- Tích hợp ghi nhận tổng doanh thu/số lượng đơn hàng để dùng cho việc đánh giá quy chế thi đua.
+
+#### [MODIFY] [OrderService.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/order/service/OrderService.java)
+- Tại hàm `updateOrderStatus`, khi đơn chuyển sang `COMPLETED`, thực hiện gọi tích điểm và chạy đánh giá quy chế thi đua.
+
+#### [NEW] [GamificationController.java](file:///d:/Java%20lean/TMDT/backend/src/main/java/com/anhtin/tmdt/backend/modules/loyalty/controller/GamificationController.java)
+- REST APIs cung cấp thông tin xếp hạng, lịch sử phần thưởng cá nhân, bằng khen và danh mục huy hiệu.
+
+---
+
+### Frontend Components
+
+Xây dựng module Next.js tương tự cấu trúc hiện tại để khách hàng và admin tương tác trực tiếp với các tính năng của gamification engine.
+
+#### [NEW] [loyaltyApi.ts](file:///d:/Java%20lean/TMDT/frontend/src/modules/loyalty/loyaltyApi.ts)
+- Bộ Client API giao tiếp với các Endpoint gamification trên Backend.
+
+#### [NEW] [page.tsx](file:///d:/Java%20lean/TMDT/frontend/src/app/dashboard/loyalty/page.tsx)
+- Trang tổng quan hệ thống Loyalty & Đua top tích điểm. Hỗ trợ hiển thị 5 Tab nghiệp vụ:
+  1. **Sơ đồ luồng (Flow visualizer)**: Demo sinh động đường truyền tín hiệu từ Đầu vào -> Rule Engine -> Đầu ra phần thưởng.
+  2. **Bảng xếp hạng (Leaderboard)**: Đua top tích điểm của các Đại lý/Khách hàng.
+  3. **Hạng & Huy hiệu (Progress & Badges)**: Cấp hạng hiện tại, thanh tiến trình lên hạng, và tủ trưng bày các huy hiệu đạt được.
+  4. **Bằng khen vinh danh (Certificates)**: Xem bằng khen dạng modal sắc nét và in ra PDF.
+  5. **Cấu hình Luật (Admin Rules - Dành cho quản trị viên)**: Bật/tắt các điều kiện luật thi đua động.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- JUnit Tests:
+  - `GamificationRuleEngineServiceTest` kiểm thử tính đúng đắn khi khớp luật với các điều kiện đơn hàng/doanh thu.
+  - `LoyaltyServiceTest` kiểm thử logic cộng/trừ điểm và thay đổi cấp hạng.
+
+### Manual Verification
+1. **Kiểm tra luồng đơn hàng & tích điểm:** Đăng nhập tài khoản khách hàng, thực hiện đơn hàng, và đổi trạng thái đơn hàng sang `COMPLETED` thông qua Admin. Xác thực điểm tăng lên.
+2. **Kiểm tra Huy hiệu & Bằng khen:** Đặt đủ 10 đơn hàng (hoặc tích lũy đủ 10 triệu) để mở khóa huy hiệu "Đại Phú Hộ". Mở bằng khen vinh danh và in thử file PDF.
+3. **Kiểm tra Bảng xếp hạng:** Đăng nhập nhiều tài khoản khách hàng khác nhau và kiểm tra danh sách bảng xếp hạng hiển thị thứ tự điểm số giảm dần chính xác.

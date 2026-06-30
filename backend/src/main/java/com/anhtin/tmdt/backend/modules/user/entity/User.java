@@ -2,8 +2,8 @@ package com.anhtin.tmdt.backend.modules.user.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment;
 import com.anhtin.tmdt.backend.modules.customer.entity.CustomerGroup;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment;
 
 @Entity
 @Table(name = "users")
@@ -31,12 +31,10 @@ public class User {
     @JoinColumn(name = "customer_group_id")
     private CustomerGroup customerGroup;
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<AgencyCustomerAssignment> assignments = new java.util.ArrayList<>();
-
     private String organizationName;
     private String shippingAddress;
     private String billingAddress;
+
     @Column(unique = true)
     private String taxCode;
     
@@ -78,8 +76,6 @@ public class User {
     public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
-    public java.util.List<AgencyCustomerAssignment> getAssignments() { return assignments; }
-    public void setAssignments(java.util.List<AgencyCustomerAssignment> assignments) { this.assignments = assignments; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

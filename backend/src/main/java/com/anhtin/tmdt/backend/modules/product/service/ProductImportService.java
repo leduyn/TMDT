@@ -508,14 +508,11 @@ public class ProductImportService {
     }
 
     private void lookupAndSetCategory(ProductRequest req, String name) {
-        Optional<Category> cat = categoryRepository.findByName(name);
+        Optional<Category> cat = categoryRepository.findFirstByName(name);
         if (cat.isPresent()) {
-            if (cat.get().getLevel() == null || cat.get().getLevel() != 4) {
-                throw new IllegalArgumentException("Danh mục '" + name + "' không phải cấp 4 (Dòng sản phẩm)");
-            }
             req.setCategoryId(cat.get().getId());
         } else {
-            throw new IllegalArgumentException("Không tìm thấy danh mục '" + name + "'. Vui lòng nhập đúng tên danh mục cấp 4 (Dòng sản phẩm)");
+            throw new IllegalArgumentException("Không tìm thấy danh mục '" + name + "'");
         }
     }
 
@@ -556,14 +553,11 @@ public class ProductImportService {
     }
 
     private void lookupAndSetCategoryOnEntity(Product product, String name) {
-        Optional<Category> cat = categoryRepository.findByName(name);
+        Optional<Category> cat = categoryRepository.findFirstByName(name);
         if (cat.isPresent()) {
-            if (cat.get().getLevel() == null || cat.get().getLevel() != 4) {
-                throw new IllegalArgumentException("Danh mục '" + name + "' không phải cấp 4 (Dòng sản phẩm)");
-            }
             product.setCategory(cat.get());
         } else {
-            throw new IllegalArgumentException("Không tìm thấy danh mục '" + name + "'. Vui lòng nhập đúng tên danh mục cấp 4 (Dòng sản phẩm)");
+            throw new IllegalArgumentException("Không tìm thấy danh mục '" + name + "'");
         }
     }
 
@@ -634,9 +628,6 @@ public class ProductImportService {
         Long id = parseLong(value);
         Category cat = categoryRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục với ID '" + id + "'"));
-        if (cat.getLevel() == null || cat.getLevel() != 4) {
-            throw new IllegalArgumentException("Danh mục ID '" + id + "' không phải cấp 4 (Dòng sản phẩm)");
-        }
         product.setCategory(cat);
     }
 

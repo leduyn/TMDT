@@ -15,8 +15,8 @@ import com.anhtin.tmdt.backend.modules.order.repository.TransactionRepository;
 import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
 
 /**
- * Engine tÃ­nh toÃ¡n chiáº¿t kháº¥u/phÃ­ linh hoáº¡t.
- * Há»— trá»£ cáº¥u hÃ¬nh riÃªng cho tá»«ng Äáº¡i lÃ½ (theo category hoáº·c chung).
+ * Engine tính toán chiết khấu/phí linh hoạt.
+ * Hỗ trợ cấu hình riêng cho từng Đại lý (theo category hoặc chung).
  */
 @Service
 public class CommissionService {
@@ -31,11 +31,11 @@ public class CommissionService {
     private AgencyRepository agencyRepository;
 
     /**
-     * Láº¥y tá»· lá»‡ phÃ­ sÃ n (Marketplace) cho má»™t Äáº¡i lÃ½.
-     * Æ¯u tiÃªn: cáº¥u hÃ¬nh theo category > cáº¥u hÃ¬nh chung > default cá»§a Agency.
+     * Lấy tỷ lệ phí sàn (Marketplace) cho một Đại lý.
+     * Ưu tiên: cấu hình theo category > cấu hình chung > default của Agency.
      */
     public double getPlatformFeeRate(Long agencyId, Long categoryId) {
-        // 1. TÃ¬m cáº¥u hÃ¬nh theo Agency + Category
+        // 1. Tìm cấu hình theo Agency + Category
         if (categoryId != null) {
             var config = commissionConfigRepository
                     .findFirstByAgencyIdAndCategoryIdAndActiveTrueOrderByCreatedAtDesc(agencyId, categoryId);
@@ -44,21 +44,21 @@ public class CommissionService {
             }
         }
 
-        // 2. Fallback: cáº¥u hÃ¬nh chung cá»§a Agency
+        // 2. Fallback: cấu hình chung của Agency
         var generalConfig = commissionConfigRepository
                 .findFirstByAgencyIdAndCategoryIsNullAndActiveTrueOrderByCreatedAtDesc(agencyId);
         if (generalConfig.isPresent()) {
             return generalConfig.get().getPlatformFeeRate();
         }
 
-        // 3. Fallback cuá»‘i: default tá»« entity Agency
+        // 3. Fallback cuối: default từ entity Agency
         Agency agency = agencyRepository.findById(agencyId)
-                .orElseThrow(() -> new RuntimeException("Äáº¡i lÃ½ khÃ´ng tá»“n táº¡i"));
-        return agency.getDefaultCommissionRate() != null ? agency.getDefaultCommissionRate() : 5.0; // Default 5%
+                .orElseThrow(() -> new RuntimeException("Đại lý không tồn tại"));
+        return 5.0; // Default 5%
     }
 
     /**
-     * Láº¥y tá»· lá»‡ chiáº¿t kháº¥u Dropship cho má»™t Äáº¡i lÃ½.
+     * Lấy tỷ lệ chiết khấu Dropship cho một Đại lý.
      */
     public double getDropshipCommissionRate(Long agencyId, Long categoryId) {
         if (categoryId != null) {
@@ -76,12 +76,12 @@ public class CommissionService {
         }
 
         Agency agency = agencyRepository.findById(agencyId)
-                .orElseThrow(() -> new RuntimeException("Äáº¡i lÃ½ khÃ´ng tá»“n táº¡i"));
-        return agency.getDefaultCommissionRate() != null ? agency.getDefaultCommissionRate() : 10.0; // Default 10%
+                .orElseThrow(() -> new RuntimeException("Đại lý không tồn tại"));
+        return 10.0; // Default 10%
     }
 
     /**
-     * Táº¡o Transaction Ä‘á»‘i soÃ¡t sau khi Ä‘Æ¡n hÃ ng hoÃ n thÃ nh.
+     * Tạo Transaction đối soát sau khi đơn hàng hoàn thành.
      */
     @Transactional
     public Transaction createTransaction(Order order) {
@@ -96,14 +96,14 @@ public class CommissionService {
             if (agencyId == null) throw new RuntimeException("Agency ID not found");
 
             if (order.getOrderType() == OrderType.DROPSHIP) {
-                // Dropship: Äáº¡i lÃ½ hÆ°á»Ÿng hoa há»“ng
+                // Dropship: Đại lý hưởng hoa hồng
                 double rate = getDropshipCommissionRate(agencyId, null);
                 double commission = order.getTotalAmount() * (rate / 100.0);
                 tx.setAgencyCommission(commission);
                 tx.setAgencyNetIncome(commission);
                 tx.setPlatformFee(0.0);
             } else {
-                // Marketplace: CÃ´ng ty thu phÃ­ sÃ n
+                // Marketplace: Công ty thu phí sàn
                 double rate = getPlatformFeeRate(agencyId, null);
                 double fee = order.getTotalAmount() * (rate / 100.0);
                 tx.setPlatformFee(fee);

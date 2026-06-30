@@ -81,9 +81,9 @@ public class PriceAssignmentVoucherController {
             if (v.getStatus() == com.anhtin.tmdt.backend.modules.common.entity.VoucherStatus.PENDING) {
                 v.setStatus(com.anhtin.tmdt.backend.modules.common.entity.VoucherStatus.CANCELLED);
                 voucherRepository.save(v);
-                return ResponseEntity.ok(java.util.Map.of("message", "ThÃ nh cÃ´ng"));
+                return ResponseEntity.ok(java.util.Map.of("message", "Thành công"));
             }
-            return ResponseEntity.badRequest().body(java.util.Map.of("message", "Chá»‰ cÃ³ thá»ƒ huá»· voucher PENDING"));
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", "Chỉ có thể huỷ voucher PENDING"));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -92,7 +92,7 @@ public class PriceAssignmentVoucherController {
     public ResponseEntity<?> stopVoucher(@PathVariable @org.springframework.lang.NonNull Long id) {
         try {
             priceAssignmentService.stopVoucher(id);
-            return ResponseEntity.ok(java.util.Map.of("message", "ThÃ nh cÃ´ng"));
+            return ResponseEntity.ok(java.util.Map.of("message", "Thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }
@@ -109,7 +109,7 @@ public class PriceAssignmentVoucherController {
                 newScheduledAt = LocalDateTime.parse(body.get("scheduledAt"));
             }
             priceAssignmentService.reactivateVoucher(id, newScheduledAt);
-            return ResponseEntity.ok(java.util.Map.of("message", "ThÃ nh cÃ´ng"));
+            return ResponseEntity.ok(java.util.Map.of("message", "Thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }

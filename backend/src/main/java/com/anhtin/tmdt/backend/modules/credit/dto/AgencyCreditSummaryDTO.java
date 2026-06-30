@@ -63,7 +63,7 @@ public class AgencyCreditSummaryDTO {
         d.setAgencyId(ac.getAgency().getId());
         d.setAgencyName(ac.getAgency().getName());
         d.setAgencyPhone(ac.getAgency().getPhone());
-        d.setAgencyAddress(ac.getAgency().getAddress());
+        d.setAgencyAddress(ac.getAgency().getBillingAddress() != null ? ac.getAgency().getBillingAddress() : "");
         d.setCreditLimit(ac.getCreditLimit());
         d.setTotalDebt(ac.getTotalDebt());
         d.setGuaranteeDebt(ac.getGuaranteeDebt());

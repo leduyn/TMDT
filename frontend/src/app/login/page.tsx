@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -8,7 +8,9 @@ import { useAuth } from '@/context/AuthContext';
 import NotificationModal from '@/components/NotificationModal';
 
 export default function LoginPage() {
+  const [tab, setTab] = useState<'user' | 'agency'>('user');
   const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    const creds = tab === 'user' ? username : phone;
+    if (!creds || !password) {
       setError('Vui lòng nhập đầy đủ thông tin.');
       setShowError(true);
       return;
@@ -26,9 +29,15 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await authApi.login({ username, password });
+      const res = tab === 'user'
+        ? await authApi.login({ username, password })
+        : await authApi.agencyLogin({ phone, password });
       login(res);
-      router.push('/dashboard');
+      if (res.agencyId && res.agencyStatus === 'PENDING') {
+        router.push('/');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại.');
       setShowError(true);
@@ -43,7 +52,6 @@ export default function LoginPage() {
       justifyContent: 'center', padding: 24,
       background: 'radial-gradient(ellipse at top, #1a1a3e 0%, var(--bg-primary) 60%)',
     }} className="bg-grid">
-      {/* Glow blobs */}
       <div style={{
         position: 'fixed', top: '20%', left: '10%',
         width: 400, height: 400,
@@ -58,7 +66,6 @@ export default function LoginPage() {
       }} />
 
       <div className="glass-card fade-in-up" style={{ width: '100%', maxWidth: 440, padding: 40 }}>
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
             width: 56, height: 56,
@@ -72,24 +79,53 @@ export default function LoginPage() {
             Chào mừng trở lại
           </h1>
           <p style={{ margin: '8px 0 0', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Đăng nhập để tiếp tục mua sắm
+            Đăng nhập để tiếp tục
           </p>
         </div>
 
-        {/* Form */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 12 }}>
+          <button
+            style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: tab === 'user' ? 'var(--accent)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}
+            onClick={() => setTab('user')}
+          >
+            Tài khoản
+          </button>
+          <button
+            style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: tab === 'agency' ? 'var(--accent)' : 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}
+            onClick={() => setTab('agency')}
+          >
+            Đại lý
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="username">Tên đăng nhập</label>
-            <input
-              id="username"
-              className="input-field"
-              type="text"
-              placeholder="Nhập tên đăng nhập"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              autoComplete="username"
-            />
-          </div>
+          {tab === 'user' ? (
+            <div className="form-group">
+              <label className="form-label" htmlFor="username">Tên đăng nhập</label>
+              <input
+                id="username"
+                className="input-field"
+                type="text"
+                placeholder="Nhập tên đăng nhập"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                autoComplete="username"
+              />
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label" htmlFor="phone">Số điện thoại</label>
+              <input
+                id="phone"
+                className="input-field"
+                type="text"
+                placeholder="Nhập số điện thoại"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                autoComplete="tel"
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label" htmlFor="password">Mật khẩu</label>
@@ -104,15 +140,12 @@ export default function LoginPage() {
             />
           </div>
 
-
-
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading && <span className="spinner" />}
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
 
-        {/* Footer */}
         <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
           Chưa có tài khoản?{' '}
           <Link href="/register" style={{ color: 'var(--accent-light)', fontWeight: 600, textDecoration: 'none' }}>
@@ -120,7 +153,6 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        {/* Demo hint */}
         <div style={{
           marginTop: 20, padding: '12px 16px',
           background: 'rgba(99,102,241,0.08)',
@@ -141,4 +173,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

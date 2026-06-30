@@ -3,16 +3,12 @@ package com.anhtin.tmdt.backend.modules.customer.service;
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerGroupRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.CustomerGroupDTO;
 import com.anhtin.tmdt.backend.modules.customer.entity.CustomerGroup;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerGroupRepository;
-import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import com.anhtin.tmdt.backend.modules.order.entity.Transaction;
 
 @Service
 public class CustomerGroupService {
@@ -20,13 +16,10 @@ public class CustomerGroupService {
     @Autowired
     private CustomerGroupRepository customerGroupRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
     public List<CustomerGroupDTO> getAllGroups() {
         return customerGroupRepository.findAll().stream()
                 .map(CustomerGroupDTO::new)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public CustomerGroupDTO getGroupById(Long id) {
@@ -52,11 +45,11 @@ public class CustomerGroupService {
         if (id == null) throw new IllegalArgumentException("ID cannot be null");
         CustomerGroup group = customerGroupRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer group not found"));
-        
+
         if (!group.getName().equals(request.getName()) && customerGroupRepository.existsByName(request.getName())) {
             throw new RuntimeException("Group name already exists");
         }
-        
+
         group.setName(request.getName());
         group.setDescription(request.getDescription());
         return new CustomerGroupDTO(customerGroupRepository.save(group));
@@ -69,26 +62,5 @@ public class CustomerGroupService {
             throw new RuntimeException("Customer group not found");
         }
         customerGroupRepository.deleteById(id);
-    }
-
-    @Transactional
-    public void assignUserToGroup(Long userId, Long groupId) {
-        if (userId == null || groupId == null) throw new IllegalArgumentException("IDs cannot be null");
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        CustomerGroup group = customerGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Customer group not found"));
-        
-        user.setCustomerGroup(group);
-        userRepository.save(user);
-    }
-
-    @Transactional
-    public void removeUserFromGroup(Long userId) {
-        if (userId == null) throw new IllegalArgumentException("User ID cannot be null");
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setCustomerGroup(null);
-        userRepository.save(user);
     }
 }

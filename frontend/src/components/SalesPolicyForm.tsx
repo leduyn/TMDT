@@ -1331,7 +1331,7 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
                               </td>
                               <td className="p-3 font-semibold">{a.name}</td>
                               <td className="p-3">{a.phone}</td>
-                              <td className="p-3 text-[var(--text-secondary)]">{a.address}</td>
+                              <td className="p-3 text-[var(--text-secondary)]">{a.shippingAddress || a.billingAddress || 'N/A'}</td>
                             </tr>
                           );
                         })}
@@ -1374,7 +1374,7 @@ export default function SalesPolicyForm({ initialId = null, defaultPolicyType }:
                               </td>
                               <td className="p-3 font-semibold">{a.name}</td>
                               <td className="p-3">{a.phone}</td>
-                              <td className="p-3 text-[var(--text-secondary)]">{a.address}</td>
+                              <td className="p-3 text-[var(--text-secondary)]">{a.shippingAddress || a.billingAddress || 'N/A'}</td>
                             </tr>
                           );
                         })}

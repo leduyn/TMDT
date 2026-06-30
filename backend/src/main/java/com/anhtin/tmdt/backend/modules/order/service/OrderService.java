@@ -6,6 +6,8 @@ import com.anhtin.tmdt.backend.modules.order.dto.OrderDTO;
 import com.anhtin.tmdt.backend.modules.order.dto.OrderItemDTO;
 import com.anhtin.tmdt.backend.modules.credit.service.CreditService;
 import com.anhtin.tmdt.backend.modules.credit.service.AgencyDebtService;
+import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
+import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import com.anhtin.tmdt.backend.modules.order.entity.OrderItem;
 import com.anhtin.tmdt.backend.modules.product.entity.Product;
 import com.anhtin.tmdt.backend.modules.loyalty.service.LoyaltyService;
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyType;
 import com.anhtin.tmdt.backend.modules.promotion.service.PromotionService;
 import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import com.anhtin.tmdt.backend.modules.price.service.CommissionService;
@@ -58,6 +61,9 @@ public class OrderService {
 
     @Autowired
     private AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @Autowired
     private PromotionService promotionService;
@@ -104,6 +110,11 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
+        // Nếu đại lý bán lẻ, không được chọn người nhận khác
+        if (agency.getType() == AgencyType.RETAIL && (request.getCustomerId() != null || request.getNewCustomerInfo() != null)) {
+            throw new RuntimeException("Đại lý bán lẻ không được chọn giao hàng cho người khác");
+        }
+
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
         Long priceListId = null;
@@ -122,17 +133,17 @@ public class OrderService {
             receiverType = "CUSTOMER";
             priceListId = priceListService.resolveForCustomer(receiver.getId(), agencyId).getId();
         } else {
-            receiver = agency.getUser();
+            receiver = null;
             priceListId = priceListService.resolveForAgency(agencyId).getId();
         }
 
         Order order = new Order();
-        order.setCustomer(receiver);
+        order.setCustomer(receiver != null ? findOrCreateCustomer(receiver) : null);
         order.setAgency(agency);
         order.setCreatedBy(creator);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
-        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
+        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : (receiver != null ? receiver.getShippingAddress() : ""));
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
@@ -259,6 +270,11 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
+        // Nếu đại lý bán lẻ, không được chọn người nhận khác
+        if (agency.getType() == AgencyType.RETAIL && (request.getCustomerId() != null || request.getNewCustomerInfo() != null)) {
+            throw new RuntimeException("Đại lý bán lẻ không được chọn giao hàng cho người khác");
+        }
+
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
         Long priceListId = null;
@@ -277,7 +293,7 @@ public class OrderService {
             receiverType = "CUSTOMER";
             priceListId = priceListService.resolveForCustomer(receiver.getId(), agencyId).getId();
         } else {
-            receiver = agency.getUser();
+            receiver = null;
             priceListId = priceListService.resolveForAgency(agencyId).getId();
         }
 
@@ -285,12 +301,12 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Order order = new Order();
-        order.setCustomer(receiver);
+        order.setCustomer(receiver != null ? findOrCreateCustomer(receiver) : null);
         order.setAgency(agency);
         order.setCreatedBy(createdByUser);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
-        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
+        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : (receiver != null ? receiver.getShippingAddress() : ""));
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
@@ -408,7 +424,7 @@ public class OrderService {
 
     @Transactional
     public Order createOrderByAgency(Long userId, OrderRequest request) {
-        AgencyDTO agencyDTO = agencyService.getAgencyByUserId(userId);
+        AgencyDTO agencyDTO = agencyService.getAgencyById(userId);
         Long agencyId = agencyDTO.getId();
 
         if (request.getAgencyId() != null && !request.getAgencyId().equals(agencyId)) {
@@ -423,6 +439,11 @@ public class OrderService {
 
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
+
+        // Nếu đại lý bán lẻ, không được chọn người nhận khác
+        if (agency.getType() == AgencyType.RETAIL && (request.getCustomerId() != null || request.getNewCustomerInfo() != null)) {
+            throw new RuntimeException("Đại lý bán lẻ không được chọn giao hàng cho người khác");
+        }
 
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Creator user not found"));
@@ -445,17 +466,17 @@ public class OrderService {
             receiverType = "CUSTOMER";
             priceListId = priceListService.resolveForCustomer(receiver.getId(), agencyId).getId();
         } else {
-            receiver = agency.getUser();
+            receiver = null;
             priceListId = priceListService.resolveForAgency(agencyId).getId();
         }
 
         Order order = new Order();
-        order.setCustomer(receiver);
+        order.setCustomer(receiver != null ? findOrCreateCustomer(receiver) : null);
         order.setAgency(agency);
         order.setCreatedBy(creator);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
-        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : receiver.getShippingAddress());
+        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : (receiver != null ? receiver.getShippingAddress() : ""));
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
@@ -571,6 +592,20 @@ public class OrderService {
         return savedOrder;
     }
 
+    private Customer findOrCreateCustomer(User user) {
+        if (user == null) return null;
+        if (user.getTaxCode() != null && !user.getTaxCode().isBlank()) {
+            Customer existing = customerRepository.findByTaxCode(user.getTaxCode()).orElse(null);
+            if (existing != null) return existing;
+        }
+        Customer c = new Customer();
+        c.setOrganizationName(user.getOrganizationName());
+        c.setTaxCode(user.getTaxCode());
+        c.setShippingAddress(user.getShippingAddress());
+        c.setBillingAddress(user.getBillingAddress());
+        return customerRepository.save(c);
+    }
+
     private User createNewCustomer(OrderRequest.NewCustomerInfo newCustomerInfo, Long agencyId) {
         String username = "KH_" + System.currentTimeMillis();
         String phone = newCustomerInfo.getPhone();
@@ -589,8 +624,10 @@ public class OrderService {
         newUser.setActive(false);
         User savedUser = userRepository.save(newUser);
 
+        Customer customer = findOrCreateCustomer(savedUser);
+
         AgencyCustomerAssignment assignment = new AgencyCustomerAssignment();
-        assignment.setCustomer(savedUser);
+        assignment.setCustomer(customer);
         assignment.setAgency(agencyRepository.getReferenceById(agencyId));
         assignment.setCustomName(newCustomerInfo.getName());
         assignment.setCustomShippingAddress(newCustomerInfo.getShippingAddress());
@@ -704,8 +741,9 @@ public class OrderService {
         OrderDTO dto = new OrderDTO();
         dto.setId(order.getId());
         dto.setCustomerId(order.getCustomer().getId());
-        dto.setCustomerName(order.getCustomer().getOrganizationName() != null ? 
-                order.getCustomer().getOrganizationName() : order.getCustomer().getUsername());
+        Customer c = order.getCustomer();
+        dto.setCustomerName(c.getOrganizationName() != null ? 
+                c.getOrganizationName() : "");
         
         if (order.getAgency() != null) {
             dto.setAgencyId(order.getAgency().getId());

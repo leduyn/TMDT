@@ -39,8 +39,8 @@ export default function PriceUpdateVoucherDetailPage() {
 
       const defaultPL = plData.find(pl => pl.isDefault);
       if (defaultPL) {
-        const itemsData = await priceListApi.getItems(defaultPL.id);
-        setDefaultPriceListItems(itemsData);
+        const res = await priceListApi.getItems(defaultPL.id, 0, 9999);
+        setDefaultPriceListItems(res.content);
       }
     } catch (err) {
       console.error(err);

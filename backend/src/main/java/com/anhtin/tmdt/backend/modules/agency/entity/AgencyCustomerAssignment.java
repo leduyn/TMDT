@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
+import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 
 @Entity
 @Table(name = "agency_customer_assignments")
@@ -17,7 +17,7 @@ public class AgencyCustomerAssignment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
+    private Customer customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_id", nullable = false)
@@ -44,8 +44,8 @@ public class AgencyCustomerAssignment {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public User getCustomer() { return customer; }
-    public void setCustomer(User customer) { this.customer = customer; }
+    public Customer getCustomer() { return customer; }
+    public void setCustomer(Customer customer) { this.customer = customer; }
     public Agency getAgency() { return agency; }
     public void setAgency(Agency agency) { this.agency = agency; }
     public String getCustomName() { return customName; }

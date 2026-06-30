@@ -535,15 +535,15 @@ export default function ProductDetailPage() {
             )}
 
             {activeTab === 'SPECIFICATIONS' && attributes.length > 0 && (
-              <div className="product-attributes" style={{ maxWidth: 800 }}>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="product-attributes">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {attributes.map(attr => (
-                    <li key={attr.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div key={attr.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                       <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>{attr.attributeName}</span>
                       <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>{attr.value}</span>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>

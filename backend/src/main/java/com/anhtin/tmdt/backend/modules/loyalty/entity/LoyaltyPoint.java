@@ -21,6 +21,15 @@ public class LoyaltyPoint {
     @Column(name = "total_earned")
     private Integer totalEarned = 0;
 
+    @Column(name = "level_number")
+    private Integer levelNumber = 1;
+
+    @Column(name = "total_orders")
+    private Integer totalOrders = 0;
+
+    @Column(name = "total_revenue")
+    private Double totalRevenue = 0.0;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -32,6 +41,12 @@ public class LoyaltyPoint {
     public void setPointsBalance(Integer pointsBalance) { this.pointsBalance = pointsBalance; }
     public Integer getTotalEarned() { return totalEarned; }
     public void setTotalEarned(Integer totalEarned) { this.totalEarned = totalEarned; }
+    public Integer getLevelNumber() { return levelNumber; }
+    public void setLevelNumber(Integer levelNumber) { this.levelNumber = levelNumber; }
+    public Integer getTotalOrders() { return totalOrders; }
+    public void setTotalOrders(Integer totalOrders) { this.totalOrders = totalOrders; }
+    public Double getTotalRevenue() { return totalRevenue; }
+    public void setTotalRevenue(Double totalRevenue) { this.totalRevenue = totalRevenue; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 

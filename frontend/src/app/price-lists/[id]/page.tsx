@@ -1,75 +1,88 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
+import Pagination from '@/components/ui/Pagination';
 import { useAuth } from '@/context/AuthContext';
-
-interface PriceListItem {
-  id: number;
-  productId: number;
-  productName: string;
-  productImageUrl: string;
-  price: number;
-  isVisible: boolean;
-  oldPrice?: number;
-}
-
-interface PriceList {
-  id: number;
-  name: string;
-  description: string;
-  isDefault: boolean;
-  active: boolean;
-}
+import { priceListApi, PriceListDTO, PriceListItemDTO } from '@/lib/api';
 
 export default function PriceListDetailPage() {
   const { id } = useParams();
   const { token } = useAuth();
-  
-  // State
-  const [priceList, setPriceList] = useState<PriceList | null>(null);
-  const [items, setItems] = useState<PriceListItem[]>([]);
+
+  const [priceList, setPriceList] = useState<PriceListDTO | null>(null);
+  const [items, setItems] = useState<PriceListItemDTO[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'prices' | 'history'>('prices');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Effects
   useEffect(() => {
-    console.log('PriceListDetailPage loaded', id);
-    fetchData();
+    loadInitialData();
   }, [id]);
 
+  const numericId = Number(id);
 
-
-  // Handlers
-  const fetchData = async () => {
+  const loadInitialData = async () => {
+    setIsLoading(true);
     try {
-      const [plRes, itemsRes, historyRes] = await Promise.all([
-        fetch(`http://localhost:8080/api/price-lists/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`http://localhost:8080/api/price-lists/${id}/items`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`http://localhost:8080/api/price-vouchers/active-history/price-list/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+      const [plData, itemsRes] = await Promise.all([
+        priceListApi.getById(numericId),
+        priceListApi.getItems(numericId, 0, 20),
       ]);
-      const plData = await plRes.json();
-      const itemsData = await itemsRes.json();
-      const historyData = await historyRes.json();
-      
       setPriceList(plData);
-      if (Array.isArray(itemsData)) setItems(itemsData);
-      else setItems([]);
+      setItems(itemsRes.content);
+      setTotalPages(itemsRes.totalPages);
 
-      if (Array.isArray(historyData)) setHistory(historyData);
-      else setHistory([]);
+      try {
+        const historyRes = await fetch(`http://localhost:8080/api/price-vouchers/active-history/price-list/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const historyData = await historyRes.json();
+        setHistory(Array.isArray(historyData) ? historyData : []);
+      } catch {
+        setHistory([]);
+      }
     } catch (err) {
-      console.error('Failed to fetch data', err);
-      setItems([]);
-      setHistory([]);
+      console.error('Failed to load data', err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchItems = async (pageNum: number, search?: string) => {
+    setIsLoadingItems(true);
+    try {
+      const res = await priceListApi.getItems(numericId, pageNum, 20, search);
+      setItems(res.content);
+      setTotalPages(res.totalPages);
+    } catch (err) {
+      console.error('Failed to fetch items', err);
+    } finally {
+      setIsLoadingItems(false);
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(0);
+      fetchItems(0, value);
+    }, 300);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    fetchItems(newPage, searchQuery);
   };
 
   const handleUpdatePrice = async (productId: number, newPrice: number, isVisible: boolean) => {
@@ -78,23 +91,17 @@ export default function PriceListDetailPage() {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId, price: newPrice, isVisible })
+        body: JSON.stringify({ productId, price: newPrice, isVisible }),
       });
-      setItems(prev => prev.map(item => 
+      setItems(prev => prev.map(item =>
         item.productId === productId ? { ...item, price: newPrice, isVisible } : item
       ));
-    } catch (err) {
+    } catch {
       alert('Cập nhật thất bại');
     }
   };
-
-
-
-  const filteredItems = items.filter(item => 
-    item.productName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   if (isLoading || !priceList) return <div className="loading-spinner" />;
 
@@ -110,7 +117,6 @@ export default function PriceListDetailPage() {
           <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{priceList.description || 'Không có mô tả'}</p>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
           {(['prices', 'history'] as const).map(tab => (
             <button
@@ -124,7 +130,6 @@ export default function PriceListDetailPage() {
                 fontWeight: activeTab === tab ? 600 : 500,
                 borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
               }}
             >
               {tab === 'prices' ? 'Danh sách giá' : 'Lịch sử cập nhật'}
@@ -139,7 +144,7 @@ export default function PriceListDetailPage() {
                 type="text"
                 placeholder="Tìm kiếm sản phẩm..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -147,12 +152,21 @@ export default function PriceListDetailPage() {
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid var(--border)',
                   color: 'white',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
                 }}
               />
             </div>
 
-            <div className="glass-card" style={{ padding: 0 }}>
+            <div className="glass-card" style={{ padding: 0, position: 'relative' }}>
+              {isLoadingItems && (
+                <div style={{
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  zIndex: 10, borderRadius: 12,
+                }}>
+                  <div className="spinner" />
+                </div>
+              )}
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
@@ -164,7 +178,7 @@ export default function PriceListDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map(item => (
+                  {items.length > 0 ? items.map(item => (
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '16px 24px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -184,7 +198,7 @@ export default function PriceListDetailPage() {
                             background: 'rgba(0,0,0,0.2)',
                             border: '1px solid var(--border)',
                             borderRadius: 6,
-                            color: item.price === -1 ? 'var(--text-muted)' : 'var(--accent-light)'
+                            color: item.price === -1 ? 'var(--text-muted)' : 'var(--accent-light)',
                           }}
                         />
                         {item.price === -1 && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4 }}>Liên hệ</div>}
@@ -204,10 +218,18 @@ export default function PriceListDetailPage() {
                         <button className="btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>Lịch sử</button>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        {searchQuery ? 'Không tìm thấy sản phẩm phù hợp' : 'Bảng giá chưa có sản phẩm nào'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
           </div>
         )}
 
@@ -259,8 +281,6 @@ export default function PriceListDetailPage() {
             )}
           </div>
         )}
-
-
       </Main>
     </>
   );

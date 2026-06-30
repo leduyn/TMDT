@@ -1,6 +1,7 @@
 package com.anhtin.tmdt.backend.security.jwt;
 
 import com.anhtin.tmdt.backend.security.services.UserDetailsImpl;
+import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -25,12 +26,27 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
+                .claim("type", "USER")
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
     }
-    
+
+    public String generateJwtTokenFromAgency(AgencyUserDetails agencyDetails) {
+        return Jwts.builder()
+                .setSubject(agencyDetails.getPhone())
+                .claim("type", "AGENCY")
+                .claim("agencyId", agencyDetails.getId())
+                .claim("name", agencyDetails.getName())
+                .claim("code", agencyDetails.getCode())
+                .claim("status", agencyDetails.getStatus())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(key(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
@@ -38,6 +54,16 @@ public class JwtUtils {
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key()).build()
                    .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public String getTypeFromJwtToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                   .parseClaimsJws(token).getBody().get("type", String.class);
+    }
+
+    public Long getAgencyIdFromJwtToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                   .parseClaimsJws(token).getBody().get("agencyId", Long.class);
     }
 
     public boolean validateJwtToken(String authToken) {

@@ -63,20 +63,8 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleGoToAgencyDetails = async (userId: number) => {
-    setIsNavigating(true);
-    try {
-      const agency = await agencyApi.getMe(userId);
-      if (agency && agency.id) {
-        router.push(`/agencies/${agency.id}`);
-      } else {
-        setModal({ isOpen: true, title: 'Lỗi', message: 'Không tìm thấy hồ sơ Khách hàng của người dùng này.', type: 'error' });
-      }
-    } catch (error) {
-      setModal({ isOpen: true, title: 'Lỗi', message: 'Lỗi khi lấy thông tin Khách hàng.', type: 'error' });
-    } finally {
-      setIsNavigating(false);
-    }
+  const handleGoToAgencyDetails = () => {
+    router.push('/agencies');
   };
 
   const filteredUsers = users.filter(u => {
@@ -277,33 +265,9 @@ export default function UserManagementPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   
                   {selectedUserForDetails.role === 'CUSTOMER' && (
-                    <>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nhóm Người mua</div>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{selectedUserForDetails.customerGroupName || 'Không thuộc nhóm nào'}</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Khách hàng (Đại lý) quản lý</div>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                          {selectedUserForDetails.agencyNames && selectedUserForDetails.agencyNames.length > 0 
-                            ? selectedUserForDetails.agencyNames.join(', ') 
-                            : 'Chưa được gán'}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Dư nợ hiện tại</div>
-                        <div style={{ fontWeight: 700, color: (selectedUserForDetails.totalDebt || 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedUserForDetails.totalDebt || 0)}
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <Link href={`/customers/${selectedUserForDetails.id}`} style={{ textDecoration: 'none' }}>
-                          <button className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.85rem', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, borderRadius: 10 }}>
-                            <Users size={16} /> Đi tới Quản lý Người mua
-                          </button>
-                        </Link>
-                      </div>
-                    </>
+                    <div style={{ gridColumn: 'span 2', padding: 16, background: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
+                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Người dùng này là Người mua (CUSTOMER). Thông tin chi tiết được quản lý qua mục Người mua.</p>
+                    </div>
                   )}
 
                   {selectedUserForDetails.role === 'AGENCY' && (
@@ -319,11 +283,11 @@ export default function UserManagementPage() {
                       <div style={{ marginTop: 8 }}>
                         <button 
                           className="btn-outline" 
-                          onClick={() => handleGoToAgencyDetails(selectedUserForDetails.id)}
+                          onClick={handleGoToAgencyDetails}
                           disabled={isNavigating}
-                          style={{ padding: '8px 16px', fontSize: '0.85rem', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, borderRadius: 10, cursor: isNavigating ? 'wait' : 'pointer', opacity: isNavigating ? 0.7 : 1 }}
+                          style={{ padding: '8px 16px', fontSize: '0.85rem', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, borderRadius: 10, cursor: 'pointer' }}
                         >
-                          <Shield size={16} /> {isNavigating ? 'Đang chuyển hướng...' : 'Đi tới Quản lý Khách hàng'}
+                          <Shield size={16} /> Đi tới Quản lý Khách hàng
                         </button>
                       </div>
                     </>

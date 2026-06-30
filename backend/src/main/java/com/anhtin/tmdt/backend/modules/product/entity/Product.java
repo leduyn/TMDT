@@ -97,13 +97,13 @@ public class Product {
     @Column(name = "short_name", length = 300)
     private String shortName;
 
-    @Column(name = "specification", length = 100)
+    @Column(name = "specification", length = 1000)
     private String specification;
 
-    @Column(name = "feature1", length = 100)
+    @Column(name = "feature1", length = 500)
     private String feature1;
 
-    @Column(name = "feature2", length = 100)
+    @Column(name = "feature2", length = 500)
     private String feature2;
 
     public Long getId() { return id; }

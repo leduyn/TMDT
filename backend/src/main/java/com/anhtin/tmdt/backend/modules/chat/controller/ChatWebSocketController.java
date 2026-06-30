@@ -4,6 +4,7 @@ import com.anhtin.tmdt.backend.modules.chat.dto.ChatMessageRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.ChatMessageDTO;
 import com.anhtin.tmdt.backend.modules.common.entity.SenderType;
 import com.anhtin.tmdt.backend.security.services.UserDetailsImpl;
+import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
 import com.anhtin.tmdt.backend.modules.chat.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -28,16 +29,25 @@ public class ChatWebSocketController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    private Long resolveUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) principal).getId();
+        } else if (principal instanceof AgencyUserDetails) {
+            return ((AgencyUserDetails) principal).getId();
+        }
+        return null;
+    }
+
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageRequest request, Authentication authentication) {
-        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
 
-        // Xác định loại sender
-        String authority = user.getAuthorities().iterator().next().getAuthority();
+        String authority = authentication.getAuthorities().iterator().next().getAuthority();
         SenderType senderType = "ROLE_CUSTOMER".equals(authority)
                 ? SenderType.CUSTOMER : SenderType.AGENCY;
 
-        Long userId = user.getId();
+        Long userId = resolveUserId(authentication);
         Long roomId = request.getRoomId();
         if (userId == null || roomId == null) return;
 

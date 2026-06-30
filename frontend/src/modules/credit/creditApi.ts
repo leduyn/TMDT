@@ -49,6 +49,15 @@ export interface CustomerDebtInfo {
   totalDebt: number;
 }
 
+export interface DepositContractInfo {
+  id: number;
+  contractNumber: string;
+  depositAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: string;
+}
+
 export interface CreditDetail {
   agencyId: number;
   creditLimit: number;
@@ -62,6 +71,7 @@ export interface CreditDetail {
   overdueDebts: OverdueDebtInfo[];
   ledgerHistory: LedgerEntry[];
   customerDebts: CustomerDebtInfo[];
+  depositContract?: DepositContractInfo | null;
 }
 
 export interface AgencyCreditSummary {
@@ -102,10 +112,10 @@ export const creditApi = {
       body: JSON.stringify({ creditLimit }),
     }),
 
-  depositVtc: (agencyId: number, amount: number) =>
-    fetchJSON<{ message: string; amount: number }>(`/api/credit/agents/${agencyId}/deposit`, {
+  depositVtc: (agencyId: number, amount: number, contractId?: number, notes?: string) =>
+    fetchJSON<any>(`/api/credit/agents/${agencyId}/deposit`, {
       method: 'POST',
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ amount, contractId, notes }),
     }),
   recalculate: (agencyId: number) =>
     fetchJSON<{ message: string }>(`/api/credit/admin/recalculate/${agencyId}`, { method: 'POST' }),
@@ -120,6 +130,12 @@ export const creditApi = {
     fetchJSON<{ message: string }>('/api/credit/admin/trigger-interest', { method: 'POST' }),
   triggerOverdue: () =>
     fetchJSON<{ message: string }>('/api/credit/admin/trigger-overdue', { method: 'POST' }),
+
+  getDepositContracts: (agencyId: number) =>
+    fetchJSON<any[]>('/api/credit/deposit-contracts/agency/' + agencyId),
+
+  getDepositContractDetail: (id: number) =>
+    fetchJSON<any>('/api/credit/deposit-contracts/' + id),
 };
 
 export const agencyDebtApi = {

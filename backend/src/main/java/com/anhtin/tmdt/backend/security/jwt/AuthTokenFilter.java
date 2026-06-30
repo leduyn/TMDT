@@ -1,6 +1,9 @@
 package com.anhtin.tmdt.backend.security.jwt;
 
 import com.anhtin.tmdt.backend.security.services.UserDetailsServiceImpl;
+import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
+import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,7 +18,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
@@ -24,23 +26,41 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    @Autowired
+    private AgencyRepository agencyRepository;
+
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                String tokenType = jwtUtils.getTypeFromJwtToken(jwt);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                UserDetails userDetails;
+                if ("AGENCY".equals(tokenType)) {
+                    String phone = jwtUtils.getUserNameFromJwtToken(jwt);
+                    Agency agency = agencyRepository.findByPhone(phone).orElse(null);
+                    if (agency != null) {
+                        userDetails = AgencyUserDetails.build(agency);
+                        request.setAttribute("agencyId", agency.getId());
+                    } else {
+                        userDetails = null;
+                    }
+                } else {
+                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                    userDetails = userDetailsService.loadUserByUsername(username);
+                }
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (userDetails != null) {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             } else if (jwt != null) {
                 System.err.println("JWT Validation failed for token: " + jwt.substring(0, Math.min(jwt.length(), 10)) + "...");
             }

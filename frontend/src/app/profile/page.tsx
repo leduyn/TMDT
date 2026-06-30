@@ -1,18 +1,18 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import NotificationModal from '@/components/NotificationModal';
+import { agencyApi } from '@/lib/api';
 
-// UI Components
 import PageHeader from '@/components/ui/PageHeader';
 import GlassCard from '@/components/ui/GlassCard';
 import Main from '@/components/Main';
-import { User, ShieldCheck, Building, MapPin, Save, Key } from 'lucide-react';
+import { User, ShieldCheck, Building, MapPin, Save, Smartphone, UserCircle } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isAgency } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -39,33 +39,44 @@ export default function ProfilePage() {
     }
 
     if (user) {
-      fetch('/api/users/me', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        setProfile(data);
-        setFormData({
-          email: data.email || '',
-          phone: data.phone || '',
-          taxCode: data.taxCode || '',
-          organizationName: data.organizationName || '',
-          shippingAddress: data.shippingAddress || '',
-          billingAddress: data.billingAddress || '',
-          password: '',
-          confirmPassword: ''
-        });
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setModal({ isOpen: true, title: 'Lỗi', message: 'Không thể tải thông tin hồ sơ', type: 'error' });
-        setLoading(false);
-      });
+      const loadProfile = isAgency
+        ? agencyApi.getMe().then(data => {
+            setProfile(data);
+            setFormData({
+              email: '',
+              phone: data.phone || '',
+              taxCode: data.taxCode || '',
+              organizationName: data.name || '',
+              shippingAddress: data.shippingAddress || '',
+              billingAddress: data.billingAddress || '',
+              password: '',
+              confirmPassword: ''
+            });
+          })
+        : fetch('/api/users/me', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          }).then(res => res.json()).then(data => {
+            setProfile(data);
+            setFormData({
+              email: data.email || '',
+              phone: data.phone || '',
+              taxCode: data.taxCode || '',
+              organizationName: data.organizationName || '',
+              shippingAddress: data.shippingAddress || '',
+              billingAddress: data.billingAddress || '',
+              password: '',
+              confirmPassword: ''
+            });
+          });
+
+      loadProfile
+        .catch(err => {
+          console.error(err);
+          setModal({ isOpen: true, title: 'Lỗi', message: 'Không thể tải thông tin hồ sơ', type: 'error' });
+        })
+        .finally(() => setLoading(false));
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isAgency]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,13 +87,20 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/users/profile', {
+      const endpoint = isAgency
+        ? `/api/agencies/${profile.id}`
+        : '/api/users/profile';
+      const body = isAgency
+        ? { taxCode: formData.taxCode, shippingAddress: formData.shippingAddress, billingAddress: formData.billingAddress, phone: formData.phone }
+        : formData;
+
+      const res = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(body)
       });
 
       if (!res.ok) {
@@ -103,46 +121,48 @@ export default function ProfilePage() {
 
   return (
     <Main>
-      <PageHeader 
-        title="Hồ sơ tài khoản" 
-        subtitle="Quản lý thông tin cá nhân và bảo mật tài khoản người dùng"
+      <PageHeader
+        title="Hồ sơ tài khoản"
+        subtitle={isAgency ? 'Quản lý thông tin Đại lý' : 'Quản lý thông tin cá nhân và bảo mật tài khoản người dùng'}
         icon="User"
       />
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 24, marginTop: 32 }}>
-        {/* Left Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <GlassCard style={{ padding: 32 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-              <User className="gradient-text" size={24} />
-              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Thông tin cơ bản</h3>
+              {isAgency ? <Smartphone className="gradient-text" size={24} /> : <User className="gradient-text" size={24} />}
+              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{isAgency ? 'Thông tin Đại lý' : 'Thông tin cơ bản'}</h3>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên đăng nhập</label>
-                <input type="text" className="input-field" value={profile?.username} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Email liên hệ</label>
-                <input 
-                  type="email" 
-                  className="input-field" 
-                  value={formData.email} 
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
+              {isAgency ? (
+                <>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mã Đại lý</label>
+                    <input type="text" className="input-field" value={profile?.code} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên Đại lý</label>
+                    <input type="text" className="input-field" value={profile?.name} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên đăng nhập</label>
+                  <input type="text" className="input-field" value={profile?.username} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Số điện thoại</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  value={formData.phone} 
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Nhập số điện thoại chính thức"
-                />
+                <input type="text" className="input-field" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="Số điện thoại chính thức" />
               </div>
+              {!isAgency && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Email liên hệ</label>
+                  <input type="email" className="input-field" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                </div>
+              )}
             </div>
           </GlassCard>
 
@@ -154,29 +174,16 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mật khẩu mới</label>
-                <input 
-                  type="password" 
-                  className="input-field" 
-                  value={formData.password} 
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Để trống nếu không muốn đổi"
-                />
+                <input type="password" className="input-field" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder="Để trống nếu không muốn đổi" />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Xác nhận mật khẩu</label>
-                <input 
-                  type="password" 
-                  className="input-field" 
-                  value={formData.confirmPassword} 
-                  onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  placeholder="Nhập lại mật khẩu mới"
-                />
+                <input type="password" className="input-field" value={formData.confirmPassword} onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })} placeholder="Nhập lại mật khẩu mới" />
               </div>
             </div>
           </GlassCard>
         </div>
 
-        {/* Right Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <GlassCard style={{ padding: 32 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -184,25 +191,20 @@ export default function ProfilePage() {
               <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Thông tin tổ chức</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên tổ chức / Công ty</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  value={formData.organizationName} 
-                  onChange={e => setFormData({ ...formData, organizationName: e.target.value })}
-                  placeholder="Tên công ty hoặc hộ kinh doanh"
-                />
-              </div>
+              {isAgency ? (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên Đại lý</label>
+                  <input type="text" className="input-field" value={formData.organizationName} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Tên tổ chức / Công ty</label>
+                  <input type="text" className="input-field" value={formData.organizationName} onChange={e => setFormData({ ...formData, organizationName: e.target.value })} placeholder="Tên công ty hoặc hộ kinh doanh" />
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mã số thuế</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  value={formData.taxCode} 
-                  onChange={e => setFormData({ ...formData, taxCode: e.target.value })}
-                  placeholder="Nhập mã số thuế (nếu có)"
-                />
+                <input type="text" className="input-field" value={formData.taxCode} onChange={e => setFormData({ ...formData, taxCode: e.target.value })} placeholder="Nhập mã số thuế (nếu có)" />
               </div>
             </div>
           </GlassCard>
@@ -215,42 +217,25 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Địa chỉ nhận hàng</label>
-                <textarea 
-                  className="input-field" 
-                  rows={3} 
-                  value={formData.shippingAddress} 
-                  onChange={e => setFormData({ ...formData, shippingAddress: e.target.value })}
-                  placeholder="Địa chỉ nhận hàng mặc định"
-                />
+                <textarea className="input-field" rows={3} value={formData.shippingAddress} onChange={e => setFormData({ ...formData, shippingAddress: e.target.value })} placeholder="Địa chỉ nhận hàng mặc định" />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Địa chỉ xuất hóa đơn</label>
-                <textarea 
-                  className="input-field" 
-                  rows={3} 
-                  value={formData.billingAddress} 
-                  onChange={e => setFormData({ ...formData, billingAddress: e.target.value })}
-                  placeholder="Địa chỉ ghi trên hóa đơn"
-                />
+                <textarea className="input-field" rows={3} value={formData.billingAddress} onChange={e => setFormData({ ...formData, billingAddress: e.target.value })} placeholder="Địa chỉ ghi trên hóa đơn" />
               </div>
             </div>
           </GlassCard>
 
-          <button 
-            type="submit" 
-            className="btn-primary" 
-            style={{ padding: '16px', fontWeight: 600, fontSize: '1rem', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
-            disabled={saving}
-          >
+          <button type="submit" className="btn-primary" style={{ padding: '16px', fontWeight: 600, fontSize: '1rem', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} disabled={saving}>
             <Save size={20} />
             {saving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
           </button>
         </div>
       </form>
 
-      <NotificationModal 
-        isOpen={modal.isOpen} 
-        onClose={() => setModal({ ...modal, isOpen: false })} 
+      <NotificationModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ ...modal, isOpen: false })}
         title={modal.title}
         message={modal.message}
         type={modal.type}
@@ -258,4 +243,3 @@ export default function ProfilePage() {
     </Main>
   );
 }
-

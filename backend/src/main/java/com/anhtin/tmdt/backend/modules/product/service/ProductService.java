@@ -292,10 +292,6 @@ public class ProductService {
         if (categoryId == null) throw new RuntimeException("Category ID is required");
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
-        if (category.getLevel() == null || category.getLevel() != 4) {
-            throw new RuntimeException("Chỉ được chọn danh mục cấp 4 (Dòng sản phẩm) cho sản phẩm");
-        }
-
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -340,19 +336,19 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("ProductType not found")));
         }
 
-        // áº¢nh chÃ­nh = áº£nh Ä‘áº§u tiÃªn trong gallery hoáº·c imageUrl Ä‘Æ¡n láº»
+        // Ảnh chính = ảnh đầu tiên trong gallery hoặc imageUrl đơn lẻ
         String mainImage = resolveMainImage(request);
         product.setImageUrl(mainImage);
 
         Product savedProduct = productRepository.save(product);
 
-        // LÆ°u gallery
+        // Lưu gallery
         saveGallery(savedProduct, request.getImageUrls());
 
-        // LÆ°u attributes
+        // Lưu attributes
         saveAttributes(savedProduct, request.getAttributeValueIds());
 
-        // Hook: ThÃªm sáº£n pháº©m má»›i vÃ o táº¥t cáº£ báº£ng giÃ¡ hiá»‡n cÃ³
+        // Hook: Thêm sản phẩm mới vào tất cả bảng giá hiện có
         priceListService.onProductCreated(savedProduct);
 
         List<ProductImage> images = productImageRepository.findByProductIdOrderBySortOrderAsc(savedProduct.getId());
@@ -368,10 +364,6 @@ public class ProductService {
         if (categoryId == null) throw new RuntimeException("Category ID is required");
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
-        if (category.getLevel() == null || category.getLevel() != 4) {
-            throw new RuntimeException("Chỉ được chọn danh mục cấp 4 (Dòng sản phẩm) cho sản phẩm");
-        }
-
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setCategory(category);
@@ -426,11 +418,11 @@ public class ProductService {
 
         Product updatedProduct = productRepository.save(product);
 
-        // XÃ³a gallery cÅ© vÃ  lÆ°u gallery má»›i
+        // Xóa gallery cũ và lưu gallery mới
         productImageRepository.deleteByProductId(id);
         saveGallery(updatedProduct, request.getImageUrls());
 
-        // Cáº­p nháº­t attributes
+        // Cập nhật attributes
         productAttributeValueRepository.deleteByProductId(id);
         saveAttributes(updatedProduct, request.getAttributeValueIds());
 
@@ -448,7 +440,7 @@ public class ProductService {
         }
     }
 
-    // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Helpers ────────────────────────────────────────────────────────────────
 
     private String resolveMainImage(ProductRequest request) {
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
@@ -488,6 +480,6 @@ public class ProductService {
         productAttributeValueRepository.saveAll(pavs);
     }
 
-    // NOTE: ThÃªm location-based query (PostGIS) á»Ÿ phase tá»‘i Æ°u
+    // NOTE: Thêm location-based query (PostGIS) ở phase tối ưu
 }
 

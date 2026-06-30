@@ -1,0 +1,31 @@
+# Tasks - Gamification Engine Integration
+
+- `[x]` **1. Backend: Entities Creation**
+  - `[x]` Create `MembershipLevel.java` (Dynamic levels configuration)
+  - `[x]` Modify `LoyaltyPoint.java` (Add levelNumber, totalOrders, totalRevenue)
+  - `[x]` Create `Badge.java` (CRUD-able badges definition)
+  - `[x]` Create `CustomerBadge.java` (Earned badges mapping)
+  - `[x]` Create `CustomerTitle.java` (Titles mapping)
+  - `[x]` Create `CustomerCertificate.java` (Virtual certificates/awards)
+  - `[x]` Create `GamificationRule.java` (Rule configurations)
+- `[x]` **2. Backend: Repositories & DTOs**
+  - `[x]` Create Repositories for all new entities
+  - `[x]` Create DTOs (`GamificationProfileDTO`, `LeaderboardEntryDTO`, `BadgeDTO`, `CertificateDTO`)
+- `[x]` **3. Backend: Services & Rule Engine**
+  - `[x]` Create `GamificationRuleEngineService.java` (SpEL expressions parser for conditions, rewards, levels)
+  - `[x]` Update `LoyaltyService.java` (Dynamic points formula calculation via SpEL, stats update)
+  - `[x]` Hook `LoyaltyService` and `GamificationRuleEngineService` into `OrderService.java` (Paid and Completed events)
+- `[x]` **4. Backend: REST Controller**
+  - `[x]` Create `GamificationController.java` (Endpoints for user profiles, leaderboard, certificates, badge lists, and admin management for levels, rules, and badges CRUD)
+- `[x]` **5. Frontend: Client API & Routing**
+  - `[x]` Create `loyaltyApi.ts` (Fetchers and interfaces)
+  - `[x]` Create `/dashboard/loyalty/page.tsx` (Main layout with Tab menus)
+- `[x]` **6. Frontend: Interactive Tabs & Components**
+  - `[x]` Implement `FlowVisualizer.tsx` (SVG animation visualizer for order events -> Rule Engine -> reward)
+  - `[x]` Implement `Leaderboard.tsx` (List ranks with podium style for top 3)
+  - `[x]` Implement `BadgesProgress.tsx` (Cấp bậc, progress bar to next level, unlocked badges grid)
+  - `[x]` Implement `CertificatesGallery.tsx` and `CertificateModal.tsx` (Certificate display and print layout)
+  - `[x]` Implement `AdminRulesConfig.tsx` (Admin settings for levels, badges CRUD, rules toggle, and point formula input)
+- `[ ]` **7. Verification & Testing**
+  - `[ ]` Write unit test cases for the Rule Engine and LoyaltyService
+  - `[ ]` Run manual verification via browser subagent

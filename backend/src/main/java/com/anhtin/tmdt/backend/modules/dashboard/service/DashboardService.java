@@ -109,7 +109,7 @@ public class DashboardService {
         return orders.stream().map(o -> {
             RecentOrder ro = new RecentOrder();
             ro.setId(o.getId());
-            ro.setCustomerName(o.getCustomer() != null ? o.getCustomer().getUsername() : "N/A");
+            ro.setCustomerName(o.getCustomer() != null ? (o.getCustomer().getOrganizationName() != null ? o.getCustomer().getOrganizationName() : "N/A") : "N/A");
             ro.setTotalAmount(o.getTotalAmount());
             ro.setStatus(o.getStatus());
             ro.setOrderDate(o.getOrderDate() != null ? o.getOrderDate().format(DTF) : "");

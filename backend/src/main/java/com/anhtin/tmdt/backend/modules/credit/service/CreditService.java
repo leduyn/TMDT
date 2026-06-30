@@ -4,10 +4,14 @@ import com.anhtin.tmdt.backend.modules.credit.entity.AgentCredit;
 import com.anhtin.tmdt.backend.modules.credit.entity.AgencyDebt;
 import com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.modules.credit.entity.OverdueDebt;
+import com.anhtin.tmdt.backend.modules.credit.entity.DepositContract;
+import com.anhtin.tmdt.backend.modules.credit.entity.DepositPayment;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgentCreditRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgencyDebtRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.CreditLedgerRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.OverdueDebtRepository;
+import com.anhtin.tmdt.backend.modules.credit.repository.DepositContractRepository;
+import com.anhtin.tmdt.backend.modules.credit.repository.DepositPaymentRepository;
 import com.anhtin.tmdt.backend.modules.order.entity.Order;
 import com.anhtin.tmdt.backend.modules.order.repository.OrderRepository;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCustomerAssignmentRepository;
@@ -49,8 +53,8 @@ public class CreditService {
                 int overdueCount = overdueDebtRepository.findByAgencyIdAndStatus(agency.getId(), OverdueDebt.OverdueStatus.ACTIVE).size();
                 return com.anhtin.tmdt.backend.modules.credit.dto.AgencyCreditSummaryDTO.from(credit, overdueCount);
             } else {
-                return com.anhtin.tmdt.backend.modules.credit.dto.AgencyCreditSummaryDTO.uninitialized(
-                        agency.getId(), agency.getName(), agency.getPhone(), agency.getAddress());
+                    return com.anhtin.tmdt.backend.modules.credit.dto.AgencyCreditSummaryDTO.uninitialized(
+                            agency.getId(), agency.getName(), agency.getPhone(), agency.getBillingAddress() != null ? agency.getBillingAddress() : "");
             }
         }).toList();
     }
@@ -124,6 +128,12 @@ public class CreditService {
 
     @Autowired
     private AgencyDebtRepository agencyDebtRepository;
+
+    @Autowired
+    private DepositContractRepository depositContractRepository;
+
+    @Autowired
+    private DepositPaymentRepository depositPaymentRepository;
 
     @Transactional
     public void processOverdue(Long orderId, Double amount) {
@@ -273,5 +283,53 @@ public class CreditService {
 
         agencyDebtService.recordTransaction(credit.getAgency(), null, "DEP-" + UUID.randomUUID().toString().substring(0,8), 
             AgencyDebt.DebtType.DEPOSIT, "Nạp tiền vào ví VTC", -amount, 0);
+    }
+
+    @Transactional
+    public DepositContract recordDepositContractPayment(Long contractId, Double amount, String notes) {
+        DepositContract contract = depositContractRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng đặt cọc"));
+        if (contract.getStatus() != DepositContract.DepositContractStatus.ACTIVE) {
+            throw new RuntimeException("Hợp đồng đặt cọc không ở trạng thái hoạt động");
+        }
+
+        // Create payment record
+        DepositPayment payment = new DepositPayment();
+        payment.setDepositContractId(contractId);
+        payment.setAmount(amount);
+        payment.setPaymentDate(LocalDateTime.now());
+        payment.setNotes(notes);
+        depositPaymentRepository.save(payment);
+
+        // Update contract paid amount
+        contract.setPaidAmount(contract.getPaidAmount() + amount);
+        depositContractRepository.save(contract);
+
+        // Increase vtcAvailable
+        Long agencyId = contract.getAgencyId();
+        AgentCredit credit = agentCreditRepository.findByAgencyId(agencyId)
+                .orElseThrow(() -> new RuntimeException("Credit account not found"));
+        credit.setVtcAvailable(credit.getVtcAvailable() + amount);
+        agentCreditRepository.save(credit);
+
+        // Ledger entry
+        saveLedger(agencyId, CreditLedger.LedgerType.PAYMENT, amount, "DEPOSIT_CONTRACT-" + contractId);
+
+        // Record AgencyDebt transaction
+        com.anhtin.tmdt.backend.modules.agency.entity.Agency agency = agencyRepository.findById(agencyId).orElse(null);
+        if (agency != null) {
+            agencyDebtService.recordTransaction(agency, null,
+                "DEP-" + UUID.randomUUID().toString().substring(0, 8),
+                AgencyDebt.DebtType.DEPOSIT, "Nạp tiền ký quỹ - HĐ " + contract.getContractNumber(), -amount, 0);
+        }
+
+        // Check activation: if cumulative payments >= deposit amount, activate agency
+        if (contract.getPaidAmount() >= contract.getDepositAmount() && !agency.isActive()) {
+            agency.setActive(true);
+            agencyRepository.save(agency);
+        }
+
+        agencyDebtService.recalculateDebts(agencyId);
+        return contract;
     }
 }

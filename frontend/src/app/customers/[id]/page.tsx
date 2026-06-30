@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { customerApi, UserDTO, orderApi, OrderDTO } from '@/lib/api';
+import { customerApi, CustomerDTO, orderApi, OrderDTO } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [customer, setCustomer] = useState<UserDTO | null>(null);
+  const [customer, setCustomer] = useState<CustomerDTO | null>(null);
   const [orders, setOrders] = useState<OrderDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -20,7 +20,7 @@ export default function CustomerDetailPage() {
   useEffect(() => {
     if (!id) return;
     const customerId = Number(id);
-    
+
     customerApi.getById(customerId)
       .then(setCustomer)
       .catch(err => {
@@ -71,17 +71,17 @@ export default function CustomerDetailPage() {
       <Main>
         <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div style={{ 
-              width: 70, height: 70, borderRadius: 20, background: 'var(--accent)', 
+            <div style={{
+              width: 70, height: 70, borderRadius: 20, background: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 28, color: 'white', fontWeight: 800,
               boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
             }}>
-              {customer.username.charAt(0).toUpperCase()}
+              {(customer.organizationName || 'C').charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{customer.displayName || customer.username}</h1>
-              <p style={{ color: 'var(--text-muted)', marginTop: 4 }}>ID: #{customer.id} • {customer.email}</p>
+              <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{customer.organizationName || '#' + customer.id}</h1>
+              <p style={{ color: 'var(--text-muted)', marginTop: 4 }}>ID: #{customer.id}{customer.taxCode ? ` • MST: ${customer.taxCode}` : ''}</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
@@ -91,108 +91,59 @@ export default function CustomerDetailPage() {
           </div>
         </div>
 
-        {/* Tab Navigation & Nợ Info */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-          <div style={{ 
-            display: 'flex', gap: 8, 
-            padding: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 16,
-            width: 'fit-content'
-          }}>
-            <button 
-              onClick={() => setActiveTab('info')}
-              style={{ 
-                padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                background: activeTab === 'info' ? 'var(--accent)' : 'transparent',
-                color: activeTab === 'info' ? 'white' : 'var(--text-muted)',
-                fontWeight: 600, transition: 'all 0.3s ease'
-              }}
-            >
-              Thông tin chung
-            </button>
-            <button 
-              onClick={() => setActiveTab('orders')}
-              style={{ 
-                padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                background: activeTab === 'orders' ? 'var(--accent)' : 'transparent',
-                color: activeTab === 'orders' ? 'white' : 'var(--text-muted)',
-                fontWeight: 600, transition: 'all 0.3s ease',
-                display: 'flex', alignItems: 'center', gap: 8
-              }}
-            >
-              Đơn hàng
-              <span style={{ 
-                fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8,
-                background: activeTab === 'orders' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'
-              }}>
-                {orders.length}
-              </span>
-            </button>
-          </div>
-
-          {/* Thông tin Công nợ */}
-          <div style={{ 
-            display: 'flex', alignItems: 'center', gap: 12, 
-            background: (customer.totalDebt ?? 0) > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', 
-            border: `1px solid ${(customer.totalDebt ?? 0) > 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`, 
-            padding: '10px 24px', borderRadius: 16 
-          }}>
-            <span style={{ color: (customer.totalDebt ?? 0) > 0 ? '#ef4444' : '#22c55e', fontWeight: 600, fontSize: '0.95rem' }}>
-              Dư nợ hiện tại:
+        <div style={{ display: 'flex', gap: 8, marginBottom: 32,
+          padding: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 16,
+          width: 'fit-content'
+        }}>
+          <button
+            onClick={() => setActiveTab('info')}
+            style={{
+              padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: activeTab === 'info' ? 'var(--accent)' : 'transparent',
+              color: activeTab === 'info' ? 'white' : 'var(--text-muted)',
+              fontWeight: 600, transition: 'all 0.3s ease'
+            }}
+          >
+            Thông tin chung
+          </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            style={{
+              padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: activeTab === 'orders' ? 'var(--accent)' : 'transparent',
+              color: activeTab === 'orders' ? 'white' : 'var(--text-muted)',
+              fontWeight: 600, transition: 'all 0.3s ease',
+              display: 'flex', alignItems: 'center', gap: 8
+            }}
+          >
+            Đơn hàng
+            <span style={{
+              fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8,
+              background: activeTab === 'orders' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'
+            }}>
+              {orders.length}
             </span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: (customer.totalDebt ?? 0) > 0 ? '#ef4444' : '#22c55e' }}>
-              {(customer.totalDebt ?? 0).toLocaleString('vi-VN')}đ
-            </span>
-          </div>
+          </button>
         </div>
 
         {activeTab === 'info' ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24 }}>
-            {/* Sidebar / Quick Info */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div className="glass-card" style={{ padding: 24 }}>
-                <h4 style={{ margin: '0 0 16px', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Liên hệ</h4>
+                <h4 style={{ margin: '0 0 16px', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Người nhận</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Email</small>
-                    <strong>{customer.email}</strong>
+                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Tên người nhận</small>
+                    <strong>{customer.receiverName || '---'}</strong>
                   </div>
                   <div>
                     <small style={{ color: 'var(--text-muted)', display: 'block' }}>Số điện thoại</small>
-                    <strong>{customer.phone || '---'}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Trạng thái</small>
-                    <span className={`badge ${customer.active ? 'badge-success' : 'badge-warning'}`} style={{ marginTop: 4 }}>
-                      {customer.active ? 'Đang hoạt động' : 'Đã khóa'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card" style={{ padding: 24 }}>
-                <h4 style={{ margin: '0 0 16px', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Phân loại</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div>
-                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Nhóm người mua</small>
-                    <strong>{customer.customerGroupName || 'Vãng lai'}</strong>
-                  </div>
-                  <div>
-                    <small style={{ color: 'var(--text-muted)', display: 'block' }}>Người mua quản lý</small>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                      {customer.agencyNames && customer.agencyNames.length > 0 ? (
-                        customer.agencyNames.map((name, i) => (
-                          <span key={i} className="badge badge-outline" style={{ borderColor: 'var(--accent)', color: 'var(--accent-light)' }}>{name}</span>
-                        ))
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>Chưa gán khách hàng</span>
-                      )}
-                    </div>
+                    <strong>{customer.receiverPhone || '---'}</strong>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Main Info Area */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div className="glass-card" style={{ padding: 32 }}>
                 <h3 style={{ margin: '0 0 24px' }}>Thông tin tổ chức & Địa chỉ</h3>
@@ -205,7 +156,10 @@ export default function CustomerDetailPage() {
                     <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Mã số thuế</small>
                     <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>{customer.taxCode || '---'}</p>
                   </div>
-                  <div />
+                  <div>
+                    <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Đại lý quản lý</small>
+                    <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>{customer.agencyId ? `ID: ${customer.agencyId}` : '---'}</p>
+                  </div>
                   <div>
                     <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Địa chỉ nhận hàng</small>
                     <p style={{ fontSize: '1rem', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{customer.shippingAddress || '---'}</p>
@@ -214,27 +168,13 @@ export default function CustomerDetailPage() {
                     <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Địa chỉ xuất hóa đơn</small>
                     <p style={{ fontSize: '1rem', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{customer.billingAddress || '---'}</p>
                   </div>
-                </div>
-
-                {(customer.customName || customer.customShippingAddress || customer.customPhone) && (
-                  <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 32, background: 'rgba(52, 152, 219, 0.05)', padding: 24, borderRadius: 16 }}>
-                    <h3 style={{ margin: '0 0 24px', color: '#3498db' }}>Thông tin riêng của khách hàng</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
-                      <div>
-                        <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Tên gợi nhớ</small>
-                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{customer.customName || '---'}</p>
-                      </div>
-                      <div>
-                        <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Số điện thoại riêng</small>
-                        <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>{customer.customPhone || '---'}</p>
-                      </div>
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Địa chỉ nhận hàng riêng</small>
-                        <p style={{ fontSize: '1rem', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{customer.customShippingAddress || '---'}</p>
-                      </div>
+                  {customer.note && (
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Ghi chú</small>
+                      <p style={{ fontSize: '1rem', fontWeight: 500, whiteSpace: 'pre-wrap' }}>{customer.note}</p>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -244,7 +184,7 @@ export default function CustomerDetailPage() {
               <h3 style={{ margin: 0 }}>Lịch sử giao dịch</h3>
               <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{orders.length} đơn hàng</span>
             </div>
-            
+
             {loadingOrders ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <div className="loading-spinner" style={{ margin: '0 auto' }} />
@@ -272,7 +212,7 @@ export default function CustomerDetailPage() {
                           <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{order.orderType}</span>
                         </td>
                         <td style={{ padding: '16px 8px' }}>
-                          <span style={{ 
+                          <span style={{
                             padding: '4px 10px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600,
                             background: `${getStatusColor(order.status)}20`, color: getStatusColor(order.status),
                             border: `1px solid ${getStatusColor(order.status)}40`

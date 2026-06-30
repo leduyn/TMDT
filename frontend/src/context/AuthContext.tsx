@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { JwtResponse } from '@/lib/api';
+import { JwtResponse } from '@/modules/user/userApi';
 
 interface AuthContextType {
   user: JwtResponse | null;
@@ -9,6 +9,9 @@ interface AuthContextType {
   login: (data: JwtResponse) => void;
   logout: () => void;
   isLoading: boolean;
+  isAgency: boolean;
+  isCompany: boolean;
+  isPendingAgency: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +20,9 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
   isLoading: true,
+  isAgency: false,
+  isCompany: false,
+  isPendingAgency: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -54,12 +60,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const roles = user?.roles || [];
+  const isAgency = roles.includes('ROLE_AGENCY');
+  const isCompany = roles.includes('ROLE_COMPANY');
+  const isPendingAgency = isAgency && user?.agencyStatus === 'PENDING';
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, isAgency, isCompany, isPendingAgency }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export const useAuth = () => useContext(AuthContext);
-

@@ -15,6 +15,10 @@ public class JwtResponse {
     private List<String> roles;
     private Long agencyId;
     private String shippingAddress;
+    private String phone;
+    private String name;
+    private String code;
+    private String agencyStatus;
 
     public JwtResponse(String accessToken, Long id, String username, String email, List<String> roles, Long agencyId, String shippingAddress) {
         this.token = accessToken;
@@ -24,5 +28,19 @@ public class JwtResponse {
         this.roles = roles;
         this.agencyId = agencyId;
         this.shippingAddress = shippingAddress;
+    }
+
+    public JwtResponse(String accessToken, Long id, String phone, String name, String code, List<String> roles, Long agencyId, String agencyStatus) {
+        this.token = accessToken;
+        this.id = id;
+        this.username = phone;
+        this.phone = phone;
+        this.email = "";
+        this.name = name;
+        this.code = code;
+        this.roles = roles;
+        this.agencyId = agencyId;
+        this.shippingAddress = "";
+        this.agencyStatus = agencyStatus;
     }
 }

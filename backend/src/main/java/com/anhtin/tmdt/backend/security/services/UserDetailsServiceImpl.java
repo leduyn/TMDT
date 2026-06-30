@@ -27,10 +27,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
 
-        Long agencyId = agencyRepository.findByUserId(user.getId())
-                .map(Agency::getId)
-                .orElse(null);
-
-        return UserDetailsImpl.build(user, agencyId);
+        return UserDetailsImpl.build(user, null);
     }
 }

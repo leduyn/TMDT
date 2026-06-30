@@ -73,6 +73,9 @@ function CreditManagementContent() {
   const [modal, setModal] = useState<'limit' | 'deposit' | 'payment' | null>(null);
   const [inputAmount, setInputAmount]   = useState('');
   const [inputOrderId, setInputOrderId] = useState('');
+  const [depositNotes, setDepositNotes] = useState('');
+  const [depositContracts, setDepositContracts] = useState<any[]>([]);
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const [submitting, setSubmitting]     = useState(false);
 
   // Role detection
@@ -112,12 +115,17 @@ function CreditManagementContent() {
     setLoading(true);
     setError('');
     try {
-      const [d, debts] = await Promise.all([
+      const [d, debts, contracts] = await Promise.all([
         creditApi.getDetail(id),
-        agencyDebtApi.getByAgencyId(id)
+        agencyDebtApi.getByAgencyId(id),
+        creditApi.getDepositContracts(id)
       ]);
       setDetail(d);
       setCurrentDebts(debts);
+      setDepositContracts(contracts);
+      if (contracts.length > 0 && !selectedContractId) {
+        setSelectedContractId(contracts[0].id);
+      }
     } catch (e: any) {
       setError(e.message ?? 'Không thể tải dữ liệu tín dụng');
     } finally {
@@ -138,6 +146,7 @@ function CreditManagementContent() {
     setModal(null); 
     setInputAmount(''); 
     setInputOrderId(''); 
+    setDepositNotes('');
     setOrderDebts([]); 
   };
 
@@ -176,7 +185,8 @@ function CreditManagementContent() {
         await creditApi.updateLimit(selectedId, amt);
         notify(`Đã cập nhật hạn mức thành ${fmt(amt)}`);
       } else if (modal === 'deposit') {
-        await creditApi.depositVtc(selectedId, amt);
+        const contractId = selectedContractId || undefined;
+        await creditApi.depositVtc(selectedId, amt, contractId, depositNotes);
         notify(`Đã nạp ${fmt(amt)} vào ví ký quỹ`);
       } else if (modal === 'payment') {
         const oid = inputOrderId ? parseInt(inputOrderId) : undefined;
@@ -281,8 +291,8 @@ function CreditManagementContent() {
                     <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{agency.name}</div>
                     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 6, fontSize: 13, color: '#94a3b8' }}>
                       {agency.phone && <span>📞 {agency.phone}</span>}
-                      {agency.email && <span>✉ {agency.email}</span>}
-                      {agency.address && <span>📍 {agency.address}</span>}
+                      {agency.representativeName && <span>👤 {agency.representativeName}</span>}
+                      {agency.billingAddress && <span>📍 {agency.billingAddress}</span>}
                       {agency.taxCode && <span>🆔 MST: {agency.taxCode}</span>}
                     </div>
                   </div>
@@ -314,6 +324,35 @@ function CreditManagementContent() {
                 sub="Tạm giữ khi đơn hàng liên quan đến Người mua bị nợ quá hạn chưa được thanh toán"
                 color="#a78bfa" />
             </div>
+
+            {/* Deposit contract info */}
+            {detail.depositContract && (
+              <div style={{
+                background: 'rgba(8,145,178,0.07)', border: '1px solid rgba(8,145,178,0.25)',
+                borderRadius: 16, padding: 20, marginBottom: 24,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h3 style={{ color: '#22d3ee', fontWeight: 700, fontSize: 15, margin: 0 }}>
+                    📄 Hợp đồng đặt cọc: {detail.depositContract.contractNumber}
+                  </h3>
+                  <span style={{
+                    padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600,
+                    background: detail.depositContract.status === 'ACTIVE' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                    color: detail.depositContract.status === 'ACTIVE' ? '#22c55e' : '#ef4444',
+                  }}>
+                    {detail.depositContract.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã kết thúc'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13 }}>
+                  <div><span style={{ color: '#94a3b8' }}>Giá trị cọc:</span> <strong style={{ color: '#f1f5f9' }}>{fmt(detail.depositContract.depositAmount)}</strong></div>
+                  <div><span style={{ color: '#94a3b8' }}>Đã nộp:</span> <strong style={{ color: '#22c55e' }}>{fmt(detail.depositContract.paidAmount)}</strong></div>
+                  <div><span style={{ color: '#94a3b8' }}>Còn lại:</span> <strong style={{ color: detail.depositContract.remainingAmount > 0 ? '#f59e0b' : '#22c55e' }}>{fmt(detail.depositContract.remainingAmount)}</strong></div>
+                  {detail.depositContract.remainingAmount <= 0 && (
+                    <div><span style={{ padding: '2px 8px', borderRadius: 8, background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontWeight: 600 }}>✅ Đã đủ tiền cọc</span></div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Action buttons (company only) */}
             {isCompany && (
@@ -349,7 +388,7 @@ function CreditManagementContent() {
                 </button>
                 {[
                   { id: 'btn-update-limit',   action: () => setModal('limit'),   label: '✏️ Cập nhật hạn mức', bg: '#4f46e5' },
-                  { id: 'btn-deposit-vtc',    action: () => setModal('deposit'), label: '💰 Nạp ký quỹ VTC',    bg: '#0891b2' },
+                  { id: 'btn-deposit-vtc',    action: () => setModal('deposit'), label: '💰 Nạp ký quỹ',    bg: '#0891b2' },
                   { id: 'btn-pay-debt',       action: () => setModal('payment'), label: '💳 Thanh toán nợ',      bg: '#16a34a' },
                 ].map(btn => (
                   <button key={btn.id} id={btn.id} onClick={btn.action} style={{
@@ -599,13 +638,53 @@ function CreditManagementContent() {
       )}
 
       {modal === 'deposit' && (
-        <Modal title="Nạp tiền ký quỹ VTC" onClose={closeModal}>
+        <Modal title="Nạp tiền ký quỹ" onClose={closeModal}>
+          {depositContracts.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ color: '#94a3b8', fontSize: 13, display: 'block', marginBottom: 6 }}>Chọn hợp đồng</label>
+              <select
+                value={selectedContractId ?? ''}
+                onChange={e => setSelectedContractId(e.target.value ? Number(e.target.value) : null)}
+                style={{
+                  width: '100%', padding: '10px 14px', background: '#0f172a', border: '1px solid #334155',
+                  borderRadius: 8, color: '#f1f5f9', fontSize: 14, outline: 'none',
+                }}
+              >
+                {depositContracts.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.contractNumber} - Còn: {fmt(c.remainingAmount)} / {fmt(c.depositAmount)}
+                  </option>
+                ))}
+              </select>
+              {selectedContractId && (() => {
+                const c = depositContracts.find(x => x.id === selectedContractId);
+                return c ? (
+                  <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, fontSize: 12, color: '#64748b' }}>
+                    Đã nộp: {fmt(c.paidAmount)} / {fmt(c.depositAmount)} | Còn: {fmt(c.remainingAmount)}
+                  </div>
+                ) : null;
+              })()}
+            </div>
+          )}
+          {depositContracts.length === 0 && (
+            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(239,68,68,0.07)', borderRadius: 8, fontSize: 13, color: '#fca5a5' }}>
+              Không có hợp đồng đặt cọc nào. Tiền sẽ được nạp vào ví ký quỹ chung.
+            </div>
+          )}
           <label style={{ color: '#94a3b8', fontSize: 13 }}>Số tiền nạp (VND)</label>
           <input
             id="input-deposit-amount"
             type="number" min="0" value={inputAmount}
             onChange={e => setInputAmount(e.target.value)}
             placeholder="Ví dụ: 5000000"
+            style={inputStyle}
+          />
+          <label style={{ color: '#94a3b8', fontSize: 13, marginTop: 14, display: 'block' }}>Ghi chú</label>
+          <input
+            type="text"
+            value={depositNotes}
+            onChange={e => setDepositNotes(e.target.value)}
+            placeholder="Ghi chú giao dịch (tuỳ chọn)"
             style={inputStyle}
           />
           {detail && <div style={{ color: '#64748b', fontSize: 12, marginTop: 6 }}>

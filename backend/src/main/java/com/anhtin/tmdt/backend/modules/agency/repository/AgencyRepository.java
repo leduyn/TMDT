@@ -8,6 +8,10 @@ import java.util.Optional;
 
 @Repository
 public interface AgencyRepository extends JpaRepository<Agency, Long> {
-    Optional<Agency> findByUserId(Long userId);
-    boolean existsByUserId(Long userId);
+    Optional<Agency> findByPhone(String phone);
+    Optional<Agency> findByCode(String code);
+    Optional<Agency> findByTaxCode(String taxCode);
+    boolean existsByCode(String code);
+    boolean existsByPhone(String phone);
+    boolean existsByTaxCode(String taxCode);
 }

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { agencyApi, AgencyDTO, UserDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO } from '@/lib/api';
+import { agencyApi, AgencyDTO, customerApi, CustomerDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO } from '@/lib/api';
 import Link from 'next/link';
 
 // UI Components
@@ -24,7 +24,7 @@ export default function AgencyDetailPage() {
   const router = useRouter();
   const [agency, setAgency] = useState<AgencyDTO | null>(null);
   const [credit, setCredit] = useState<CreditDetail | null>(null);
-  const [customers, setCustomers] = useState<UserDTO[]>([]);
+  const [customers, setCustomers] = useState<CustomerDTO[]>([]);
   const [orders, setOrders] = useState<OrderDTO[]>([]);
   const [activePriceList, setActivePriceList] = useState<PriceListDTO | null>(null);
   const [customerPrices, setCustomerPrices] = useState<AgencyProductPriceDTO[]>([]);
@@ -159,11 +159,12 @@ export default function AgencyDetailPage() {
     setIsLoading(true);
     try {
       const agencyId = parseInt(id as string);
-      const [agencyData, customersData, creditData] = await Promise.all([
+      const [agencyData, allCustomers, creditData] = await Promise.all([
         agencyApi.getById(agencyId),
-        agencyApi.getCustomers(agencyId),
+        customerApi.getAll(),
         creditApi.getDetail(agencyId).catch(() => null) // Nếu khách hàng chưa có tín dụng thì trả về null
       ]);
+      const customersData = allCustomers.filter((c: CustomerDTO) => c.agencyId === agencyId);
       setAgency(agencyData);
       setCustomers(customersData);
       setCredit(creditData);
@@ -233,29 +234,26 @@ export default function AgencyDetailPage() {
     );
   }
 
-  const customerColumns: Column<UserDTO>[] = [
+  const customerColumns: Column<CustomerDTO>[] = [
     { 
-      header: 'Người mua', 
-      key: 'username',
-      render: (u) => (
+      header: 'Tên tổ chức', 
+      key: 'organizationName',
+      render: (c) => (
+        <div style={{ fontWeight: 600 }}>{c.organizationName || 'N/A'}</div>
+      )
+    },
+    { header: 'Mã số thuế', key: 'taxCode' },
+    { 
+      header: 'Người nhận', 
+      key: 'receiverName',
+      render: (c) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{u.displayName || u.username}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{u.email}</div>
+          <div>{c.receiverName || 'N/A'}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.receiverPhone}</div>
         </div>
       )
     },
-    { header: 'Số điện thoại', key: 'phone' },
-    { 
-      header: 'Trạng thái', 
-      key: 'approved',
-      render: (u) => (
-        <Badge 
-          label={u.approved ? 'Đã duyệt' : 'Chờ duyệt'} 
-          type={u.approved ? 'success' : 'warning'}
-          icon={u.approved ? 'CheckCircle' : 'Clock'}
-        />
-      )
-    }
+    { header: 'Ghi chú', key: 'note' },
   ];
 
   return (
@@ -575,9 +573,10 @@ export default function AgencyDetailPage() {
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <InfoItem icon={<Phone size={16} />} label="Số điện thoại" value={agency.phone || 'N/A'} />
-                  <InfoItem icon={<Mail size={16} />} label="Email" value={agency.email || 'N/A'} />
-                  <InfoItem icon={<MapPin size={16} />} label="Địa chỉ" value={agency.address || 'N/A'} />
-                  <InfoItem icon={<UserIcon size={16} />} label="Tài khoản" value={agency.username || 'N/A'} />
+                  <InfoItem icon={<UserIcon size={16} />} label="Mã đại lý" value={agency.code || 'N/A'} />
+                  <InfoItem icon={<UserIcon size={16} />} label="Người đại diện" value={agency.representativeName || 'N/A'} />
+                  <InfoItem icon={<MapPin size={16} />} label="Địa chỉ giao hàng" value={agency.shippingAddress || 'N/A'} />
+                  <InfoItem icon={<MapPin size={16} />} label="Địa chỉ xuất hóa đơn" value={agency.billingAddress || 'N/A'} />
                 </div>
               </GlassCard>
 
@@ -587,19 +586,15 @@ export default function AgencyDetailPage() {
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <InfoItem 
-                    icon={<Percent size={16} />} 
-                    label="Chiết khấu mặc định" 
-                    value={`${agency.defaultCommissionRate || 0}%`} 
+                    icon={<Calendar size={16} />} 
+                    label="Trạng thái" 
+                    value={agency.status || 'N/A'} 
                   />
                   <InfoItem 
                     icon={<Calendar size={16} />} 
                     label="Ngày tham gia" 
-                    value="08/05/2026" 
+                    value={agency.createdAt ? new Date(agency.createdAt).toLocaleDateString('vi-VN') : 'N/A'} 
                   />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <InfoItem icon={<MapIcon size={16} />} label="Vĩ độ" value={agency.latitude?.toString() || '0.0'} />
-                    <InfoItem icon={<MapIcon size={16} />} label="Kinh độ" value={agency.longitude?.toString() || '0.0'} />
-                  </div>
                 </div>
               </GlassCard>
 
@@ -654,7 +649,7 @@ export default function AgencyDetailPage() {
                   <CreditCard size={20} /> Thông tin xuất hóa đơn
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                  <InfoItem label="Tên tổ chức / Công ty" value={agency.organizationName || 'Chưa cập nhật'} fullWidth />
+                  <InfoItem label="Tên tổ chức / Công ty" value={agency.name || 'Chưa cập nhật'} fullWidth />
                   <InfoItem label="Mã số thuế" value={agency.taxCode || 'Chưa cập nhật'} />
                   <InfoItem label="Địa chỉ hóa đơn" value={agency.billingAddress || 'Chưa cập nhật'} fullWidth />
                 </div>

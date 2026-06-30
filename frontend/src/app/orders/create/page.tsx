@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, orderApi as api, productApi, creditApi, CreditDetail, salesPolicyApi, categoryApi, CategoryDTO } from '@/lib/api';
+import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, CustomerDTO, orderApi as api, productApi, creditApi, CreditDetail, salesPolicyApi, categoryApi, CategoryDTO, customerApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
@@ -26,11 +26,11 @@ export default function CreateOrderPage() {
   const [error, setError] = useState('');
 
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
-  const [agencyCustomers, setAgencyCustomers] = useState<UserDTO[]>([]);
+  const [agencyCustomers, setAgencyCustomers] = useState<CustomerDTO[]>([]);
   const [products, setProducts] = useState<ProductDTO[]>([]);
 
   const [selectedAgency, setSelectedAgency] = useState<AgencyDTO | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDTO | null>(null);
   const [shippingAddress, setShippingAddress] = useState('');
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [creditDetail, setCreditDetail] = useState<CreditDetail | null>(null);
@@ -73,7 +73,7 @@ export default function CreateOrderPage() {
       const data = await agencyApi.getAll();
       setAgencies(data.filter((a: AgencyDTO) => a.active));
     } else if (user.roles.includes('ROLE_AGENCY') && user.agencyId) {
-      const agency = await agencyApi.getMe(user.id);
+      const agency = await agencyApi.getMe();
       setAgencies([agency]);
       setSelectedAgency(agency);
       loadAgencyCustomers(agency.id);
@@ -89,8 +89,8 @@ export default function CreateOrderPage() {
   };
 
   const loadAgencyCustomers = async (agencyId: number) => {
-    const customers = await agencyApi.getCustomers(agencyId);
-    setAgencyCustomers(customers);
+    const allCustomers = await customerApi.getAll();
+    setAgencyCustomers(allCustomers.filter(c => c.agencyId === agencyId));
   };
 
   const handleSelectAgency = async (agency: AgencyDTO) => {
@@ -117,7 +117,7 @@ export default function CreateOrderPage() {
     setStep(2);
   };
 
-  const handleSelectCustomer = (customer: UserDTO | null) => {
+  const handleSelectCustomer = (customer: CustomerDTO | null) => {
     setSelectedCustomer(customer);
     if (customer) {
       setShippingAddress(customer.shippingAddress || '');
@@ -387,7 +387,7 @@ export default function CreateOrderPage() {
               <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Người mua</div>
               {selectedCustomer ? (
                 <>
-                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer.displayName || selectedCustomer.username}</div>
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer.organizationName || selectedCustomer.receiverName || `#${selectedCustomer.id}`}</div>
                   <div style={{ display: 'flex', gap: 16 }}>
                     <div style={{ fontSize: 13 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Dư nợ KH: </span>
@@ -481,7 +481,7 @@ export default function CreateOrderPage() {
                 return (
                   agency.name.toLowerCase().includes(query) ||
                   (agency.phone && agency.phone.toLowerCase().includes(query)) ||
-                  (agency.address && agency.address.toLowerCase().includes(query))
+                  (agency.billingAddress && agency.billingAddress.toLowerCase().includes(query))
                 );
               }).length > 0 ? (
                 agencies.filter(agency => {
@@ -489,7 +489,7 @@ export default function CreateOrderPage() {
                   return (
                     agency.name.toLowerCase().includes(query) ||
                     (agency.phone && agency.phone.toLowerCase().includes(query)) ||
-                    (agency.address && agency.address.toLowerCase().includes(query))
+(agency.billingAddress && agency.billingAddress.toLowerCase().includes(query))
                   );
                 }).map(agency => (
                   <div
@@ -519,7 +519,7 @@ export default function CreateOrderPage() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{agency.name}</div>
                       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>SĐT: {agency.phone || 'N/A'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{agency.address || 'N/A'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{agency.shippingAddress || agency.billingAddress || 'N/A'}</div>
                     </div>
                   </div>
                 ))
@@ -627,17 +627,17 @@ export default function CreateOrderPage() {
                   {agencyCustomers.filter(customer => {
                     const query = customerSearch.toLowerCase();
                     return (
-                      (customer.displayName || '').toLowerCase().includes(query) ||
-                      (customer.username || '').toLowerCase().includes(query) ||
-                      (customer.phone && customer.phone.toLowerCase().includes(query))
+                      (customer.organizationName || '').toLowerCase().includes(query) ||
+                      (customer.receiverName || '').toLowerCase().includes(query) ||
+                      (customer.receiverPhone && customer.receiverPhone.toLowerCase().includes(query))
                     );
                   }).length > 0 ? (
                     agencyCustomers.filter(customer => {
                       const query = customerSearch.toLowerCase();
                       return (
-                        (customer.displayName || '').toLowerCase().includes(query) ||
-                        (customer.username || '').toLowerCase().includes(query) ||
-                        (customer.phone && customer.phone.toLowerCase().includes(query))
+                        (customer.organizationName || '').toLowerCase().includes(query) ||
+                        (customer.receiverName || '').toLowerCase().includes(query) ||
+                        (customer.receiverPhone && customer.receiverPhone.toLowerCase().includes(query))
                       );
                     }).map(customer => {
                       const debtInfo = creditDetail?.customerDebts.find(d => d.customerId === customer.id);
@@ -671,7 +671,7 @@ export default function CreateOrderPage() {
                             <User size={20} />
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{customer.displayName || customer.username}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{customer.organizationName || customer.receiverName || `#${customer.id}`}</div>
                             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                               Dư nợ: <span style={{ color: (debtInfo?.totalDebt || 0) > 0 ? 'var(--danger)' : 'inherit', fontWeight: (debtInfo?.totalDebt || 0) > 0 ? 600 : 400 }}>{(debtInfo?.totalDebt || 0).toLocaleString()}đ</span>
                             </div>
@@ -680,7 +680,7 @@ export default function CreateOrderPage() {
                                 Nợ quá hạn: {overdueDebt.toLocaleString()}đ
                               </div>
                             )}
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>SĐT: {customer.phone || 'N/A'}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>SĐT: {customer.receiverPhone || 'N/A'}</div>
                           </div>
                         </div>
                       );
@@ -1132,7 +1132,7 @@ export default function CreateOrderPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
                 <div>Khách hàng: <strong>{selectedAgency?.name}</strong></div>
-                <div>Người mua: <strong>{selectedCustomer?.displayName || selectedCustomer?.username || 'Người mua'}</strong></div>
+                <div>Người mua: <strong>{selectedCustomer?.organizationName || selectedCustomer?.receiverName || 'Người mua #' + selectedCustomer?.id}</strong></div>
                 {creditDetail && (
                   <>
                     <div style={{ color: creditDetail.hmkd < getTotalAmount() ? '#ef4444' : 'inherit' }}>
@@ -1145,7 +1145,7 @@ export default function CreateOrderPage() {
                     )}
                   </>
                 )}
-                <div style={{ gridColumn: '1 / -1' }}>Địa chỉ giao: <strong>{shippingAddress || selectedAgency?.address}</strong></div>
+                <div style={{ gridColumn: '1 / -1' }}>Địa chỉ giao: <strong>{shippingAddress || selectedAgency?.shippingAddress || selectedAgency?.billingAddress}</strong></div>
               </div>
             </div>
 

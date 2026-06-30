@@ -665,7 +665,7 @@ public class SalesPolicyService {
 
         if (!isIncluded && !policy.getAudienceFilters().isEmpty()) {
             String agencyRank = getAgencyRank(agency.getId());
-            String address = agency.getAddress() != null ? agency.getAddress().toLowerCase() : "";
+            String address = agency.getShippingAddress() != null ? agency.getShippingAddress().toLowerCase() : "";
 
             for (SalesPolicyAudienceFilter filter : policy.getAudienceFilters()) {
                 boolean rankMatch = false;

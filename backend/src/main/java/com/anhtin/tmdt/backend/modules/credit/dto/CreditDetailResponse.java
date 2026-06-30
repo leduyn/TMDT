@@ -25,6 +25,7 @@ public class CreditDetailResponse {
     private List<OverdueDebtInfo> overdueDebts;
     private List<LedgerEntry>     ledgerHistory;
     private List<CustomerDebtInfo> customerDebts;
+    private DepositContractInfo   depositContract;
 
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
@@ -50,6 +51,41 @@ public class CreditDetailResponse {
     public void setLedgerHistory(List<LedgerEntry> ledgerHistory) { this.ledgerHistory = ledgerHistory; }
     public List<CustomerDebtInfo> getCustomerDebts() { return customerDebts; }
     public void setCustomerDebts(List<CustomerDebtInfo> customerDebts) { this.customerDebts = customerDebts; }
+    public DepositContractInfo getDepositContract() { return depositContract; }
+    public void setDepositContract(DepositContractInfo depositContract) { this.depositContract = depositContract; }
+
+    public static class DepositContractInfo {
+        private Long   id;
+        private String contractNumber;
+        private double depositAmount;
+        private double paidAmount;
+        private double remainingAmount;
+        private String status;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getContractNumber() { return contractNumber; }
+        public void setContractNumber(String contractNumber) { this.contractNumber = contractNumber; }
+        public double getDepositAmount() { return depositAmount; }
+        public void setDepositAmount(double depositAmount) { this.depositAmount = depositAmount; }
+        public double getPaidAmount() { return paidAmount; }
+        public void setPaidAmount(double paidAmount) { this.paidAmount = paidAmount; }
+        public double getRemainingAmount() { return remainingAmount; }
+        public void setRemainingAmount(double remainingAmount) { this.remainingAmount = remainingAmount; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public static DepositContractInfo from(com.anhtin.tmdt.backend.modules.credit.entity.DepositContract c) {
+            DepositContractInfo info = new DepositContractInfo();
+            info.setId(c.getId());
+            info.setContractNumber(c.getContractNumber());
+            info.setDepositAmount(c.getDepositAmount());
+            info.setPaidAmount(c.getPaidAmount());
+            info.setRemainingAmount(Math.max(0, c.getDepositAmount() - c.getPaidAmount()));
+            info.setStatus(c.getStatus().name());
+            return info;
+        }
+    }
 
     public static class CustomerDebtInfo {
         private Long   customerId;
@@ -66,8 +102,9 @@ public class CreditDetailResponse {
         public static CustomerDebtInfo from(com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment a) {
             CustomerDebtInfo info = new CustomerDebtInfo();
             info.setCustomerId(a.getCustomer().getId());
-            info.setCustomerName(a.getCustomer().getOrganizationName() != null ? 
-                a.getCustomer().getOrganizationName() : a.getCustomer().getUsername());
+            com.anhtin.tmdt.backend.modules.customer.entity.Customer c = a.getCustomer();
+            info.setCustomerName(c.getOrganizationName() != null ? 
+                c.getOrganizationName() : "");
             info.setTotalDebt(a.getTotalDebt());
             return info;
         }
@@ -108,9 +145,10 @@ public class CreditDetailResponse {
             info.setId(d.getId());
             info.setOrderId(d.getOrder().getId());
             if (d.getOrder().getCustomer() != null) {
-                info.setCustomerId(d.getOrder().getCustomer().getId());
-                info.setCustomerName(d.getOrder().getCustomer().getOrganizationName() != null ? 
-                    d.getOrder().getCustomer().getOrganizationName() : d.getOrder().getCustomer().getUsername());
+                com.anhtin.tmdt.backend.modules.customer.entity.Customer c = d.getOrder().getCustomer();
+                info.setCustomerId(c.getId());
+                info.setCustomerName(c.getOrganizationName() != null ? 
+                    c.getOrganizationName() : "");
             }
             info.setPrincipalAmount(d.getPrincipalAmount());
             info.setInterestAccrued(d.getInterestAccrued());
@@ -158,7 +196,8 @@ public class CreditDetailResponse {
                                             List<OverdueDebt> debts,
                                             List<CreditLedger> ledger,
                                             Map<Long, String> orderReceiverTypes,
-                                            List<com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment> assignments) {
+                                            List<com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment> assignments,
+                                            com.anhtin.tmdt.backend.modules.credit.entity.DepositContract depositContract) {
         CreditDetailResponse r = new CreditDetailResponse();
         r.setAgencyId(credit.getAgency().getId());
         r.setCreditLimit(credit.getCreditLimit());
@@ -189,6 +228,7 @@ public class CreditDetailResponse {
         r.setUpdatedAt(credit.getUpdatedAt());
         r.setOverdueDebts(debts.stream().map(OverdueDebtInfo::from).toList());
         r.setCustomerDebts(customerDebtList);
+        r.setDepositContract(depositContract != null ? DepositContractInfo.from(depositContract) : null);
         
         r.setLedgerHistory(ledger.stream().map(l -> {
             String ref = l.getReferenceId();
@@ -215,6 +255,7 @@ public class CreditDetailResponse {
         r.setOverdueDebts(List.of());
         r.setLedgerHistory(List.of());
         r.setCustomerDebts(List.of());
+        r.setDepositContract(null);
         return r;
     }
 }

@@ -7,6 +7,7 @@ import com.anhtin.tmdt.backend.modules.common.dto.MessageResponse;
 import com.anhtin.tmdt.backend.modules.user.entity.Role;
 import com.anhtin.tmdt.backend.modules.common.entity.SenderType;
 import com.anhtin.tmdt.backend.security.services.UserDetailsImpl;
+import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
 import com.anhtin.tmdt.backend.modules.chat.service.ChatService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,27 @@ public class ChatController {
     @Autowired
     private ChatService chatService;
 
+    private Long resolveUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) principal).getId();
+        } else if (principal instanceof AgencyUserDetails) {
+            return ((AgencyUserDetails) principal).getId();
+        }
+        return null;
+    }
+
+    private Role getUserRole(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(a -> {
+                    String role = a.getAuthority();
+                    if ("ROLE_CUSTOMER".equals(role)) return Role.CUSTOMER;
+                    return Role.AGENCY;
+                })
+                .orElse(Role.CUSTOMER);
+    }
+
     /**
      * Khởi tạo hoặc lấy phòng chat giữa Khách hàng và Đại lý.
      */
@@ -35,8 +57,7 @@ public class ChatController {
             @RequestParam @NonNull Long agencyId,
             Authentication authentication) {
         try {
-            UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
-            Long userId = user.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
             ChatRoomDTO room = chatService.getOrCreateRoom(userId, agencyId);
             return ResponseEntity.ok(room);
@@ -51,10 +72,9 @@ public class ChatController {
     @GetMapping("/rooms")
     public ResponseEntity<?> getMyRooms(Authentication authentication) {
         try {
-            UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
-            Long userId = user.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
-            Role role = getUserRole(user);
+            Role role = getUserRole(authentication);
             List<ChatRoomDTO> rooms = chatService.getUserRooms(userId, role);
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
@@ -70,10 +90,9 @@ public class ChatController {
             @Valid @RequestBody ChatMessageRequest request,
             Authentication authentication) {
         try {
-            UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
-            Long userId = user.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
-            SenderType senderType = getUserRole(user) == Role.CUSTOMER
+            SenderType senderType = getUserRole(authentication) == Role.CUSTOMER
                     ? SenderType.CUSTOMER : SenderType.AGENCY;
 
             Long roomId = request.getRoomId();
@@ -111,25 +130,12 @@ public class ChatController {
             @PathVariable @NonNull Long roomId,
             Authentication authentication) {
         try {
-            UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
-            Long userId = user.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
             chatService.markAsRead(roomId, userId);
             return ResponseEntity.ok(new MessageResponse("Đã đánh dấu đã đọc"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
-        }
-    }
-
-    private Role getUserRole(UserDetailsImpl user) {
-        String authority = user.getAuthorities().iterator().next().getAuthority();
-        switch (authority) {
-            case "ROLE_COMPANY":
-                return Role.COMPANY;
-            case "ROLE_AGENCY":
-                return Role.AGENCY;
-            default:
-                return Role.CUSTOMER;
         }
     }
 }

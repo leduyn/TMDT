@@ -22,11 +22,13 @@ import {
   MapPin,
   Settings,
   ShieldCheck,
+  Trophy,
+  Home,
 } from 'lucide-react';
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, isPendingAgency } = useAuth();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -48,6 +50,7 @@ export default function Sidebar() {
   };
 
   const navItems = [
+    { label: 'Trang chủ', href: '/', icon: Home, roles: ['ROLE_USER'] },
     { label: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard, roles: ['ROLE_USER'] },
     { label: 'Sản phẩm', href: '/products', icon: ShoppingBag, roles: ['ROLE_USER'] },
     { label: 'Danh mục', href: '/categories', icon: Layers, roles: ['ROLE_USER'] },
@@ -63,14 +66,17 @@ export default function Sidebar() {
     { label: 'Người mua của tôi', href: '/my-customers', icon: Users, roles: ['ROLE_AGENCY'] },
     { label: 'Tín dụng', href: '/credit', icon: CreditCard, roles: ['ROLE_COMPANY', 'ROLE_AGENCY'] },
     { label: 'Công nợ', href: '/credit/debts', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ACCOUNTANT'] },
+    { label: 'Tích điểm & Vinh danh', href: '/dashboard/loyalty', icon: Trophy, roles: ['ROLE_USER'] },
     { label: 'Tích lũy', href: '/accumulation-programs', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Cài đặt', href: '/settings', icon: Settings, roles: ['ROLE_COMPANY'] },
   ];
 
-  const filteredNavItems = navItems.filter(item => 
-    item.roles.includes('ROLE_USER') || 
-    (user && user.roles.some(r => item.roles.includes(r)))
-  );
+  const filteredNavItems = isPendingAgency
+    ? navItems.filter(item => ['/products'].includes(item.href))
+    : navItems.filter(item => 
+        item.roles.includes('ROLE_USER') || 
+        (user && user.roles.some(r => item.roles.includes(r)))
+      );
 
   return (
     <aside className="sidebar" style={{ width: isCollapsed ? 84 : 280 }}>

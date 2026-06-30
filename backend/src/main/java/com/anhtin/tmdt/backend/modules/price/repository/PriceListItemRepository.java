@@ -1,6 +1,8 @@
 package com.anhtin.tmdt.backend.modules.price.repository;
 
 import com.anhtin.tmdt.backend.modules.price.entity.PriceListItem;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +17,11 @@ import com.anhtin.tmdt.backend.modules.price.entity.PriceList;
 public interface PriceListItemRepository extends JpaRepository<PriceListItem, Long> {
 
     List<PriceListItem> findByPriceListId(Long priceListId);
+
+    Page<PriceListItem> findByPriceListId(Long priceListId, Pageable pageable);
+
+    @Query("SELECT p FROM PriceListItem p JOIN p.product prod WHERE p.priceList.id = :priceListId AND LOWER(prod.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<PriceListItem> searchByProductName(@Param("priceListId") Long priceListId, @Param("search") String search, Pageable pageable);
 
     Optional<PriceListItem> findByPriceListIdAndProductId(Long priceListId, Long productId);
 

@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
 
 @RestController
 @RequestMapping("/api/customer-groups")
@@ -20,11 +19,13 @@ public class CustomerGroupController {
     private CustomerGroupService customerGroupService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
     public List<CustomerGroupDTO> getAllGroups() {
         return customerGroupService.getAllGroups();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
     public CustomerGroupDTO getGroupById(@PathVariable Long id) {
         return customerGroupService.getGroupById(id);
     }
@@ -48,17 +49,4 @@ public class CustomerGroupController {
         return ResponseEntity.ok(new MessageResponse("Deleted customer group successfully"));
     }
 
-    @PostMapping("/{id}/assign/{userId}")
-    @PreAuthorize("hasRole('COMPANY')")
-    public ResponseEntity<?> assignUser(@PathVariable Long id, @PathVariable Long userId) {
-        customerGroupService.assignUserToGroup(userId, id);
-        return ResponseEntity.ok(new MessageResponse("Assigned user to group successfully"));
-    }
-
-    @PostMapping("/remove-user/{userId}")
-    @PreAuthorize("hasRole('COMPANY')")
-    public ResponseEntity<?> removeUser(@PathVariable Long userId) {
-        customerGroupService.removeUserFromGroup(userId);
-        return ResponseEntity.ok(new MessageResponse("Removed user from group successfully"));
-    }
 }

@@ -3,6 +3,8 @@ package com.anhtin.tmdt.backend.modules.order.controller;
 import com.anhtin.tmdt.backend.modules.common.dto.MessageResponse;
 import com.anhtin.tmdt.backend.modules.order.dto.OrderDTO;
 import com.anhtin.tmdt.backend.modules.order.service.OrderService;
+import com.anhtin.tmdt.backend.security.services.UserDetailsImpl;
+import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,12 +28,30 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    private Long resolveUserId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) principal).getId();
+        } else if (principal instanceof AgencyUserDetails) {
+            return ((AgencyUserDetails) principal).getId();
+        }
+        return null;
+    }
+
+    private Long resolveAgencyId(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof AgencyUserDetails) {
+            return ((AgencyUserDetails) principal).getId();
+        } else if (principal instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) principal).getAgencyId();
+        }
+        return null;
+    }
+
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody com.anhtin.tmdt.backend.modules.order.dto.OrderRequest request, Authentication authentication) {
-        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) authentication.getPrincipal();
-        
         try {
-            Long userId = userDetails.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
             orderService.createOrder(userId, userId, request);
             return ResponseEntity.ok(new MessageResponse("Order placed successfully"));
@@ -43,10 +63,8 @@ public class OrderController {
     @PostMapping("/by-employee")
     @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
     public ResponseEntity<?> createOrderByEmployee(@RequestBody com.anhtin.tmdt.backend.modules.order.dto.OrderRequest request, Authentication authentication) {
-        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) authentication.getPrincipal();
-        
         try {
-            Long userId = userDetails.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
             orderService.createOrderByEmployee(userId, request);
             return ResponseEntity.ok(new MessageResponse("Order placed successfully by employee"));
@@ -58,10 +76,8 @@ public class OrderController {
     @PostMapping("/by-agency")
     @PreAuthorize("hasRole('AGENCY') or hasRole('COMPANY') or hasRole('ADMIN')")
     public ResponseEntity<?> createOrderByAgency(@RequestBody com.anhtin.tmdt.backend.modules.order.dto.OrderRequest request, Authentication authentication) {
-        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) authentication.getPrincipal();
-        
         try {
-            Long userId = userDetails.getId();
+            Long userId = resolveUserId(authentication);
             if (userId == null) throw new RuntimeException("User ID not found");
             orderService.createOrderByAgency(userId, request);
             return ResponseEntity.ok(new MessageResponse("Order placed successfully"));
@@ -79,17 +95,11 @@ public class OrderController {
     @GetMapping("/my-orders")
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('AGENCY') or hasRole('COMPANY') or hasRole('ADMIN')")
     public ResponseEntity<List<OrderDTO>> getMyOrders(Authentication authentication) {
-        com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails = (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = resolveUserId(authentication);
+        Long agencyId = resolveAgencyId(authentication);
         
-        boolean isAgency = userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
-        
-        if (isAgency) {
-            Long agencyId = userDetails.getAgencyId(); 
-            if (agencyId != null) {
-                return ResponseEntity.ok(orderService.getOrdersByAgency(agencyId));
-            }
+        if (agencyId != null) {
+            return ResponseEntity.ok(orderService.getOrdersByAgency(agencyId));
         }
         
         return ResponseEntity.ok(orderService.getOrdersByCustomer(userId));

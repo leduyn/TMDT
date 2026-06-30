@@ -11,7 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByPhone(String phone);
     Optional<User> findByTaxCode(String taxCode);
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u JOIN u.assignments a WHERE a.agency.id = :agencyId")
-    java.util.List<User> findByAgenciesId(Long agencyId);
+    @org.springframework.data.jpa.repository.Query("SELECT a.customer FROM com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment a WHERE a.agency.id = :agencyId")
+    java.util.List<com.anhtin.tmdt.backend.modules.customer.entity.Customer> findCustomersByAgencyId(Long agencyId);
     long countByRole(Role role);
 }

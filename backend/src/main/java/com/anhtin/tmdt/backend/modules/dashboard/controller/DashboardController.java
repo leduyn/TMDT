@@ -3,6 +3,7 @@ package com.anhtin.tmdt.backend.modules.dashboard.controller;
 import com.anhtin.tmdt.backend.modules.dashboard.dto.DashboardDTO;
 import com.anhtin.tmdt.backend.modules.dashboard.service.DashboardService;
 import com.anhtin.tmdt.backend.security.services.UserDetailsImpl;
+import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,9 +24,9 @@ public class DashboardController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DashboardDTO> getDashboard() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
+        Object principal = auth.getPrincipal();
 
-        String role = userDetails.getAuthorities().stream()
+        String role = auth.getAuthorities().stream()
             .findFirst().map(g -> g.getAuthority()).orElse("");
 
         DashboardDTO dto;
@@ -34,10 +35,22 @@ public class DashboardController {
                 dto = dashboardService.getCompanyDashboard();
                 break;
             case "ROLE_AGENCY":
-                dto = dashboardService.getAgencyDashboard(userDetails.getAgencyId());
+                Long agencyId;
+                if (principal instanceof AgencyUserDetails) {
+                    agencyId = ((AgencyUserDetails) principal).getId();
+                } else if (principal instanceof UserDetailsImpl) {
+                    agencyId = ((UserDetailsImpl) principal).getAgencyId();
+                } else {
+                    agencyId = null;
+                }
+                dto = dashboardService.getAgencyDashboard(agencyId);
                 break;
             default:
-                dto = dashboardService.getCustomerDashboard(userDetails.getId());
+                if (principal instanceof UserDetailsImpl) {
+                    dto = dashboardService.getCustomerDashboard(((UserDetailsImpl) principal).getId());
+                } else {
+                    dto = new DashboardDTO();
+                }
                 break;
         }
 

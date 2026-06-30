@@ -2,14 +2,18 @@ package com.anhtin.tmdt.backend.modules.agency.controller;
 
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRequest;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
-import com.anhtin.tmdt.backend.modules.user.dto.UserDTO;
+import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
+import com.anhtin.tmdt.backend.modules.agency.dto.AgencyApproveRequest;
 import com.anhtin.tmdt.backend.modules.agency.service.AgencyService;
+import com.anhtin.tmdt.backend.modules.common.dto.MessageResponse;
+import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyWithAccountRequest;
 
 @RestController
 @RequestMapping("/api/agencies")
@@ -19,14 +23,29 @@ public class AgencyController {
     @Autowired
     private AgencyService agencyService;
 
+    @Autowired
+    private PriceListService priceListService;
+
     @GetMapping
+    @PreAuthorize("hasRole('COMPANY')")
     public List<AgencyDTO> getAllAgencies() {
         return agencyService.getAllAgencies();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
     public AgencyDTO getAgencyById(@PathVariable Long id) {
         return agencyService.getAgencyById(id);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody AgencyRegisterRequest request) {
+        try {
+            AgencyDTO agency = agencyService.register(request);
+            return ResponseEntity.ok(agency);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
     }
 
     @PostMapping
@@ -35,22 +54,25 @@ public class AgencyController {
         return agencyService.createAgency(request);
     }
 
-    @PostMapping("/with-account")
-    @PreAuthorize("hasRole('COMPANY')")
-    public AgencyDTO createAgencyWithAccount(@RequestBody AgencyWithAccountRequest request) {
-        return agencyService.createAgencyWithAccount(request);
-    }
-
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('COMPANY')")
-    public AgencyDTO approveAgency(@PathVariable Long id, @RequestBody AgencyRequest request) {
+    public AgencyDTO approveAgency(@PathVariable Long id, @RequestBody AgencyApproveRequest request) {
         return agencyService.approveAgency(id, request);
     }
 
-    @PostMapping("/convert-from-user/{userId}")
+    @GetMapping("/{id}/prices")
     @PreAuthorize("hasRole('COMPANY')")
-    public AgencyDTO convertUserToAgency(@PathVariable Long userId, @RequestBody AgencyRequest request) {
-        return agencyService.convertUserToAgency(userId, request);
+    public ResponseEntity<?> getAgencyPrices(@PathVariable Long id) {
+        try {
+            com.anhtin.tmdt.backend.modules.price.entity.PriceList priceList = priceListService.resolveForAgency(id);
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("id", priceList.getId());
+            result.put("name", priceList.getName());
+            result.put("agencyId", id);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
@@ -59,44 +81,13 @@ public class AgencyController {
         return agencyService.updateAgency(id, request);
     }
 
-    @GetMapping("/{id}/customers")
-    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
-    public List<UserDTO> getAgencyCustomers(@PathVariable Long id) {
-        List<UserDTO> customers = agencyService.getCustomersByAgency(id);
-
-        // Bảo mật: Nếu là AGENCY, chỉ cho thấy thông tin đại lý của chính họ
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('AGENCY')")
+    public AgencyDTO getMyAgency() {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication();
-        boolean isAgency = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENCY"));
-
-        if (isAgency) {
-            for (UserDTO dto : customers) {
-                int idx = dto.getAgencyIds() != null ? dto.getAgencyIds().indexOf(id) : -1;
-                if (idx != -1) {
-                    String name = dto.getAgencyNames().get(idx);
-                    dto.setAgencyIds(java.util.Collections.singletonList(id));
-                    dto.setAgencyNames(java.util.Collections.singletonList(name));
-                } else {
-                    dto.setAgencyIds(new java.util.ArrayList<>());
-                    dto.setAgencyNames(new java.util.ArrayList<>());
-                }
-            }
-        }
-
-        return customers;
-    }
-
-    @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
-    public AgencyDTO getMyAgency(@RequestParam Long userId) {
-        // Lưu ý: Thông thường userId lấy từ Token, ở đây tạm dùng @RequestParam để đơn
-        // giản
-        return agencyService.getAgencyByUserId(userId);
-    }
-
-    @PostMapping("/{id}/approve/{customerId}")
-    @PreAuthorize("hasRole('AGENCY') or hasRole('COMPANY')")
-    public void approveCustomer(@PathVariable Long id, @PathVariable Long customerId) {
-        agencyService.approveCustomer(id, customerId);
+        com.anhtin.tmdt.backend.security.services.AgencyUserDetails agencyDetails =
+                (com.anhtin.tmdt.backend.security.services.AgencyUserDetails) auth.getPrincipal();
+        return agencyService.getAgencyById(agencyDetails.getId());
     }
 }

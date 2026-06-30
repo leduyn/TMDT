@@ -43,13 +43,13 @@ public class ReviewService {
     @Transactional
     public ReviewDTO createProductReview(@NonNull Long customerId, @NonNull Long productId, ReviewRequest request) {
         if (productReviewRepository.existsByProductIdAndCustomerId(productId, customerId)) {
-            throw new RuntimeException("Báº¡n Ä‘Ã£ Ä‘Ã¡nh giÃ¡ sáº£n pháº©m nÃ y rá»“i");
+            throw new RuntimeException("Bạn đã đánh giá sản phẩm này rồi");
         }
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
         User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("KhÃ¡ch hÃ ng khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
 
         ProductReview review = new ProductReview();
         review.setProduct(product);
@@ -86,13 +86,13 @@ public class ReviewService {
     @Transactional
     public ReviewDTO createAgencyReview(@NonNull Long customerId, @NonNull Long agencyId, ReviewRequest request) {
         if (agencyReviewRepository.existsByAgencyIdAndCustomerId(agencyId, customerId)) {
-            throw new RuntimeException("Báº¡n Ä‘Ã£ Ä‘Ã¡nh giÃ¡ Ä‘áº¡i lÃ½ nÃ y rá»“i");
+            throw new RuntimeException("Bạn đã đánh giá đại lý này rồi");
         }
 
         Agency agency = agencyRepository.findById(agencyId)
-                .orElseThrow(() -> new RuntimeException("Äáº¡i lÃ½ khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Đại lý không tồn tại"));
         User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("KhÃ¡ch hÃ ng khÃ´ng tá»“n táº¡i"));
+                .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
 
         AgencyReview review = new AgencyReview();
         review.setAgency(agency);

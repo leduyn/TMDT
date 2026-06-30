@@ -205,7 +205,7 @@ public class SalesPolicyServiceTest {
 
         Agency agency = new Agency();
         agency.setId(100L);
-        agency.setAddress("123 Nguyễn Huệ, Tp. Hồ Chí Minh");
+        agency.setShippingAddress("123 Nguyễn Huệ, Tp. Hồ Chí Minh");
 
         Double finalPrice = salesPolicyService.applySalesPolicy(product, agency, 1, 100000.0);
 

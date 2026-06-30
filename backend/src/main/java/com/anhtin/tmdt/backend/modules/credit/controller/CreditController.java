@@ -6,9 +6,12 @@ import com.anhtin.tmdt.backend.modules.credit.dto.PaymentRequest;
 import com.anhtin.tmdt.backend.modules.credit.entity.AgentCredit;
 import com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.modules.credit.entity.OverdueDebt;
+import com.anhtin.tmdt.backend.modules.credit.entity.DepositContract;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgentCreditRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.CreditLedgerRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.OverdueDebtRepository;
+import com.anhtin.tmdt.backend.modules.credit.repository.DepositContractRepository;
+import com.anhtin.tmdt.backend.modules.credit.repository.DepositPaymentRepository;
 import com.anhtin.tmdt.backend.modules.credit.service.CreditService;
 import com.anhtin.tmdt.backend.modules.credit.service.InterestScheduler;
 import lombok.RequiredArgsConstructor;
@@ -104,7 +107,12 @@ public class CreditController {
         List<AgencyCustomerAssignment> assignments = 
             agencyCustomerAssignmentRepository.findByAgencyId(agencyId);
 
-        return ResponseEntity.ok(CreditDetailResponse.from(credit, debts, ledger, orderReceiverTypes, assignments));
+        // Lấy hợp đồng đặt cọc active gần nhất
+        DepositContract depositContract = depositContractRepository
+                .findTopByAgencyIdAndStatusOrderByCreatedAtDesc(agencyId, DepositContract.DepositContractStatus.ACTIVE)
+                .orElse(null);
+
+        return ResponseEntity.ok(CreditDetailResponse.from(credit, debts, ledger, orderReceiverTypes, assignments, depositContract));
     }
 
     // ── Cập nhật hạn mức tín dụng (chỉ COMPANY) ────────────────────────────
@@ -122,19 +130,89 @@ public class CreditController {
         return ResponseEntity.ok(Map.of("message", "Đã cập nhật hạn mức", "creditLimit", newLimit));
     }
 
-    // ── Nạp tiền vào ví ký quỹ VTC ──────────────────────────────────────────
+    // ── Nạp tiền vào ví ký quỹ VTC (generic, không gắn hợp đồng) ────────────
     @PostMapping("/agents/{agencyId}/deposit")
     @PreAuthorize("hasRole('COMPANY')")
     public ResponseEntity<?> depositVtc(
             @PathVariable Long agencyId,
-            @RequestBody Map<String, Double> body) {
+            @RequestBody Map<String, Object> body) {
 
-        Double amount = body.get("amount");
+        Double amount = body.get("amount") != null ? ((Number) body.get("amount")).doubleValue() : null;
         if (amount == null || amount <= 0) {
             return ResponseEntity.badRequest().body(Map.of("message", "amount không hợp lệ"));
         }
-        creditService.depositVtc(agencyId, amount);
-        return ResponseEntity.ok(Map.of("message", "Nạp ký quỹ thành công", "amount", amount));
+
+        Number contractIdNum = (Number) body.get("contractId");
+        if (contractIdNum != null) {
+            // Record against a DepositContract
+            Long contractId = contractIdNum.longValue();
+            String notes = (String) body.get("notes");
+            DepositContract contract = creditService.recordDepositContractPayment(contractId, amount, notes);
+            return ResponseEntity.ok(Map.of(
+                "message", "Nạp ký quỹ thành công",
+                "amount", amount,
+                "contractId", contract.getId(),
+                "paidAmount", contract.getPaidAmount(),
+                "depositAmount", contract.getDepositAmount()
+            ));
+        } else {
+            // Generic VTC deposit (backward compat)
+            creditService.depositVtc(agencyId, amount);
+            return ResponseEntity.ok(Map.of("message", "Nạp ký quỹ thành công", "amount", amount));
+        }
+    }
+
+    // ── Lấy hợp đồng đặt cọc của đại lý ──────────────────────────────────────
+    private final DepositContractRepository depositContractRepository;
+    private final DepositPaymentRepository depositPaymentRepository;
+
+    @GetMapping("/deposit-contracts/agency/{agencyId}")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<List<Map<String, Object>>> getDepositContracts(@PathVariable Long agencyId) {
+        List<DepositContract> contracts = depositContractRepository.findByAgencyId(agencyId);
+        List<Map<String, Object>> result = contracts.stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("contractNumber", c.getContractNumber());
+            m.put("depositAmount", c.getDepositAmount());
+            m.put("paidAmount", c.getPaidAmount());
+            m.put("remainingAmount", Math.max(0, c.getDepositAmount() - c.getPaidAmount()));
+            m.put("status", c.getStatus().name());
+            m.put("contractDate", c.getContractDate() != null ? c.getContractDate().toString() : null);
+            m.put("terms", c.getTerms());
+            return m;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/deposit-contracts/{id}")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<?> getDepositContractDetail(@PathVariable Long id) {
+        DepositContract c = depositContractRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng đặt cọc"));
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", c.getId());
+        m.put("contractNumber", c.getContractNumber());
+        m.put("agencyId", c.getAgencyId());
+        m.put("depositAmount", c.getDepositAmount());
+        m.put("paidAmount", c.getPaidAmount());
+        m.put("remainingAmount", Math.max(0, c.getDepositAmount() - c.getPaidAmount()));
+        m.put("status", c.getStatus().name());
+        m.put("contractDate", c.getContractDate() != null ? c.getContractDate().toString() : null);
+        m.put("terms", c.getTerms());
+        m.put("notes", c.getNotes());
+
+        List<Map<String, Object>> payments = depositPaymentRepository
+                .findByDepositContractIdOrderByCreatedAtDesc(id).stream().map(p -> {
+                    Map<String, Object> pm = new HashMap<>();
+                    pm.put("id", p.getId());
+                    pm.put("amount", p.getAmount());
+                    pm.put("paymentDate", p.getPaymentDate() != null ? p.getPaymentDate().toString() : null);
+                    pm.put("notes", p.getNotes());
+                    return pm;
+                }).toList();
+        m.put("payments", payments);
+        return ResponseEntity.ok(m);
     }
 
     // ── Tạo đơn hàng dùng tín dụng ──────────────────────────────────────────

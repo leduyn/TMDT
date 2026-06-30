@@ -20,7 +20,10 @@ public class RegisterRequest {
 
     private String phone;
     private String taxCode;
-    private String role; // "CUSTOMER", "AGENCY", "COMPANY"
+    private String organizationName;
+    private String shippingAddress;
+    private String billingAddress;
+    private String role; // "AGENCY", "SYSTEM"
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
@@ -36,6 +39,15 @@ public class RegisterRequest {
 
     public String getTaxCode() { return taxCode; }
     public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
+
+    public String getOrganizationName() { return organizationName; }
+    public void setOrganizationName(String organizationName) { this.organizationName = organizationName; }
+
+    public String getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
+
+    public String getBillingAddress() { return billingAddress; }
+    public void setBillingAddress(String billingAddress) { this.billingAddress = billingAddress; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }

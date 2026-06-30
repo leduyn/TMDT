@@ -5,8 +5,8 @@ import com.anhtin.tmdt.backend.modules.credit.entity.AgentCredit;
 import com.anhtin.tmdt.backend.modules.credit.entity.CreditLedger;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgencyDebtRepository;
 import com.anhtin.tmdt.backend.modules.credit.repository.AgentCreditRepository;
+import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 import com.anhtin.tmdt.backend.modules.order.entity.Order;
-import com.anhtin.tmdt.backend.modules.user.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,11 +52,11 @@ public class AgencyDebtService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime dueDate = now.plusDays(termDays);
 
-        User customer = order.getCustomer();
-        String cusCode = customer != null ? customer.getUsername() : "";
+        Customer customer = order.getCustomer();
+        String cusCode = customer != null ? customer.getOrganizationName() : "";
         String cusName = customer != null ? 
-            (customer.getOrganizationName() != null ? customer.getOrganizationName() : customer.getUsername()) : "";
-        String cusLevel = (customer != null && customer.getCustomerGroup() != null) ? customer.getCustomerGroup().getName() : "";
+            (customer.getOrganizationName() != null ? customer.getOrganizationName() : "") : "";
+        String cusLevel = "";
         
         String agencyCode = "AGENCY_" + order.getAgency().getId();
         String agencyName = order.getAgency().getName();
@@ -271,10 +271,10 @@ public class AgencyDebtService {
         debt.setAgencyName(agency.getName());
         
         if (order != null && order.getCustomer() != null) {
-            User customer = order.getCustomer();
-            debt.setCustomerCode(customer.getUsername());
-            debt.setCustomerName(customer.getOrganizationName() != null ? customer.getOrganizationName() : customer.getUsername());
-            debt.setCustomerLevel(customer.getCustomerGroup() != null ? customer.getCustomerGroup().getName() : "");
+            Customer customer = order.getCustomer();
+            debt.setCustomerCode(customer.getOrganizationName() != null ? customer.getOrganizationName() : "");
+            debt.setCustomerName(customer.getOrganizationName() != null ? customer.getOrganizationName() : "");
+            debt.setCustomerLevel("");
         }
 
         debt.setDebtCode(code);

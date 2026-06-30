@@ -9,6 +9,7 @@ import com.anhtin.tmdt.backend.modules.common.dto.PriceListItemDTO;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceList;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -54,8 +55,12 @@ public class PriceListController {
     }
 
     @GetMapping("/{id}/items")
-    public List<PriceListItemDTO> getPriceListItems(@PathVariable Long id) {
-        return priceListService.getPriceListItems(id);
+    public Page<PriceListItemDTO> getPriceListItems(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+        return priceListService.getPriceListItems(id, page, size, search);
     }
 
     @PutMapping("/{id}/items")
