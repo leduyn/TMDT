@@ -22,6 +22,8 @@ public class OrderRequest {
         private String name;
         private String phone;
         private String shippingAddress;
+        private String receiverName;
+        private String receiverPhone;
         private String invoiceName;
         private String invoiceTaxCode;
         private String invoiceAddress;
@@ -32,6 +34,10 @@ public class OrderRequest {
         public void setPhone(String phone) { this.phone = phone; }
         public String getShippingAddress() { return shippingAddress; }
         public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
+        public String getReceiverName() { return receiverName; }
+        public void setReceiverName(String receiverName) { this.receiverName = receiverName; }
+        public String getReceiverPhone() { return receiverPhone; }
+        public void setReceiverPhone(String receiverPhone) { this.receiverPhone = receiverPhone; }
         public String getInvoiceName() { return invoiceName; }
         public void setInvoiceName(String invoiceName) { this.invoiceName = invoiceName; }
         public String getInvoiceTaxCode() { return invoiceTaxCode; }

@@ -97,6 +97,11 @@ public class AuthController {
                     .body(new MessageResponse("Tài khoản đã bị từ chối!"));
         }
 
+        // PENDING_DEPOSIT được phép đăng nhập (giới hạn quyền truy cập ở frontend)
+        if (agency.getStatus() == AgencyStatus.PENDING || agency.getStatus() == AgencyStatus.PENDING_DEPOSIT) {
+            // Cho phép login, frontend sẽ xử lý redirect/giới hạn
+        }
+
         AgencyUserDetails agencyDetails = AgencyUserDetails.build(agency);
         String jwt = jwtUtils.generateJwtTokenFromAgency(agencyDetails);
 

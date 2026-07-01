@@ -4,6 +4,8 @@ import com.anhtin.tmdt.backend.modules.price.dto.PriceUpdateVoucherRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.PriceUpdateVoucherDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -63,11 +65,27 @@ public class PriceUpdateVoucherService {
                 .collect(Collectors.toList());
     }
 
+    public Page<PriceUpdateVoucherDTO> getAllVouchers(Pageable pageable) {
+        return voucherRepository.findAll(pageable).map(this::convertToDTO);
+    }
+
     public PriceUpdateVoucherDTO getVoucherById(Long id) {
         if (id == null) throw new IllegalArgumentException("ID cannot be null");
         PriceUpdateVoucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Voucher not found"));
         return convertToDTO(voucher);
+    }
+
+    public Page<PriceUpdateVoucherDTO.VoucherItemDTO> getVoucherItems(Long voucherId, Pageable pageable) {
+        return voucherItemRepository.findByVoucherId(voucherId, pageable)
+                .map(i -> {
+                    PriceUpdateVoucherDTO.VoucherItemDTO dto = new PriceUpdateVoucherDTO.VoucherItemDTO();
+                    dto.setProductId(i.getProduct().getId());
+                    dto.setProductName(i.getProduct().getName());
+                    dto.setNewPrice(i.getNewPrice());
+                    dto.setIsVisible(i.getIsVisible());
+                    return dto;
+                });
     }
 
     @SuppressWarnings("null")

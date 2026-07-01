@@ -33,7 +33,7 @@ export default function LoginPage() {
         ? await authApi.login({ username, password })
         : await authApi.agencyLogin({ phone, password });
       login(res);
-      if (res.agencyId && res.agencyStatus === 'PENDING') {
+      if (res.agencyId && (res.agencyStatus === 'PENDING' || res.agencyStatus === 'PENDING_DEPOSIT')) {
         router.push('/');
       } else {
         router.push('/dashboard');

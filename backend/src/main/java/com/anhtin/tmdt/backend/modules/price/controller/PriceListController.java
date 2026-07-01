@@ -10,6 +10,8 @@ import com.anhtin.tmdt.backend.modules.price.entity.PriceList;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,11 @@ public class PriceListController {
     @GetMapping
     public List<PriceListDTO> getAllPriceLists() {
         return priceListService.getAllPriceLists();
+    }
+
+    @GetMapping("/page")
+    public Page<PriceListDTO> getPriceListsPage(@PageableDefault(size = 20) Pageable pageable) {
+        return priceListService.getPriceListsPage(pageable);
     }
 
     @GetMapping("/{id}")

@@ -326,6 +326,7 @@ public class CreditService {
         // Check activation: if cumulative payments >= deposit amount, activate agency
         if (contract.getPaidAmount() >= contract.getDepositAmount() && !agency.isActive()) {
             agency.setActive(true);
+            agency.setStatus(com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus.APPROVED);
             agencyRepository.save(agency);
         }
 

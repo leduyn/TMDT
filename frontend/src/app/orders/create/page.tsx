@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, CustomerDTO, orderApi as api, productApi, creditApi, CreditDetail, salesPolicyApi, categoryApi, CategoryDTO, customerApi } from '@/lib/api';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { orderApi, agencyApi, AgencyDTO, ProductDTO, UserDTO, CustomerDTO, orderApi as api, creditApi, CreditDetail, salesPolicyApi, customerApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
-import SearchableSelect from '@/components/ui/SearchableSelect';
-import { Plus, Trash2, ChevronRight, Check, AlertTriangle, Search, Filter, Building, User, Package, Tag } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, Check, AlertTriangle, Search, Building, User, Package, Tag, ShoppingCart } from 'lucide-react';
+import ProductPickerModal from '@/components/ProductPickerModal';
 
 interface CartItem {
   productId: number;
@@ -27,7 +27,7 @@ export default function CreateOrderPage() {
 
   const [agencies, setAgencies] = useState<AgencyDTO[]>([]);
   const [agencyCustomers, setAgencyCustomers] = useState<CustomerDTO[]>([]);
-  const [products, setProducts] = useState<ProductDTO[]>([]);
+
 
   const [selectedAgency, setSelectedAgency] = useState<AgencyDTO | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDTO | null>(null);
@@ -37,11 +37,18 @@ export default function CreateOrderPage() {
   const [orderDebtTerm, setOrderDebtTerm] = useState(30);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [customerStep, setCustomerStep] = useState<'list' | 'check' | 'create'>('list');
+  const [checkedCustomer, setCheckedCustomer] = useState<CustomerDTO | null>(null);
+  const [checkLoading, setCheckLoading] = useState(false);
+  const [checkPhone, setCheckPhone] = useState('');
+  const [checkTaxCode, setCheckTaxCode] = useState('');
   const [newCustomerInfo, setNewCustomerInfo] = useState({
     name: '',
     phone: '',
     shippingAddress: '',
+    receiverName: '',
+    receiverPhone: '',
     invoiceName: '',
     invoiceTaxCode: '',
     invoiceAddress: ''
@@ -50,22 +57,11 @@ export default function CreateOrderPage() {
   // Search and Filter States for UX enhancement with large datasets
   const [agencySearch, setAgencySearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
-  const [productSearch, setProductSearch] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [catOptions, setCatOptions] = useState<CategoryDTO[][]>([[], [], [], []]);
-  const [catSelections, setCatSelections] = useState<(number | undefined)[]>([undefined, undefined, undefined, undefined]);
-  const [levelNames, setLevelNames] = useState<string[]>(['Ngành hàng', 'Nhóm hàng', 'Loại SP', 'Dòng SP']);
-  const [allCategories, setAllCategories] = useState<CategoryDTO[]>([]);
+
 
   useEffect(() => {
     loadAgencies();
   }, [user]);
-
-  useEffect(() => {
-    if (selectedAgency) {
-      loadProducts();
-    }
-  }, [selectedAgency, step]);
 
   const loadAgencies = async () => {
     if (!user) return;
@@ -80,17 +76,9 @@ export default function CreateOrderPage() {
     }
   };
 
-  const loadProducts = async () => {
-    if (!selectedAgency) return;
-    const agencyId = selectedAgency.id;
-    const customerId = selectedCustomer?.id;
-    const data = await productApi.getAll(agencyId, customerId);
-    setProducts(data.filter((p: ProductDTO) => p.basePrice && p.basePrice > 0));
-  };
-
   const loadAgencyCustomers = async (agencyId: number) => {
-    const allCustomers = await customerApi.getAll();
-    setAgencyCustomers(allCustomers.filter(c => c.agencyId === agencyId));
+    const data = await customerApi.getAll(agencyId);
+    setAgencyCustomers(data);
   };
 
   const handleSelectAgency = async (agency: AgencyDTO) => {
@@ -106,13 +94,10 @@ export default function CreateOrderPage() {
     // Reset search queries and selections when customer changes to avoid state leaks
     setCustomerSearch('');
     setSelectedCustomer(null);
-    setShowNewCustomerForm(false);
-    setProductSearch('');
-    setSelectedBrand(null);
-    // Reset category filters
-    setCatOptions([[], [], [], []]);
-    setCatSelections([undefined, undefined, undefined, undefined]);
-    setAllCategories([]);
+    setCustomerStep('list');
+    setCheckedCustomer(null);
+    setCheckPhone('');
+    setCheckTaxCode('');
     setCart([]); // Clear cart to prevent cross-agency price lists or inventory conflicts
     setStep(2);
   };
@@ -122,91 +107,8 @@ export default function CreateOrderPage() {
     if (customer) {
       setShippingAddress(customer.shippingAddress || '');
     }
-    // Reset product searches when buyer changes in case it impacts the price list
-    setProductSearch('');
-    setSelectedBrand(null);
     setStep(3);
   };
-
-  // ─── Category loading for product filter ──────────────────────────
-  useEffect(() => {
-    if (step === 3 && selectedAgency) {
-      categoryApi.getByLevel(0).then(data => {
-        setCatOptions(prev => { const next = [...prev]; next[0] = data; return next; });
-      }).catch(() => {});
-      categoryApi.getLevelNames().then(names => {
-        if (names) {
-          setLevelNames([names[0] || 'Ngành hàng', names[1] || 'Nhóm hàng', names[2] || 'Loại SP', names[3] || 'Dòng SP']);
-        }
-      }).catch(() => {});
-      categoryApi.getAll().then(data => {
-        setAllCategories(data || []);
-      }).catch(() => {});
-    }
-  }, [step, selectedAgency]);
-
-  // ─── Category tree helpers ─────────────────────────────────────────
-  const childrenMap = useMemo(() => {
-    const map = new Map<number, CategoryDTO[]>();
-    allCategories.forEach(cat => {
-      const pid = cat.parentId ?? 0;
-      if (!map.has(pid)) map.set(pid, []);
-      map.get(pid)!.push(cat);
-    });
-    return map;
-  }, [allCategories]);
-
-  const getLeafIds = useCallback((catId: number): Set<number> => {
-    const result = new Set<number>();
-    function traverse(id: number) {
-      const children = childrenMap.get(id) || [];
-      if (children.length === 0) {
-        result.add(id);
-      } else {
-        children.forEach((c: CategoryDTO) => traverse(c.id));
-      }
-    }
-    traverse(catId);
-    return result;
-  }, [childrenMap]);
-
-  const effectiveLeafIds = useMemo(() => {
-    let deepestSelected: number | undefined;
-    for (let i = catSelections.length - 1; i >= 0; i--) {
-      if (catSelections[i] !== undefined) {
-        deepestSelected = catSelections[i];
-        break;
-      }
-    }
-    if (deepestSelected === undefined) return null;
-    return getLeafIds(deepestSelected);
-  }, [catSelections, getLeafIds]);
-
-  const handleCategoryChange = useCallback(async (level: number, catId: number | undefined) => {
-    setCatSelections(prev => {
-      const next = [...prev];
-      next[level] = catId;
-      for (let l = level + 1; l < next.length; l++) next[l] = undefined;
-      return next;
-    });
-    setCatOptions(prev => {
-      const next = [...prev];
-      for (let l = level + 1; l < next.length; l++) next[l] = [];
-      return next;
-    });
-    if (catId && level < 3) {
-      try {
-        const children = await categoryApi.getChildren(catId);
-        setCatOptions(prev => {
-          const next = [...prev];
-          next[level + 1] = children;
-          return next;
-        });
-      } catch (err) {
-        console.error('Failed to load category children:', err);
-      }
-    }
-  }, []);
 
   // Debounce timer refs for quantity-based re-resolve
   const resolvePriceTimers = useRef<Record<number, NodeJS.Timeout>>({});
@@ -327,7 +229,7 @@ export default function CreateOrderPage() {
 
       if (selectedCustomer) {
         orderData.customerId = selectedCustomer.id;
-      } else if (showNewCustomerForm && newCustomerInfo.name) {
+      } else if (newCustomerInfo.name) {
         orderData.newCustomerInfo = newCustomerInfo;
       }
 
@@ -348,7 +250,7 @@ export default function CreateOrderPage() {
   const canProceed = () => {
     switch (step) {
       case 1: return !!selectedAgency;
-      case 2: return !!selectedCustomer || showNewCustomerForm;
+      case 2: return !!selectedCustomer || !!newCustomerInfo.name;
       case 3: return cart.length > 0;
       default: return false;
     }
@@ -385,25 +287,27 @@ export default function CreateOrderPage() {
 
             <div>
               <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Người mua</div>
-              {selectedCustomer ? (
+              {selectedCustomer || newCustomerInfo.name ? (
                 <>
-                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer.organizationName || selectedCustomer.receiverName || `#${selectedCustomer.id}`}</div>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <div style={{ fontSize: 13 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Dư nợ KH: </span>
-                      <strong style={{ color: (creditDetail?.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0) > 0 ? '#ef4444' : 'inherit' }}>
-                        {(creditDetail?.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0).toLocaleString()}đ
-                      </strong>
-                    </div>
-                    {creditDetail && creditDetail.overdueDebts.filter(d => d.customerId === selectedCustomer.id && d.status === 'ACTIVE').length > 0 && (
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{selectedCustomer?.organizationName || selectedCustomer?.receiverName || newCustomerInfo.name}</div>
+                  {selectedCustomer && (
+                    <div style={{ display: 'flex', gap: 16 }}>
                       <div style={{ fontSize: 13 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Nợ quá hạn: </span>
-                        <strong style={{ color: '#ef4444' }}>
-                          {creditDetail.overdueDebts.filter(d => d.customerId === selectedCustomer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ
+                        <span style={{ color: 'var(--text-secondary)' }}>Dư nợ KH: </span>
+                        <strong style={{ color: (creditDetail?.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0) > 0 ? '#ef4444' : 'inherit' }}>
+                          {(creditDetail?.customerDebts.find(d => d.customerId === selectedCustomer.id)?.totalDebt || 0).toLocaleString()}đ
                         </strong>
                       </div>
-                    )}
-                  </div>
+                      {creditDetail && creditDetail.overdueDebts.filter(d => d.customerId === selectedCustomer.id && d.status === 'ACTIVE').length > 0 && (
+                        <div style={{ fontSize: 13 }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Nợ quá hạn: </span>
+                          <strong style={{ color: '#ef4444' }}>
+                            {creditDetail.overdueDebts.filter(d => d.customerId === selectedCustomer.id && d.status === 'ACTIVE').reduce((sum, d) => sum + d.principalAmount, 0).toLocaleString()}đ
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 14 }}>
@@ -537,14 +441,23 @@ export default function CreateOrderPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <h3 style={{ margin: 0 }}>Chọn Người mua</h3>
-                {!showNewCustomerForm && (
-                  <button
-                    onClick={() => setShowNewCustomerForm(true)}
-                    className="btn-outline"
-                    style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
-                  >
-                    <Plus size={14} /> Thêm Người mua mới
-                  </button>
+                {customerStep === 'list' && (
+                  <>
+                    <button
+                      onClick={() => { setCustomerStep('check'); setCheckedCustomer(null); setCheckPhone(''); setCheckTaxCode(''); }}
+                      className="btn-outline"
+                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
+                    >
+                      <Search size={14} /> Kiểm tra khách hàng
+                    </button>
+                    <button
+                      onClick={() => { setCustomerStep('create'); setNewCustomerInfo({ name: '', phone: '', shippingAddress: '', receiverName: '', receiverPhone: '', invoiceName: '', invoiceTaxCode: '', invoiceAddress: '' }); }}
+                      className="btn-outline"
+                      style={{ padding: '6px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
+                    >
+                      <Plus size={14} /> Thêm Người mua mới
+                    </button>
+                  </>
                 )}
               </div>
               {creditDetail && (
@@ -567,7 +480,7 @@ export default function CreateOrderPage() {
               )}
             </div>
 
-            {!showNewCustomerForm ? (
+            {customerStep === 'list' && (
               <div>
                 <div style={{ position: 'relative', marginBottom: 20 }}>
                   <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
@@ -591,39 +504,6 @@ export default function CreateOrderPage() {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
                   gap: 16 
                 }}>
-                  {/* Default Buyer Selection Card */}
-                  {customerSearch.length === 0 && (
-                    <div
-                      onClick={() => handleSelectCustomer(null)}
-                      className="agency-card glass-card"
-                      style={{
-                        padding: 16,
-                        border: !selectedCustomer ? '2px solid var(--accent)' : '1px solid var(--border)',
-                        borderRadius: 12,
-                        cursor: 'pointer',
-                        background: !selectedCustomer ? 'var(--accent-glow)' : 'transparent',
-                        display: 'flex',
-                        gap: 12,
-                        alignItems: 'flex-start',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <div style={{ 
-                        background: !selectedCustomer ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)', 
-                        padding: 8, 
-                        borderRadius: 8,
-                        color: !selectedCustomer ? 'white' : 'var(--accent-light)' 
-                      }}>
-                        <User size={20} />
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedAgency?.name}</div>
-                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>Người mua nhận hàng mặc định</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Filtered Buyers */}
                   {agencyCustomers.filter(customer => {
                     const query = customerSearch.toLowerCase();
                     return (
@@ -645,41 +525,20 @@ export default function CreateOrderPage() {
                       const isSelected = selectedCustomer?.id === customer.id;
 
                       return (
-                        <div
-                          key={customer.id}
-                          className="agency-card glass-card"
-                          onClick={() => handleSelectCustomer(customer)}
-                          style={{
-                            padding: 16,
-                            border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                            borderRadius: 12,
-                            cursor: 'pointer',
-                            background: isSelected ? 'var(--accent-glow)' : 'transparent',
-                            display: 'flex',
-                            gap: 12,
-                            alignItems: 'flex-start',
-                            position: 'relative',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <div style={{ 
-                            background: isSelected ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)', 
-                            padding: 8, 
-                            borderRadius: 8,
-                            color: isSelected ? 'white' : 'var(--accent-light)' 
-                          }}>
+                        <div key={customer.id} className="agency-card glass-card" onClick={() => handleSelectCustomer(customer)} style={{
+                          padding: 16, border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          borderRadius: 12, cursor: 'pointer', background: isSelected ? 'var(--accent-glow)' : 'transparent',
+                          display: 'flex', gap: 12, alignItems: 'flex-start', transition: 'all 0.2s ease'
+                        }}>
+                          <div style={{ background: isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.05)', padding: 8, borderRadius: 8, color: isSelected ? 'white' : 'var(--accent-light)' }}>
                             <User size={20} />
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{customer.organizationName || customer.receiverName || `#${customer.id}`}</div>
+                            <div style={{ fontWeight: 600 }}>{customer.organizationName || customer.receiverName || `#${customer.id}`}</div>
                             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                               Dư nợ: <span style={{ color: (debtInfo?.totalDebt || 0) > 0 ? 'var(--danger)' : 'inherit', fontWeight: (debtInfo?.totalDebt || 0) > 0 ? 600 : 400 }}>{(debtInfo?.totalDebt || 0).toLocaleString()}đ</span>
                             </div>
-                            {overdueDebt > 0 && (
-                              <div style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 600, marginTop: 2 }}>
-                                Nợ quá hạn: {overdueDebt.toLocaleString()}đ
-                              </div>
-                            )}
+                            {overdueDebt > 0 && <div style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 600, marginTop: 2 }}>Nợ quá hạn: {overdueDebt.toLocaleString()}đ</div>}
                             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>SĐT: {customer.receiverPhone || 'N/A'}</div>
                           </div>
                         </div>
@@ -694,432 +553,241 @@ export default function CreateOrderPage() {
                   )}
                 </div>
               </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div style={{ gridColumn: '1 / -1' }}>
+            )}
+
+            {customerStep === 'check' && (
+              <div className="glass-card" style={{ padding: 24, maxWidth: 500, margin: '0 auto' }}>
+                <button onClick={() => setCustomerStep('list')} className="btn-secondary" style={{ marginBottom: 16 }}>
+                  ← Quay lại danh sách
+                </button>
+                <h4 style={{ marginBottom: 16 }}>Kiểm tra thông tin khách hàng</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <label className="form-label">Số điện thoại</label>
+                    <input type="text" className="form-input" value={checkPhone} onChange={e => setCheckPhone(e.target.value)} placeholder="Nhập SĐT để tra cứu" />
+                  </div>
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>hoặc</div>
+                  <div>
+                    <label className="form-label">Mã số thuế</label>
+                    <input type="text" className="form-input" value={checkTaxCode} onChange={e => setCheckTaxCode(e.target.value)} placeholder="Nhập MST để tra cứu" />
+                  </div>
                   <button
-                    onClick={() => { setShowNewCustomerForm(false); setSelectedCustomer(null); }}
-                    className="btn-secondary"
-                    style={{ marginBottom: 16 }}
-                  >
-                    ← Quay lại chọn người mua có sẵn
-                  </button>
-                </div>
-                <div>
-                  <label className="form-label">Tên Người mua</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newCustomerInfo.name}
-                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Số điện thoại</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newCustomerInfo.phone}
-                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, phone: e.target.value })}
-                  />
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Địa chỉ giao hàng</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newCustomerInfo.shippingAddress}
-                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, shippingAddress: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Tên xuất hóa đơn</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newCustomerInfo.invoiceName}
-                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Mã số thuế</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newCustomerInfo.invoiceTaxCode}
-                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceTaxCode: e.target.value })}
-                  />
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Địa chỉ xuất hóa đơn</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newCustomerInfo.invoiceAddress}
-                    onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceAddress: e.target.value })}
-                  />
-                </div>
-                <div style={{ gridColumn: '1 / -1', marginTop: 16 }}>
-                  <button
-                    onClick={() => handleSelectCustomer(null)}
-                    disabled={!newCustomerInfo.name || !newCustomerInfo.phone}
+                    onClick={async () => {
+                      if (!checkPhone && !checkTaxCode) return;
+                      setCheckLoading(true);
+                      setCheckedCustomer(null);
+                      try {
+                        const result = await customerApi.check({ phone: checkPhone || undefined, taxCode: checkTaxCode || undefined, agencyId: selectedAgency?.id });
+                        setCheckedCustomer(result);
+                      } finally {
+                        setCheckLoading(false);
+                      }
+                    }}
+                    disabled={(!checkPhone && !checkTaxCode) || checkLoading}
                     className="btn-primary"
+                    style={{ marginTop: 8 }}
                   >
-                    Tiếp tục
+                    {checkLoading ? 'Đang kiểm tra...' : 'Kiểm tra'}
                   </button>
+                </div>
+
+                {checkedCustomer && (
+                  <div className="glass-card" style={{ padding: 16, marginTop: 16, border: '1px solid var(--accent)', background: 'var(--accent-glow)' }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Tìm thấy khách hàng:</div>
+                    <div><strong>{checkedCustomer.organizationName || checkedCustomer.receiverName}</strong></div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>SĐT: {checkedCustomer.receiverPhone || 'N/A'} | MST: {checkedCustomer.taxCode || 'N/A'}</div>
+                    {!checkedCustomer.assigned && (
+                      <div style={{ fontSize: 12, color: 'var(--warning)', marginTop: 4 }}>Chưa được gán cho khách hàng này. Nhấn "Chọn" để thêm.</div>
+                    )}
+                    <button
+                      onClick={() => handleSelectCustomer(checkedCustomer)}
+                      className="btn-primary"
+                      style={{ marginTop: 12 }}
+                    >
+                      <Check size={16} style={{ marginRight: 6 }} /> Chọn người mua này
+                    </button>
+                  </div>
+                )}
+
+                {checkedCustomer === null && !checkLoading && (checkPhone || checkTaxCode) && (
+                  <div style={{ marginTop: 16, textAlign: 'center' }}>
+                    <div style={{ color: 'var(--text-muted)', marginBottom: 12 }}>Không tìm thấy khách hàng với thông tin trên</div>
+                    <button
+                      onClick={() => {
+                        setNewCustomerInfo({
+                          name: '',
+                          phone: checkPhone,
+                          shippingAddress: '',
+                          receiverName: '',
+                          receiverPhone: checkPhone,
+                          invoiceName: '',
+                          invoiceTaxCode: checkTaxCode,
+                          invoiceAddress: ''
+                        });
+                        setCustomerStep('create');
+                      }}
+                      className="btn-outline"
+                    >
+                      <Plus size={14} style={{ marginRight: 6 }} /> Tạo người mua mới
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {customerStep === 'create' && (
+              <div style={{ maxWidth: 600, margin: '0 auto' }}>
+                <button onClick={() => { setCustomerStep('list'); setCheckedCustomer(null); }} className="btn-secondary" style={{ marginBottom: 16 }}>
+                  ← Quay lại chọn người mua có sẵn
+                </button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label className="form-label">Tên Người mua</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.name} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, name: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="form-label">Số điện thoại</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.phone} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, phone: e.target.value })} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Địa chỉ giao hàng</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.shippingAddress} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, shippingAddress: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="form-label">Người nhận hàng</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.receiverName} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, receiverName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="form-label">SĐT người nhận</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.receiverPhone} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, receiverPhone: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="form-label">Tên xuất hóa đơn</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.invoiceName} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="form-label">Mã số thuế</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.invoiceTaxCode} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceTaxCode: e.target.value })} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Địa chỉ xuất hóa đơn</label>
+                    <input type="text" className="form-input" value={newCustomerInfo.invoiceAddress} onChange={e => setNewCustomerInfo({ ...newCustomerInfo, invoiceAddress: e.target.value })} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1', marginTop: 8 }}>
+                    <button onClick={() => handleSelectCustomer(null)} disabled={!newCustomerInfo.name || !newCustomerInfo.phone} className="btn-primary">
+                      Tiếp tục
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {step === 3 && (() => {
-          // Compute unique brands in scope
-          const uniqueBrands = Array.from(new Set(products.map(p => p.brand?.name).filter(Boolean))) as string[];
+        {step === 3 && (
+          <div>
+            <h3 style={{ marginBottom: 16 }}>Chọn sản phẩm</h3>
 
-          // Filter products reactively in-memory
-          const filteredProducts = products.filter(product => {
-            const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase()) || 
-                                  (product.brand?.name || '').toLowerCase().includes(productSearch.toLowerCase()) ||
-                                  (product.categoryName || '').toLowerCase().includes(productSearch.toLowerCase());
-            const matchesCategory = !effectiveLeafIds || (product.categoryId !== undefined && effectiveLeafIds.has(product.categoryId));
-            const matchesBrand = !selectedBrand || product.brand?.name === selectedBrand;
-            return matchesSearch && matchesCategory && matchesBrand;
-          });
-
-          const getProductInitials = (name: string) => {
-            return name ? name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() : 'SP';
-          };
-
-          return (
-            <div>
-              <h3 style={{ marginBottom: 16 }}>Chọn sản phẩm</h3>
-              
-              {/* Product Search Box */}
-              <div style={{ position: 'relative', marginBottom: 16 }}>
-                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Search size={18} />
+            <button
+              onClick={() => setShowProductPicker(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '14px 24px', borderRadius: 12,
+                background: 'linear-gradient(135deg, var(--accent) 0%, rgba(99,102,241,0.7) 100%)',
+                color: 'white', border: 'none', cursor: 'pointer',
+                fontSize: 15, fontWeight: 600,
+                boxShadow: '0 4px 16px var(--accent-glow)',
+                transition: 'all 0.2s', marginBottom: 24,
+                width: '100%', justifyContent: 'center',
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              <Plus size={20} />
+              Chọn sản phẩm
+              {cart.length > 0 && (
+                <span style={{
+                  background: 'rgba(255,255,255,0.2)', borderRadius: 20,
+                  padding: '2px 10px', fontSize: 13, fontWeight: 500,
+                }}>
+                  {cart.length} sản phẩm
                 </span>
-                <input
-                  type="text"
-                  placeholder="Tìm sản phẩm theo tên, thương hiệu, danh mục..."
-                  className="input-field"
-                  style={{ paddingLeft: 42 }}
-                  value={productSearch}
-                  onChange={e => setProductSearch(e.target.value)}
-                />
-              </div>
+              )}
+            </button>
 
-              {/* Category and Brand Filter Chips */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20, background: 'rgba(255, 255, 255, 0.02)', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
-                {/* Hierarchical Category Selector */}
-                {catOptions.some(opts => opts.length > 0) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Filter size={14} /> Danh mục:
-                    </span>
-                    {catOptions.map((options, level) => (
-                      <SearchableSelect
-                        key={level}
-                        options={options.map(c => ({ value: c.id, label: c.name }))}
-                        value={catSelections[level]}
-                        onChange={(val) => handleCategoryChange(level, val !== undefined ? Number(val) : undefined)}
-                        placeholder={levelNames[level]}
-                        disabled={level > 0 && (catSelections[level - 1] === undefined || catOptions[level - 1].length === 0)}
-                        style={{ minWidth: 140 }}
-                      />
-                    ))}
-                    {catSelections.some(s => s !== undefined) && (
-                      <button
-                        onClick={() => {
-                          setCatSelections([undefined, undefined, undefined, undefined]);
-                          setCatOptions(prev => {
-                            const next = [...prev];
-                            for (let i = 1; i < next.length; i++) next[i] = [];
-                            return next;
-                          });
-                        }}
-                        style={{
-                          padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem',
-                          background: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          cursor: 'pointer', whiteSpace: 'nowrap'
-                        }}
-                      >
-                        Xoá bộ lọc
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {uniqueBrands.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80, fontWeight: 500 }}>Thương hiệu:</span>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 2 }}>
-                      <button
-                        onClick={() => setSelectedBrand(null)}
-                        className="badge"
-                        style={{ 
-                          cursor: 'pointer',
-                          background: !selectedBrand ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
-                          color: !selectedBrand ? 'white' : 'var(--text-secondary)',
-                          border: '1px solid var(--border)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Tất cả
-                      </button>
-                      {uniqueBrands.map(br => (
-                        <button
-                          key={br}
-                          onClick={() => setSelectedBrand(br === selectedBrand ? null : br)}
-                          className="badge"
-                          style={{ 
-                            cursor: 'pointer',
-                            background: selectedBrand === br ? 'var(--accent)' : 'rgba(255, 255, 255, 0.05)',
-                            color: selectedBrand === br ? 'white' : 'var(--text-secondary)',
-                            border: '1px solid var(--border)',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {br}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Products List Zone */}
-              <div style={{ 
-                maxHeight: '450px', 
-                overflowY: 'auto', 
-                paddingRight: 8,
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', 
-                gap: 16, 
-                marginBottom: 24 
-              }}>
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map(product => (
-                    <div
-                      key={product.id}
-                      onClick={() => handleAddToCart(product)}
-                      className="product-card glass-card"
-                      style={{
-                        padding: 12,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        height: '100%',
-                        position: 'relative',
-                        borderRadius: 12,
-                        border: '1px solid var(--border)',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div>
-                        {/* Image area */}
-                        <div style={{
-                          width: '100%',
-                          height: 120,
-                          borderRadius: 8,
-                          background: 'rgba(255, 255, 255, 0.02)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'hidden',
-                          marginBottom: 10,
-                          border: '1px solid rgba(255, 255, 255, 0.05)'
-                        }}>
-                          {product.imageUrl ? (
-                            <img 
-                              src={product.imageUrl} 
-                              alt={product.name} 
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                            />
-                          ) : (
-                            <div style={{
-                              fontSize: 22,
-                              fontWeight: 700,
-                              color: 'var(--accent-light)',
-                              background: 'linear-gradient(135deg, var(--accent-glow) 0%, rgba(139, 92, 246, 0.05) 100%)',
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              {getProductInitials(product.name)}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Product Info */}
-                        <div style={{ 
-                          fontWeight: 600, 
-                          fontSize: 14, 
-                          lineHeight: '1.4', 
-                          marginBottom: 6, 
-                          color: 'var(--text-primary)',
-                          display: '-webkit-box', 
-                          WebkitLineClamp: 2, 
-                          WebkitBoxOrient: 'vertical', 
-                          overflow: 'hidden', 
-                          height: 40 
-                        }}>
-                          {product.name}
-                        </div>
-
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
-                          {product.brand?.name && (
-                            <span className="badge badge-primary" style={{ fontSize: 10, padding: '1px 6px' }}>{product.brand.name}</span>
-                          )}
-                          {product.categoryName && (
-                            <span className="badge badge-info" style={{ fontSize: 10, padding: '1px 6px' }}>{product.categoryName}</span>
-                          )}
-                          {product.isDropship && (
-                            <span className="badge badge-success" style={{ fontSize: 10, padding: '1px 6px' }}>Dropship</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 8, marginTop: 4 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Đơn vị: {product.unit || 'Cái'}</span>
-                          <span style={{ 
-                            fontSize: 11, 
-                            color: (product.stockQuantity || 0) > 0 ? 'var(--success)' : 'var(--danger)',
-                            fontWeight: 600
-                          }}>
-                            {(product.stockQuantity || 0) > 0 ? `Tồn: ${product.stockQuantity}` : 'Hết hàng'}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <div style={{ color: 'var(--accent-light)', fontWeight: 700, fontSize: 15 }}>
-                              {(product.appliedPrice || product.basePrice)?.toLocaleString()}đ
-                            </div>
-                            {product.oldAppliedPrice && product.oldAppliedPrice > 0 && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)', fontSize: 12 }}>
-                                  {product.oldAppliedPrice.toLocaleString()}đ
-                                </span>
-                                <span style={{ 
-                                  color: product.priceChangeRatio && product.priceChangeRatio < 0 ? '#10b981' : '#ef4444', 
-                                  fontSize: 11, 
-                                  fontWeight: 600,
-                                  background: product.priceChangeRatio && product.priceChangeRatio < 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                  padding: '1px 4px',
-                                  borderRadius: 4
-                                }}>
-                                  {product.priceChangeRatio && product.priceChangeRatio > 0 ? `+${product.priceChangeRatio.toFixed(0)}%` : `${product.priceChangeRatio?.toFixed(0)}%`}
-                                </span>
-                              </div>
+            {/* Cart Zone */}
+            {cart.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ShoppingCart size={18} style={{ color: 'var(--accent-light)' }} /> Giỏ hàng ({cart.length} sản phẩm)
+                </h4>
+                <div style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: 4 }}>
+                  {cart.map(item => {
+                    const hasPolicyDiscount = item.policyPrice !== undefined && item.policyPrice !== item.basePrice;
+                    return (
+                      <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {item.productName}
+                            {hasPolicyDiscount && (
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 3,
+                                background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                                fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4
+                              }}>
+                                <Tag size={10} /> CSBH
+                              </span>
                             )}
                           </div>
-                          <div style={{ 
-                            background: 'var(--accent)', 
-                            color: 'white', 
-                            borderRadius: '50%', 
-                            width: 26, 
-                            height: 26, 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontSize: 16,
-                            boxShadow: '0 2px 8px var(--accent-glow)'
-                          }}>
-                            +
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                            {hasPolicyDiscount ? (
+                              <>
+                                <span style={{ color: 'var(--text-muted)', fontSize: 11, textDecoration: 'line-through' }}>
+                                  {item.basePrice.toLocaleString()}đ
+                                </span>
+                                <span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>
+                                  {item.policyPrice!.toLocaleString()}đ
+                                </span>
+                              </>
+                            ) : (
+                              <span style={{ color: 'var(--accent-light)', fontSize: 12 }}>
+                                {item.price.toLocaleString()}đ
+                              </span>
+                            )}
+                            {item.resolvingPrice && (
+                              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>đang cập nhật...</span>
+                            )}
                           </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button onClick={() => updateCartQuantity(item.productId, item.quantity - 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>-</button>
+                          <span style={{ minWidth: 24, textAlign: 'center', fontSize: 13 }}>{item.quantity}</span>
+                          <button onClick={() => updateCartQuantity(item.productId, item.quantity + 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>+</button>
+                          <span style={{ minWidth: 70, textAlign: 'right', fontSize: 13, fontWeight: 600 }}>
+                            {(item.price * item.quantity).toLocaleString()}đ
+                          </span>
+                          <button onClick={() => removeFromCart(item.productId)} style={{ marginLeft: 4, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
-                    Không tìm thấy sản phẩm nào phù hợp
+                    );
+                  })}
+                </div>
+                {cart.some(item => item.policyPrice !== undefined && item.policyPrice !== item.basePrice) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 12px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: 8, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <Tag size={14} style={{ color: '#10b981' }} />
+                    <span style={{ fontSize: 12, color: '#6ee7b7' }}>Chính sách bán hàng đã được áp dụng cho một số sản phẩm</span>
                   </div>
                 )}
-              </div>
-
-              {/* Cart Zone */}
-              {cart.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                  <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Package size={18} style={{ color: 'var(--accent-light)' }} /> Giỏ hàng ({cart.length} sản phẩm)
-                  </h4>
-                  <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: 4 }}>
-                    {cart.map(item => {
-                      const hasPolicyDiscount = item.policyPrice !== undefined && item.policyPrice !== item.basePrice;
-                      return (
-                        <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                              {item.productName}
-                              {hasPolicyDiscount && (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
-                                  fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4
-                                }}>
-                                  <Tag size={10} /> CSBH
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                              {hasPolicyDiscount ? (
-                                <>
-                                  <span style={{ color: 'var(--text-muted)', fontSize: 11, textDecoration: 'line-through' }}>
-                                    {item.basePrice.toLocaleString()}đ
-                                  </span>
-                                  <span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>
-                                    {item.policyPrice!.toLocaleString()}đ
-                                  </span>
-                                </>
-                              ) : (
-                                <span style={{ color: 'var(--accent-light)', fontSize: 12 }}>
-                                  {item.price.toLocaleString()}đ
-                                </span>
-                              )}
-                              {item.resolvingPrice && (
-                                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>đang cập nhật...</span>
-                              )}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button onClick={() => updateCartQuantity(item.productId, item.quantity - 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>-</button>
-                            <span style={{ minWidth: 24, textAlign: 'center', fontSize: 13 }}>{item.quantity}</span>
-                            <button onClick={() => updateCartQuantity(item.productId, item.quantity + 1)} style={{ width: 28, height: 28, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-primary)', cursor: 'pointer' }}>+</button>
-                            <span style={{ minWidth: 70, textAlign: 'right', fontSize: 13, fontWeight: 600 }}>
-                              {(item.price * item.quantity).toLocaleString()}đ
-                            </span>
-                            <button onClick={() => removeFromCart(item.productId)} style={{ marginLeft: 4, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {cart.some(item => item.policyPrice !== undefined && item.policyPrice !== item.basePrice) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 12px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: 8, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                      <Tag size={14} style={{ color: '#10b981' }} />
-                      <span style={{ fontSize: 12, color: '#6ee7b7' }}>Chính sách bán hàng đã được áp dụng cho một số sản phẩm</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    <span>Tổng tiền:</span>
-                    <span style={{ color: 'var(--success)' }}>{getTotalAmount().toLocaleString()}đ</span>
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <span>Tổng tiền:</span>
+                  <span style={{ color: 'var(--success)' }}>{getTotalAmount().toLocaleString()}đ</span>
                 </div>
-              )}
-            </div>
-          );
-        })()}
+              </div>
+            )}
+          </div>
+        )}
 
         {step === 4 && (
           <div>
@@ -1132,7 +800,7 @@ export default function CreateOrderPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
                 <div>Khách hàng: <strong>{selectedAgency?.name}</strong></div>
-                <div>Người mua: <strong>{selectedCustomer?.organizationName || selectedCustomer?.receiverName || 'Người mua #' + selectedCustomer?.id}</strong></div>
+                <div>Người mua: <strong>{selectedCustomer?.organizationName || selectedCustomer?.receiverName || (customerStep === 'create' ? newCustomerInfo.name : 'Người mua #' + selectedCustomer?.id)}</strong></div>
                 {creditDetail && (
                   <>
                     <div style={{ color: creditDetail.hmkd < getTotalAmount() ? '#ef4444' : 'inherit' }}>
@@ -1314,6 +982,15 @@ export default function CreateOrderPage() {
           cursor: pointer;
         }
       `}</style>
+
+      {selectedAgency && (
+        <ProductPickerModal
+          isOpen={showProductPicker}
+          onClose={() => setShowProductPicker(false)}
+          agencyId={selectedAgency.id}
+          onAddToCart={handleAddToCart}
+        />
+      )}
     </div>
   );
 }

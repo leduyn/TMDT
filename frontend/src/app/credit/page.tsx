@@ -195,6 +195,9 @@ function CreditManagementContent() {
       }
       closeModal();
       loadDetail(selectedId);
+      agencyApi.getById(selectedId).then(updated => {
+        setAgencies(prev => prev.map(a => a.id === updated.id ? updated : a));
+      }).catch(() => {});
     } catch (e: any) {
       setError(e.message ?? 'Thao tác thất bại');
     } finally {
@@ -296,13 +299,30 @@ function CreditManagementContent() {
                       {agency.taxCode && <span>🆔 MST: {agency.taxCode}</span>}
                     </div>
                   </div>
-                  <div style={{
-                    padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                    background: agency.active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-                    color: agency.active ? '#22c55e' : '#ef4444',
-                  }}>
-                    {agency.active ? '● Hoạt động' : '● Ngừng'}
-                  </div>
+                  {(() => {
+                    const statusMap: Record<string, { label: string; color: string }> = {
+                      PENDING:          { label: 'Chờ duyệt',    color: '#f59e0b' },
+                      PENDING_DEPOSIT:  { label: 'Chờ đặt cọc',  color: '#3b82f6' },
+                      APPROVED:         { label: 'Đã duyệt',     color: '#22c55e' },
+                      REJECTED:         { label: 'Từ chối',      color: '#ef4444' },
+                    };
+                    const st = statusMap[agency.status] ?? { label: agency.status, color: '#94a3b8' };
+                    return <>
+                      <div style={{
+                        padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                        background: agency.active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: agency.active ? '#22c55e' : '#ef4444',
+                      }}>
+                        {agency.active ? '● Hoạt động' : '● Ngừng'}
+                      </div>
+                      <div style={{
+                        padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                        background: st.color + '22', color: st.color,
+                      }}>
+                        {st.label}
+                      </div>
+                    </>;
+                  })()}
                 </div>
               );
             })()}

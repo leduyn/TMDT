@@ -5,6 +5,7 @@ import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 public class CustomerDTO {
     private Long id;
     private Long agencyId;
+    private Long userId;
     private String organizationName;
     private String taxCode;
     private String shippingAddress;
@@ -12,6 +13,7 @@ public class CustomerDTO {
     private String receiverName;
     private String receiverPhone;
     private String note;
+    private boolean assigned;
     private String createdAt;
     private String updatedAt;
 
@@ -20,6 +22,7 @@ public class CustomerDTO {
     public CustomerDTO(Customer customer) {
         this.id = customer.getId();
         this.agencyId = customer.getAgencyId();
+        this.userId = customer.getUserId();
         this.organizationName = customer.getOrganizationName();
         this.taxCode = customer.getTaxCode();
         this.shippingAddress = customer.getShippingAddress();
@@ -27,14 +30,22 @@ public class CustomerDTO {
         this.receiverName = customer.getReceiverName();
         this.receiverPhone = customer.getReceiverPhone();
         this.note = customer.getNote();
+        this.assigned = false;
         this.createdAt = customer.getCreatedAt() != null ? customer.getCreatedAt().toString() : null;
         this.updatedAt = customer.getUpdatedAt() != null ? customer.getUpdatedAt().toString() : null;
+    }
+
+    public CustomerDTO(Customer customer, boolean assigned) {
+        this(customer);
+        this.assigned = assigned;
     }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
     public String getOrganizationName() { return organizationName; }
     public void setOrganizationName(String organizationName) { this.organizationName = organizationName; }
     public String getTaxCode() { return taxCode; }
@@ -49,6 +60,8 @@ public class CustomerDTO {
     public void setReceiverPhone(String receiverPhone) { this.receiverPhone = receiverPhone; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public boolean isAssigned() { return assigned; }
+    public void setAssigned(boolean assigned) { this.assigned = assigned; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
     public String getUpdatedAt() { return updatedAt; }

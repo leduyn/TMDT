@@ -12,6 +12,7 @@ interface AuthContextType {
   isAgency: boolean;
   isCompany: boolean;
   isPendingAgency: boolean;
+  isPendingDepositAgency: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   isAgency: false,
   isCompany: false,
   isPendingAgency: false,
+  isPendingDepositAgency: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -64,9 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAgency = roles.includes('ROLE_AGENCY');
   const isCompany = roles.includes('ROLE_COMPANY');
   const isPendingAgency = isAgency && user?.agencyStatus === 'PENDING';
+  const isPendingDepositAgency = isAgency && user?.agencyStatus === 'PENDING_DEPOSIT';
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading, isAgency, isCompany, isPendingAgency }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, isAgency, isCompany, isPendingAgency, isPendingDepositAgency }}>
       {children}
     </AuthContext.Provider>
   );

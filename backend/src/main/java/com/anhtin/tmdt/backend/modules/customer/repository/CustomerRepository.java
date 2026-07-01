@@ -9,4 +9,5 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByTaxCode(String taxCode);
     List<Customer> findByAgencyId(Long agencyId);
     List<Customer> findByOrganizationNameContainingIgnoreCase(String name);
+    Optional<Customer> findByUserId(Long userId);
 }

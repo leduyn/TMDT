@@ -7,6 +7,7 @@ export interface PriceListDTO {
   description?: string;
   isDefault: boolean;
   active: boolean;
+  createdAt?: string;
   itemCount: number;
 }
 
@@ -78,10 +79,17 @@ export const priceListApi = {
     const qs = params.toString();
     return fetchJSON<PageResponse<PriceListItemDTO>>(`/api/price-lists/${id}/items${qs ? '?' + qs : ''}`);
   },
+  getPage: (page: number, size: number = 20) =>
+    fetchJSON<PageResponse<PriceListDTO>>(`/api/price-lists/page?page=${page}&size=${size}`),
 };
 
 export const priceAssignmentVoucherApi = {
-  getAll: () => fetchJSON<PriceAssignmentVoucher[]>('/api/price-assignment-vouchers'),
+  getAll: (page?: number, size?: number) => {
+    if (page !== undefined) {
+      return fetchJSON<PageResponse<PriceAssignmentVoucher>>(`/api/price-assignment-vouchers?page=${page}&size=${size ?? 20}`);
+    }
+    return fetchJSON<PriceAssignmentVoucher[]>('/api/price-assignment-vouchers');
+  },
   create: (data: PriceAssignmentVoucher) => fetchJSON<PriceAssignmentVoucher>('/api/price-assignment-vouchers', {
     method: 'POST',
     body: JSON.stringify(data)
@@ -99,8 +107,15 @@ export const priceAssignmentVoucherApi = {
 };
 
 export const priceUpdateVoucherApi = {
-  getAll: () => fetchJSON<PriceUpdateVoucherDTO[]>('/api/price-vouchers'),
+  getAll: (page?: number, size?: number) => {
+    if (page !== undefined) {
+      return fetchJSON<PageResponse<PriceUpdateVoucherDTO>>(`/api/price-vouchers?page=${page}&size=${size ?? 20}`);
+    }
+    return fetchJSON<PriceUpdateVoucherDTO[]>('/api/price-vouchers');
+  },
   getById: (id: number) => fetchJSON<PriceUpdateVoucherDTO>(`/api/price-vouchers/${id}`),
+  getItems: (id: number, page: number, size: number = 20) =>
+    fetchJSON<PageResponse<PriceUpdateVoucherItemDTO>>(`/api/price-vouchers/${id}/items?page=${page}&size=${size}`),
   create: (data: PriceUpdateVoucherRequest) => fetchJSON<PriceUpdateVoucherDTO>('/api/price-vouchers', {
     method: 'POST',
     body: JSON.stringify(data)

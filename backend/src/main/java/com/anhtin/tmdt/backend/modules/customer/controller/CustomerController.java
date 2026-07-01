@@ -20,8 +20,24 @@ public class CustomerController {
 
     @GetMapping
     @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
-    public List<CustomerDTO> getAllCustomers() {
+    public List<CustomerDTO> getAllCustomers(@RequestParam(required = false) Long agencyId) {
+        if (agencyId != null) {
+            return customerService.getCustomersByAgencyId(agencyId);
+        }
         return customerService.getAllCustomers();
+    }
+
+    @GetMapping("/check")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('AGENCY')")
+    public ResponseEntity<CustomerDTO> checkCustomer(
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String taxCode,
+            @RequestParam(required = false) Long agencyId) {
+        CustomerDTO result = customerService.checkCustomer(phone, taxCode, agencyId);
+        if (result == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")

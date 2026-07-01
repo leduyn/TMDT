@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { agencyApi, AgencyDTO, customerApi, CustomerDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO } from '@/lib/api';
+import { agencyApi, AgencyDTO, customerApi, CustomerDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO, PricePageResponse, categoryApi, CategoryDTO, productTypeApi, ProductTypeDTO } from '@/lib/api';
 import Link from 'next/link';
 
 // UI Components
@@ -12,6 +12,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import DataTable, { Column } from '@/components/ui/DataTable';
+import Pagination from '@/components/ui/Pagination';
 import { 
   Building2, Phone, MapPin, Mail, User as UserIcon, 
   ShieldCheck, CreditCard, PieChart, Users, ArrowLeft,
@@ -28,10 +29,20 @@ export default function AgencyDetailPage() {
   const [orders, setOrders] = useState<OrderDTO[]>([]);
   const [activePriceList, setActivePriceList] = useState<PriceListDTO | null>(null);
   const [customerPrices, setCustomerPrices] = useState<AgencyProductPriceDTO[]>([]);
+  const [categories, setCategories] = useState<CategoryDTO[]>([]);
+  const [productTypes, setProductTypes] = useState<ProductTypeDTO[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  const [filterCategoryId, setFilterCategoryId] = useState<number | undefined>(undefined);
+  const [filterProductTypeId, setFilterProductTypeId] = useState<number | undefined>(undefined);
+  const [filterIsOverride, setFilterIsOverride] = useState<string>('all');
+  const [pricePage, setPricePage] = useState(0);
+  const [priceTotalPages, setPriceTotalPages] = useState(0);
+  const [priceTotalElements, setPriceTotalElements] = useState(0);
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'orders' | 'prices'>('info');
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // States for Price Update History Modal
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -118,31 +129,42 @@ export default function AgencyDetailPage() {
     const file = event.target.files?.[0];
     if (!file || !id) return;
     try {
-      setIsLoading(true);
+      setIsLoadingPrices(true);
       const res = await customerPriceApi.importPrices(Number(id), file);
       alert('Nhập dữ liệu thành công!\n' + res);
-      fetchPriceAndProducts();
+      fetchPriceAndProducts(0);
     } catch (err: any) {
       alert('Lỗi nhập dữ liệu: ' + err.message);
     } finally {
-      setIsLoading(false);
-      // Reset file input
+      setIsLoadingPrices(false);
       event.target.value = '';
     }
   };
 
-  const fetchPriceAndProducts = async () => {
+  const fetchPriceAndProducts = async (pageNum?: number, search?: string, categoryId?: number, productTypeId?: number, isOverride?: string) => {
     if (!token || !id) return;
+    setIsLoadingPrices(true);
     try {
       const agencyId = parseInt(id as string);
-      const [priceListData, pricesData] = await Promise.all([
+      const overrideVal = isOverride === 'all' ? undefined : isOverride === 'override' ? true : isOverride === 'pricelist' ? false : undefined;
+      const [priceListData, pageData] = await Promise.all([
         priceListApi.resolveForAgency(agencyId).catch(() => null),
-        customerPriceApi.getPricesForAgency(agencyId).catch(() => [])
+        customerPriceApi.getPricesForAgency(agencyId, {
+          page: pageNum ?? pricePage, size: 20, search,
+          categoryId, productTypeId, isOverride: overrideVal
+        }).catch(() => null)
       ]);
       setActivePriceList(priceListData);
-      setCustomerPrices(pricesData || []);
+      if (pageData) {
+        setCustomerPrices(pageData.content);
+        setPricePage(pageData.number);
+        setPriceTotalPages(pageData.totalPages);
+        setPriceTotalElements(pageData.totalElements);
+      }
     } catch (err) {
       console.error('Error fetching prices/products:', err);
+    } finally {
+      setIsLoadingPrices(false);
     }
   };
 
@@ -151,6 +173,8 @@ export default function AgencyDetailPage() {
       fetchData();
       fetchOrders();
       fetchPriceAndProducts();
+      categoryApi.getAll().then(setCategories).catch(() => {});
+      productTypeApi.getAll().then(setProductTypes).catch(() => {});
     }
   }, [id, token]);
 
@@ -159,12 +183,11 @@ export default function AgencyDetailPage() {
     setIsLoading(true);
     try {
       const agencyId = parseInt(id as string);
-      const [agencyData, allCustomers, creditData] = await Promise.all([
+      const [agencyData, customersData, creditData] = await Promise.all([
         agencyApi.getById(agencyId),
-        customerApi.getAll(),
+        customerApi.getAll(agencyId),
         creditApi.getDetail(agencyId).catch(() => null) // Nếu khách hàng chưa có tín dụng thì trả về null
       ]);
-      const customersData = allCustomers.filter((c: CustomerDTO) => c.agencyId === agencyId);
       setAgency(agencyData);
       setCustomers(customersData);
       setCredit(creditData);
@@ -428,6 +451,7 @@ export default function AgencyDetailPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-light)' }}>
                   <DollarSign size={20} /> Chi tiết giá sản phẩm
+                  {!isLoadingPrices && <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 400 }}>({priceTotalElements} sản phẩm)</span>}
                 </h3>
                 <div style={{ position: 'relative', width: '300px' }}>
                   <Search size={16} style={{ position: 'absolute', left: 12, top: 10, color: 'var(--text-muted)' }} />
@@ -435,7 +459,15 @@ export default function AgencyDetailPage() {
                     type="text"
                     placeholder="Tìm kiếm sản phẩm..."
                     value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProductSearch(val);
+                      setPricePage(0);
+                      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                      searchTimerRef.current = setTimeout(() => {
+                        fetchPriceAndProducts(0, val || undefined, filterCategoryId, filterProductTypeId, filterIsOverride);
+                      }, 400);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 16px 8px 36px',
@@ -448,10 +480,48 @@ export default function AgencyDetailPage() {
                   />
                 </div>
               </div>
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <select value={filterCategoryId ?? ''} onChange={e => {
+                  const val = e.target.value ? Number(e.target.value) : undefined;
+                  setFilterCategoryId(val);
+                  setPricePage(0);
+                  fetchPriceAndProducts(0, productSearch || undefined, val, filterProductTypeId, filterIsOverride);
+                }} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)' }}>
+                  <option value="">Tất cả danh mục</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <select value={filterProductTypeId ?? ''} onChange={e => {
+                  const val = e.target.value ? Number(e.target.value) : undefined;
+                  setFilterProductTypeId(val);
+                  setPricePage(0);
+                  fetchPriceAndProducts(0, productSearch || undefined, filterCategoryId, val, filterIsOverride);
+                }} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)' }}>
+                  <option value="">Tất cả loại</option>
+                  {productTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                <select value={filterIsOverride} onChange={e => {
+                  setFilterIsOverride(e.target.value);
+                  setPricePage(0);
+                  fetchPriceAndProducts(0, productSearch || undefined, filterCategoryId, filterProductTypeId, e.target.value);
+                }} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)' }}>
+                  <option value="all">Tất cả nguồn giá</option>
+                  <option value="override">Cài đặt riêng</option>
+                  <option value="pricelist">Từ bảng giá</option>
+                </select>
+              </div>
               
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ position: 'relative', overflowX: 'auto', maxHeight: 480, overflowY: 'auto' }}>
+                {isLoadingPrices && (
+                  <div style={{
+                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(2px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, borderRadius: 8
+                  }}>
+                    <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
+                  </div>
+                )}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-                  <thead>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                       <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600, width: 60 }}>Ảnh</th>
                       <th style={{ padding: '12px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>Tên sản phẩm</th>
@@ -464,9 +534,7 @@ export default function AgencyDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {customerPrices
-                      .filter(p => p.productName.toLowerCase().includes(productSearch.toLowerCase()))
-                      .map((p) => (
+                    {customerPrices.length > 0 ? customerPrices.map((p) => (
                       <tr key={p.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background 0.2s' }}>
                         <td style={{ padding: '16px 8px' }}>
                           <div style={{ width: 40, height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -479,11 +547,7 @@ export default function AgencyDetailPage() {
                         </td>
                         <td style={{ padding: '16px 8px', fontWeight: 500 }}>{p.productName}</td>
                         <td style={{ padding: '16px 8px', color: 'var(--text-muted)' }}>
-                          {p.oldPrice === -1 || !p.oldPrice ? (
-                            <span>-</span>
-                          ) : (
-                            <span>{p.oldPrice.toLocaleString('vi-VN')}đ</span>
-                          )}
+                          {p.oldPrice === -1 || !p.oldPrice ? <span>-</span> : <span>{p.oldPrice.toLocaleString('vi-VN')}đ</span>}
                         </td>
                         <td style={{ padding: '16px 8px' }}>
                           {(() => {
@@ -491,10 +555,7 @@ export default function AgencyDetailPage() {
                             const diff = p.price - p.oldPrice;
                             const pct = (diff / p.oldPrice) * 100;
                             if (pct === 0) return <span style={{ color: 'var(--text-muted)' }}>0%</span>;
-                            if (pct < 0) {
-                              return <span style={{ color: '#2ecc71', fontWeight: 600 }}>{pct.toFixed(1)}%</span>;
-                            }
-                            return <span style={{ color: '#e74c3c', fontWeight: 600 }}>+{pct.toFixed(1)}%</span>;
+                            return <span style={{ color: pct < 0 ? '#2ecc71' : '#e74c3c', fontWeight: 600 }}>{pct > 0 ? '+' : ''}{pct.toFixed(1)}%</span>;
                           })()}
                         </td>
                         <td style={{ padding: '16px 8px' }}>
@@ -518,49 +579,27 @@ export default function AgencyDetailPage() {
                         </td>
                         <td style={{ padding: '16px 8px' }}>
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button 
-                              onClick={() => {
-                                setEditingPrice(p);
-                                setNewPriceValue(p.price);
-                                setIsEditModalOpen(true);
-                              }}
-                              className="btn-icon" title="Ghi đè giá"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button 
-                              onClick={() => {
-                                setIsHistoryModalOpen(true);
-                                fetchPriceHistory(p.productId);
-                              }}
-                              className="btn-icon" title="Lịch sử giá"
-                            >
-                              <History size={16} />
-                            </button>
-                            {p.isOverride && (
-                              <button 
-                                onClick={() => handleRemoveOverride(p.productId)}
-                                className="btn-icon" 
-                                title="Xóa giá riêng (Trở về giá mặc định)"
-                                style={{ color: '#ef4444' }}
-                              >
-                                <X size={16} />
-                              </button>
-                            )}
+                            <button onClick={() => { setEditingPrice(p); setNewPriceValue(p.price); setIsEditModalOpen(true); }} className="btn-icon" title="Ghi đè giá"><Edit size={16} /></button>
+                            <button onClick={() => { setIsHistoryModalOpen(true); fetchPriceHistory(p.productId); }} className="btn-icon" title="Lịch sử giá"><History size={16} /></button>
+                            {p.isOverride && <button onClick={() => handleRemoveOverride(p.productId)} className="btn-icon" title="Xóa giá riêng" style={{ color: '#ef4444' }}><X size={16} /></button>}
                           </div>
                         </td>
                       </tr>
-                    ))}
-                    {customerPrices.filter(p => p.productName.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
-                      <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                          Không tìm thấy sản phẩm nào
-                        </td>
-                      </tr>
+                    )) : (
+                      <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>Không tìm thấy sản phẩm nào</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              <Pagination
+                page={pricePage}
+                totalPages={priceTotalPages}
+                onPageChange={(p) => {
+                  setPricePage(p);
+                  fetchPriceAndProducts(p, productSearch || undefined);
+                }}
+              />
             </GlassCard>
           </div>
         ) : activeTab === 'info' ? (

@@ -13,6 +13,9 @@ public class Customer {
     @Column(name = "agency_id")
     private Long agencyId;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     private String organizationName;
 
     @Column(unique = true)
@@ -43,6 +46,8 @@ public class Customer {
     public void setId(Long id) { this.id = id; }
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
     public String getOrganizationName() { return organizationName; }
     public void setOrganizationName(String organizationName) { this.organizationName = organizationName; }
     public String getTaxCode() { return taxCode; }

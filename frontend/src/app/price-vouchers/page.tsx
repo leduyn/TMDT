@@ -25,6 +25,7 @@ export default function PriceVouchersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 20;
   
   const { user } = useAuth();
@@ -47,18 +48,24 @@ export default function PriceVouchersPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [page]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [vData, plData, aData, cData] = await Promise.all([
-        priceAssignmentVoucherApi.getAll(),
+        priceAssignmentVoucherApi.getAll(page, pageSize),
         priceListApi.getAll(),
         agencyApi.getAll(),
         customerApi.getAll()
       ]);
-      setVouchers(vData);
+      if (Array.isArray(vData)) {
+        setVouchers(vData);
+        setTotalPages(Math.ceil(vData.length / pageSize) || 1);
+      } else {
+        setVouchers(vData.content);
+        setTotalPages(vData.totalPages);
+      }
       setPriceLists(plData);
       setAgencies(aData);
       setCustomers(cData);
@@ -145,15 +152,14 @@ export default function PriceVouchersPage() {
     }
   };
 
-  const filteredVouchers = vouchers.filter(v => 
-    v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (v.priceListName && v.priceListName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (v.agencyName && v.agencyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (v.customerName && v.customerName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const totalPages = Math.ceil(filteredVouchers.length / pageSize) || 1;
-  const paginatedVouchers = filteredVouchers.slice(page * pageSize, (page + 1) * pageSize);
+  const filteredVouchers = searchQuery
+    ? vouchers.filter(v => 
+        v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (v.priceListName && v.priceListName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (v.agencyName && v.agencyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (v.customerName && v.customerName.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : vouchers;
 
   const columns: Column<PriceAssignmentVoucher>[] = [
     { header: 'Tên lệnh', key: 'name', width: '25%' },
@@ -247,7 +253,7 @@ export default function PriceVouchersPage() {
         />
 
         <DataTable 
-          data={paginatedVouchers}
+          data={filteredVouchers}
           columns={columns}
           loading={loading}
           emptyMessage={searchQuery ? 'Không tìm thấy lệnh nào phù hợp' : 'Chưa có lệnh hẹn giờ nào'}

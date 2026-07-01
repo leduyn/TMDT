@@ -1,10 +1,13 @@
 package com.anhtin.tmdt.backend.modules.agency.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.io.ByteArrayInputStream;
@@ -50,26 +53,36 @@ public class AgencyProductPriceService {
     @Autowired
     private SystemConfigService systemConfigService;
 
-    public List<AgencyProductPriceDTO> getPricesForAgency(Long agencyId, Integer days) {
-        List<AgencyProductPrice> prices = agencyProductPriceRepository.findByAgencyId(agencyId);
-        
+    public Page<AgencyProductPriceDTO> getPricesForAgency(Long agencyId, Integer days, String search, Long categoryId, Long productTypeId, Boolean isOverride, Pageable pageable) {
+        Page<AgencyProductPrice> pricesPage;
+        if (search != null && !search.trim().isEmpty()) {
+            List<Long> productIds = productRepository.findProductIdsByNameOrCodeContaining(search.trim());
+            if (productIds.isEmpty()) {
+                return Page.empty(pageable);
+            }
+            pricesPage = agencyProductPriceRepository.findFilteredWithProductIds(
+                    agencyId, categoryId, productTypeId, isOverride, productIds, pageable);
+        } else {
+            pricesPage = agencyProductPriceRepository.findFiltered(
+                    agencyId, categoryId, productTypeId, isOverride, pageable);
+        }
+
         int discountDays = systemConfigService.getDiscountMaxDays();
-        
+
         if (days != null && days > 0) {
             LocalDateTime sinceDate = LocalDateTime.now().minusDays(days);
-            return prices.stream().map(p -> {
+            return pricesPage.map(p -> {
                 AgencyProductPriceDTO dto = mapToDTO(p);
-                // Find the price that was active N days ago
                 agencyProductPriceHistoryRepository.findPriceAtDate(agencyId, p.getProduct().getId(), sinceDate)
                     .ifPresentOrElse(
                         historyAtDate -> dto.setOldPrice(historyAtDate.getNewPrice()),
-                        () -> dto.setOldPrice(null) // No history before N days → no comparison available
+                        () -> dto.setOldPrice(null)
                     );
                 return dto;
-            }).collect(Collectors.toList());
+            });
         }
-        
-        return prices.stream().map(p -> {
+
+        return pricesPage.map(p -> {
             AgencyProductPriceDTO dto = mapToDTO(p);
             if (dto.getOldPrice() != null && dto.getUpdatedAt() != null) {
                 long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(dto.getUpdatedAt(), java.time.LocalDateTime.now());
@@ -78,7 +91,11 @@ public class AgencyProductPriceService {
                 }
             }
             return dto;
-        }).collect(Collectors.toList());
+        });
+    }
+
+    public List<AgencyProductPriceDTO> getPricesForAgency(Long agencyId, Integer days) {
+        return getPricesForAgency(agencyId, days, null, null, null, null, Pageable.unpaged()).getContent();
     }
 
     public List<AgencyProductPriceHistoryDTO> getHistoryForAgencyProduct(Long agencyId, Long productId) {

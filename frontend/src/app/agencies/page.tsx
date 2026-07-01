@@ -252,8 +252,8 @@ export default function AgenciesPage() {
       width: '20%',
       render: (a) => (
         <Badge 
-          label={a.status === 'PENDING' ? 'Chờ duyệt' : (a.active ? 'Đang hoạt động' : 'Tạm ngưng')} 
-          type={a.status === 'PENDING' ? 'warning' : (a.active ? 'success' : 'error')} 
+          label={a.status === 'PENDING' ? 'Chờ duyệt' : a.status === 'PENDING_DEPOSIT' ? 'Đợi đặt cọc' : (a.active ? 'Đang hoạt động' : 'Tạm ngưng')} 
+          type={a.status === 'PENDING' ? 'warning' : a.status === 'PENDING_DEPOSIT' ? 'info' : (a.active ? 'success' : 'error')} 
           icon={a.status === 'PENDING' ? 'Clock' : (a.active ? 'CheckCircle' : 'PauseCircle')}
         />
       )

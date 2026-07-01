@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { priceUpdateVoucherApi, PriceUpdateVoucherDTO, priceListApi, PriceListDTO, productApi, ProductDTO } from '@/lib/api';
+import { priceUpdateVoucherApi, PriceUpdateVoucherDTO, PriceUpdateVoucherItemDTO, priceListApi, PriceListDTO, productApi, ProductDTO } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import Pagination from '@/components/ui/Pagination';
 
 export default function PriceUpdateVoucherDetailPage() {
   const { id } = useParams();
@@ -19,11 +20,22 @@ export default function PriceUpdateVoucherDetailPage() {
   const [defaultPriceListItems, setDefaultPriceListItems] = useState<any[]>([]);
   const [products, setProducts] = useState<ProductDTO[]>([]);
 
+  const [items, setItems] = useState<PriceUpdateVoucherItemDTO[]>([]);
+  const [itemsPage, setItemsPage] = useState(0);
+  const [itemsTotalPages, setItemsTotalPages] = useState(1);
+  const [itemsLoading, setItemsLoading] = useState(false);
+
   useEffect(() => {
     if (isCompany && id) {
       loadData();
     }
   }, [isCompany, id]);
+
+  useEffect(() => {
+    if (isCompany && id) {
+      loadItems();
+    }
+  }, [isCompany, id, itemsPage]);
 
   const loadData = async () => {
     setLoading(true);
@@ -46,6 +58,19 @@ export default function PriceUpdateVoucherDetailPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadItems = async () => {
+    setItemsLoading(true);
+    try {
+      const data = await priceUpdateVoucherApi.getItems(Number(id), itemsPage, 20);
+      setItems(data.content);
+      setItemsTotalPages(data.totalPages);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setItemsLoading(false);
     }
   };
 
@@ -166,7 +191,11 @@ export default function PriceUpdateVoucherDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {voucher.items.map((it, idx) => (
+              {itemsLoading ? (
+                <tr><td colSpan={4} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Đang tải...</td></tr>
+              ) : items.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Không có sản phẩm nào</td></tr>
+              ) : items.map((it) => (
                 <tr key={it.productId} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '16px 20px' }}>
                     <div style={{ fontWeight: 600 }}>{it.productName}</div>
@@ -187,6 +216,11 @@ export default function PriceUpdateVoucherDetailPage() {
               ))}
             </tbody>
           </table>
+          {items.length > 0 && (
+            <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
+              <Pagination page={itemsPage} totalPages={itemsTotalPages} onPageChange={setItemsPage} />
+            </div>
+          )}
         </div>
       </Main>
 

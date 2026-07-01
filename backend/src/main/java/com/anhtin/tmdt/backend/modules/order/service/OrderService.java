@@ -110,40 +110,39 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
-        // Nếu đại lý bán lẻ, không được chọn người nhận khác
-        if (agency.getType() == AgencyType.RETAIL && (request.getCustomerId() != null || request.getNewCustomerInfo() != null)) {
-            throw new RuntimeException("Đại lý bán lẻ không được chọn giao hàng cho người khác");
-        }
-
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
+        Customer orderCustomer = null;
         Long priceListId = null;
         String receiverType = "AGENCY";
 
         if (customerIdSelected != null) {
+            Customer selectedCustomer = customerRepository.findById(customerIdSelected)
+                    .orElseThrow(() -> new RuntimeException("Customer not found"));
             if (!agencyCustomerAssignmentRepository.existsByAgencyIdAndCustomerId(agencyId, customerIdSelected)) {
                 throw new RuntimeException("Customer does not belong to this agency");
             }
-            receiver = userRepository.findById(customerIdSelected)
-                    .orElseThrow(() -> new RuntimeException("Customer not found"));
+            Long userId = selectedCustomer.getUserId();
+            receiver = userId != null ? userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found for customer")) : null;
             receiverType = "CUSTOMER";
-            priceListId = priceListService.resolveForCustomer(customerIdSelected, agencyId).getId();
+            priceListId = priceListService.resolveForCustomer(userId != null ? userId : agencyId, agencyId).getId();
+            orderCustomer = selectedCustomer;
         } else if (request.getNewCustomerInfo() != null) {
-            receiver = createNewCustomer(request.getNewCustomerInfo(), agencyId);
+            orderCustomer = createNewCustomer(request.getNewCustomerInfo(), agencyId);
             receiverType = "CUSTOMER";
-            priceListId = priceListService.resolveForCustomer(receiver.getId(), agencyId).getId();
+            priceListId = priceListService.resolveForCustomer(agencyId, agencyId).getId();
         } else {
-            receiver = null;
-            priceListId = priceListService.resolveForAgency(agencyId).getId();
+            throw new RuntimeException("Vui lòng chọn người mua");
         }
 
         Order order = new Order();
-        order.setCustomer(receiver != null ? findOrCreateCustomer(receiver) : null);
+        order.setCustomer(orderCustomer);
         order.setAgency(agency);
         order.setCreatedBy(creator);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
-        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : (receiver != null ? receiver.getShippingAddress() : ""));
+        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : orderCustomer.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
@@ -180,7 +179,7 @@ public class OrderService {
             }
 
             Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice,
-                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver.getId(), null, appliedPromotionIds);
+                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver != null ? receiver.getId() : null, null, appliedPromotionIds);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -229,7 +228,7 @@ public class OrderService {
             promotionService.incrementUsage(request.getPromotionCode());
         }
 
-        if (request.getPointsToRedeem() != null && request.getPointsToRedeem() > 0) {
+        if (request.getPointsToRedeem() != null && request.getPointsToRedeem() > 0 && receiver != null) {
             double pointDiscount = loyaltyService.redeemPoints(receiver.getId(), request.getPointsToRedeem(), order);
             discountAmount += pointDiscount;
             order.setPointsRedeemed(request.getPointsToRedeem());
@@ -243,7 +242,7 @@ public class OrderService {
 
         // Ghi nhận lượt sử dụng promotion
         for (Long promoId : appliedPromotionIds) {
-            salesPolicyService.recordPromotionUsage(promoId, receiver.getId(), savedOrder.getId());
+            salesPolicyService.recordPromotionUsage(promoId, receiver != null ? receiver.getId() : null, savedOrder.getId());
         }
 
         commissionService.createTransaction(savedOrder);
@@ -270,48 +269,47 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
-        // Nếu đại lý bán lẻ, không được chọn người nhận khác
-        if (agency.getType() == AgencyType.RETAIL && (request.getCustomerId() != null || request.getNewCustomerInfo() != null)) {
-            throw new RuntimeException("Đại lý bán lẻ không được chọn giao hàng cho người khác");
-        }
-
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
+        Customer orderCustomer = null;
         Long priceListId = null;
         String receiverType = "AGENCY";
 
         if (customerIdSelected != null) {
+            Customer selectedCustomer = customerRepository.findById(customerIdSelected)
+                    .orElseThrow(() -> new RuntimeException("Customer not found"));
             if (!agencyCustomerAssignmentRepository.existsByAgencyIdAndCustomerId(agencyId, customerIdSelected)) {
                 throw new RuntimeException("Customer does not belong to this agency");
             }
-            receiver = userRepository.findById(customerIdSelected)
-                    .orElseThrow(() -> new RuntimeException("Customer not found"));
+            Long userId = selectedCustomer.getUserId();
+            receiver = userId != null ? userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found for customer")) : null;
             receiverType = "CUSTOMER";
-            priceListId = priceListService.resolveForCustomer(customerIdSelected, agencyId).getId();
+            priceListId = priceListService.resolveForCustomer(userId != null ? userId : agencyId, agencyId).getId();
+            orderCustomer = selectedCustomer;
         } else if (request.getNewCustomerInfo() != null) {
-            receiver = createNewCustomer(request.getNewCustomerInfo(), agencyId);
+            orderCustomer = createNewCustomer(request.getNewCustomerInfo(), agencyId);
             receiverType = "CUSTOMER";
-            priceListId = priceListService.resolveForCustomer(receiver.getId(), agencyId).getId();
+            priceListId = priceListService.resolveForCustomer(agencyId, agencyId).getId();
         } else {
-            receiver = null;
-            priceListId = priceListService.resolveForAgency(agencyId).getId();
+            throw new RuntimeException("Vui lòng chọn người mua");
         }
 
         User createdByUser = userRepository.findById(createdByUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Order order = new Order();
-        order.setCustomer(receiver != null ? findOrCreateCustomer(receiver) : null);
+        order.setCustomer(orderCustomer);
         order.setAgency(agency);
         order.setCreatedBy(createdByUser);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
-        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : (receiver != null ? receiver.getShippingAddress() : ""));
+        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : orderCustomer.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
         order.setPaymentMethod(request.getPaymentMethod());
-        order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "NVKD");
+        order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "Web");
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -343,7 +341,7 @@ public class OrderService {
             }
             
             Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice,
-                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver.getId(), null, appliedPromotionIds);
+                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver != null ? receiver.getId() : null, null, appliedPromotionIds);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -392,7 +390,7 @@ public class OrderService {
             promotionService.incrementUsage(request.getPromotionCode());
         }
 
-        if (request.getPointsToRedeem() != null && request.getPointsToRedeem() > 0) {
+        if (request.getPointsToRedeem() != null && request.getPointsToRedeem() > 0 && receiver != null) {
             double pointDiscount = loyaltyService.redeemPoints(receiver.getId(), request.getPointsToRedeem(), order);
             discountAmount += pointDiscount;
             order.setPointsRedeemed(request.getPointsToRedeem());
@@ -405,7 +403,7 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         for (Long promoId : appliedPromotionIds) {
-            salesPolicyService.recordPromotionUsage(promoId, receiver.getId(), savedOrder.getId());
+            salesPolicyService.recordPromotionUsage(promoId, receiver != null ? receiver.getId() : null, savedOrder.getId());
         }
 
         commissionService.createTransaction(savedOrder);
@@ -440,43 +438,42 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
-        // Nếu đại lý bán lẻ, không được chọn người nhận khác
-        if (agency.getType() == AgencyType.RETAIL && (request.getCustomerId() != null || request.getNewCustomerInfo() != null)) {
-            throw new RuntimeException("Đại lý bán lẻ không được chọn giao hàng cho người khác");
-        }
-
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Creator user not found"));
 
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
+        Customer orderCustomer = null;
         Long priceListId = null;
         String receiverType = "AGENCY";
 
         if (customerIdSelected != null) {
+            Customer selectedCustomer = customerRepository.findById(customerIdSelected)
+                    .orElseThrow(() -> new RuntimeException("Customer not found"));
             if (!agencyCustomerAssignmentRepository.existsByAgencyIdAndCustomerId(agencyId, customerIdSelected)) {
                 throw new RuntimeException("Customer does not belong to this agency");
             }
-            receiver = userRepository.findById(customerIdSelected)
-                    .orElseThrow(() -> new RuntimeException("Customer not found"));
+            Long userIdFromCustomer = selectedCustomer.getUserId();
+            receiver = userIdFromCustomer != null ? userRepository.findById(userIdFromCustomer)
+                    .orElseThrow(() -> new RuntimeException("User not found for customer")) : null;
             receiverType = "CUSTOMER";
-            priceListId = priceListService.resolveForCustomer(customerIdSelected, agencyId).getId();
+            priceListId = priceListService.resolveForCustomer(userIdFromCustomer != null ? userIdFromCustomer : agencyId, agencyId).getId();
+            orderCustomer = selectedCustomer;
         } else if (request.getNewCustomerInfo() != null) {
-            receiver = createNewCustomer(request.getNewCustomerInfo(), agencyId);
+            orderCustomer = createNewCustomer(request.getNewCustomerInfo(), agencyId);
             receiverType = "CUSTOMER";
-            priceListId = priceListService.resolveForCustomer(receiver.getId(), agencyId).getId();
+            priceListId = priceListService.resolveForCustomer(agencyId, agencyId).getId();
         } else {
-            receiver = null;
-            priceListId = priceListService.resolveForAgency(agencyId).getId();
+            throw new RuntimeException("Vui lòng chọn người mua");
         }
 
         Order order = new Order();
-        order.setCustomer(receiver != null ? findOrCreateCustomer(receiver) : null);
+        order.setCustomer(orderCustomer);
         order.setAgency(agency);
         order.setCreatedBy(creator);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
-        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : (receiver != null ? receiver.getShippingAddress() : ""));
+        order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : orderCustomer.getShippingAddress());
         order.setPriceListId(priceListId);
         order.setReceiverType(receiverType);
         order.setDebtTermDays(request.getDebtTermDays());
@@ -513,7 +510,7 @@ public class OrderService {
             }
             
             Double price = salesPolicyService.applySalesPolicy(product, agency, itemReq.getQuantity(), baseResolvedPrice,
-                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver.getId(), null, appliedPromotionIds);
+                    preTotal, request.getPaymentMethod(), request.getOrderSource(), receiver != null ? receiver.getId() : null, null, appliedPromotionIds);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -562,7 +559,7 @@ public class OrderService {
             promotionService.incrementUsage(request.getPromotionCode());
         }
 
-        if (request.getPointsToRedeem() != null && request.getPointsToRedeem() > 0) {
+        if (request.getPointsToRedeem() != null && request.getPointsToRedeem() > 0 && receiver != null) {
             double pointDiscount = loyaltyService.redeemPoints(receiver.getId(), request.getPointsToRedeem(), order);
             discountAmount += pointDiscount;
             order.setPointsRedeemed(request.getPointsToRedeem());
@@ -575,7 +572,7 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         for (Long promoId : appliedPromotionIds) {
-            salesPolicyService.recordPromotionUsage(promoId, receiver.getId(), savedOrder.getId());
+            salesPolicyService.recordPromotionUsage(promoId, receiver != null ? receiver.getId() : null, savedOrder.getId());
         }
 
         commissionService.createTransaction(savedOrder);
@@ -592,50 +589,26 @@ public class OrderService {
         return savedOrder;
     }
 
-    private Customer findOrCreateCustomer(User user) {
-        if (user == null) return null;
-        if (user.getTaxCode() != null && !user.getTaxCode().isBlank()) {
-            Customer existing = customerRepository.findByTaxCode(user.getTaxCode()).orElse(null);
-            if (existing != null) return existing;
-        }
-        Customer c = new Customer();
-        c.setOrganizationName(user.getOrganizationName());
-        c.setTaxCode(user.getTaxCode());
-        c.setShippingAddress(user.getShippingAddress());
-        c.setBillingAddress(user.getBillingAddress());
-        return customerRepository.save(c);
-    }
-
-    private User createNewCustomer(OrderRequest.NewCustomerInfo newCustomerInfo, Long agencyId) {
-        String username = "KH_" + System.currentTimeMillis();
-        String phone = newCustomerInfo.getPhone();
-        String email = username + "@temp.local";
-
-        User newUser = new User();
-        newUser.setUsername(username);
-        newUser.setEmail(email);
-        newUser.setPassword(passwordEncoder.encode("Temp@123"));
-        newUser.setPhone(phone);
-        newUser.setOrganizationName(newCustomerInfo.getName());
-        newUser.setShippingAddress(newCustomerInfo.getShippingAddress());
-        newUser.setBillingAddress(newCustomerInfo.getInvoiceAddress());
-        newUser.setTaxCode(newCustomerInfo.getInvoiceTaxCode());
-        newUser.setRole(Role.CUSTOMER);
-        newUser.setActive(false);
-        User savedUser = userRepository.save(newUser);
-
-        Customer customer = findOrCreateCustomer(savedUser);
+    private Customer createNewCustomer(OrderRequest.NewCustomerInfo newCustomerInfo, Long agencyId) {
+        Customer customer = new Customer();
+        customer.setOrganizationName(newCustomerInfo.getName());
+        customer.setShippingAddress(newCustomerInfo.getShippingAddress());
+        customer.setReceiverName(newCustomerInfo.getReceiverName() != null ? newCustomerInfo.getReceiverName() : newCustomerInfo.getName());
+        customer.setReceiverPhone(newCustomerInfo.getReceiverPhone() != null ? newCustomerInfo.getReceiverPhone() : newCustomerInfo.getPhone());
+        customer.setBillingAddress(newCustomerInfo.getInvoiceAddress());
+        customer.setTaxCode(newCustomerInfo.getInvoiceTaxCode());
+        Customer savedCustomer = customerRepository.save(customer);
 
         AgencyCustomerAssignment assignment = new AgencyCustomerAssignment();
-        assignment.setCustomer(customer);
+        assignment.setCustomer(savedCustomer);
         assignment.setAgency(agencyRepository.getReferenceById(agencyId));
         assignment.setCustomName(newCustomerInfo.getName());
         assignment.setCustomShippingAddress(newCustomerInfo.getShippingAddress());
-        assignment.setCustomPhone(phone);
+        assignment.setCustomPhone(newCustomerInfo.getPhone());
         assignment.setApproved(false);
         agencyCustomerAssignmentRepository.save(assignment);
 
-        return savedUser;
+        return savedCustomer;
     }
 
     public List<OrderDTO> getAllOrders() {

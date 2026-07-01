@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
+import { priceListApi, PriceListDTO } from '@/lib/api';
 
 // UI Components
 import PageHeader from '@/components/ui/PageHeader';
@@ -13,24 +14,14 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
 import GlassCard from '@/components/ui/GlassCard';
 import { Plus, Eye, Trash2, FileText, Clock } from 'lucide-react';
-import Pagination from '@/components/ui/Pagination';
-
-interface PriceList {
-  id: number;
-  name: string;
-  description: string;
-  isDefault: boolean;
-  active: boolean;
-  createdAt: string;
-  itemCount: number;
-}
 
 export default function PriceListsPage() {
   const { user, token } = useAuth();
-  const [priceLists, setPriceLists] = useState<PriceList[]>([]);
+  const [priceLists, setPriceLists] = useState<PriceListDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 20;
 
   // Form state
@@ -41,18 +32,14 @@ export default function PriceListsPage() {
 
   useEffect(() => {
     fetchPriceLists();
-  }, []);
+  }, [page]);
 
   const fetchPriceLists = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/api/price-lists', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setPriceLists(data);
-      }
+      const data = await priceListApi.getPage(page, pageSize);
+      setPriceLists(data.content);
+      setTotalPages(data.totalPages);
     } catch (err) {
       console.error('Failed to fetch price lists', err);
     } finally {
@@ -76,6 +63,7 @@ export default function PriceListsPage() {
         setNewListName('');
         setNewListDesc('');
         setIsDefault(false);
+        setPage(0);
         fetchPriceLists();
       } else {
         const err = await res.json();
@@ -100,15 +88,7 @@ export default function PriceListsPage() {
     }
   };
 
-  const filteredLists = priceLists.filter(pl => 
-    pl.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (pl.description && pl.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const totalPages = Math.ceil(filteredLists.length / pageSize) || 1;
-  const paginatedLists = filteredLists.slice(page * pageSize, (page + 1) * pageSize);
-
-  const columns: Column<PriceList>[] = [
+  const columns: Column<PriceListDTO>[] = [
     { 
       header: 'Tên bảng giá', 
       key: 'name', 
@@ -210,7 +190,7 @@ export default function PriceListsPage() {
         />
 
         <DataTable 
-          data={paginatedLists}
+          data={priceLists}
           columns={columns}
           loading={isLoading}
           emptyMessage={searchQuery ? 'Không tìm thấy bảng giá nào phù hợp' : 'Chưa có bảng giá nào'}

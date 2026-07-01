@@ -91,22 +91,21 @@ export default function PriceUpdateVouchersPage() {
   const { user } = useAuth();
   const isCompany = user?.roles.includes('ROLE_COMPANY');
   const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 20;
 
-  useEffect(() => {
-    if (isCompany) loadData();
-  }, [isCompany]);
+  const resourcesLoadedRef = useRef(false);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const ensureResources = async () => {
+    if (resourcesLoadedRef.current) return;
+    setResourcesLoading(true);
     try {
-      const [vData, plData, pData, catData] = await Promise.all([
-        priceUpdateVoucherApi.getAll(),
+      const [plData, pData, catData] = await Promise.all([
         priceListApi.getAll(),
         productApi.getAll(),
         categoryApi.getAll(),
       ]);
-      setVouchers(vData);
       setPriceLists(plData);
       setProducts(pData);
       setCategories(catData);
@@ -115,6 +114,29 @@ export default function PriceUpdateVouchersPage() {
       if (defaultPL) {
         const res = await priceListApi.getItems(defaultPL.id, 0, 9999);
         setDefaultPriceListItems(res.content);
+      }
+      resourcesLoadedRef.current = true;
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResourcesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isCompany) loadData();
+  }, [isCompany, page]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const vData = await priceUpdateVoucherApi.getAll(page, pageSize);
+      if (Array.isArray(vData)) {
+        setVouchers(vData);
+        setTotalPages(Math.ceil(vData.length / pageSize) || 1);
+      } else {
+        setVouchers(vData.content);
+        setTotalPages(vData.totalPages);
       }
     } catch (err) {
       console.error(err);
@@ -280,15 +302,12 @@ export default function PriceUpdateVouchersPage() {
 
   if (!isCompany) return <div className="p-8">Bạn không có quyền truy cập.</div>;
 
-  const totalPages = Math.ceil(vouchers.length / pageSize) || 1;
-  const paginatedData = vouchers.slice(page * pageSize, (page + 1) * pageSize);
-
   // ── Bulk picker filter ─────────────────────────────────────────────────────
-  const bulkFiltered = products.filter(p => {
+  const bulkFiltered = bulkOpen ? products.filter(p => {
     const matchSearch = !bulkSearch || p.name.toLowerCase().includes(bulkSearch.toLowerCase()) || (p.sku || '').toLowerCase().includes(bulkSearch.toLowerCase());
     const matchCat = !bulkCatFilter || p.categoryId === bulkCatFilter;
     return matchSearch && matchCat;
-  });
+  }) : [];
   const allFilteredSelected = bulkFiltered.length > 0 && bulkFiltered.every(p => bulkSelected.includes(p.id));
 
   return (
@@ -305,7 +324,7 @@ export default function PriceUpdateVouchersPage() {
               Quản lý các đợt cập nhật giá sản phẩm hàng loạt
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <button className="btn btn-primary" onClick={() => { setShowModal(true); ensureResources(); }}>
             + Tạo phiếu mới
           </button>
         </div>
@@ -326,7 +345,7 @@ export default function PriceUpdateVouchersPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map(v => (
+                {vouchers.map(v => (
                   <tr key={v.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px 20px', fontWeight: 600 }}>
                       <a href={`/price-update-vouchers/${v.id}`} style={{ color: 'var(--accent-light)', textDecoration: 'none' }}>

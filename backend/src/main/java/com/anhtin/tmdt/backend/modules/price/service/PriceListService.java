@@ -87,6 +87,11 @@ public class PriceListService {
                 .collect(Collectors.toList());
     }
 
+    public Page<PriceListDTO> getPriceListsPage(Pageable pageable) {
+        return priceListRepository.findAll(pageable)
+                .map(pl -> new PriceListDTO(pl, priceListItemRepository.countByPriceListId(pl.getId())));
+    }
+
     public PriceListDTO getPriceListById(Long id) {
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");

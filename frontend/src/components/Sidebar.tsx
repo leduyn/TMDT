@@ -28,7 +28,7 @@ import {
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user, logout, isPendingAgency } = useAuth();
+  const { user, logout, isPendingAgency, isPendingDepositAgency } = useAuth();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function Sidebar() {
     { label: 'Cài đặt', href: '/settings', icon: Settings, roles: ['ROLE_COMPANY'] },
   ];
 
-  const filteredNavItems = isPendingAgency
+  const filteredNavItems = isPendingAgency || isPendingDepositAgency
     ? navItems.filter(item => ['/products'].includes(item.href))
     : navItems.filter(item => 
         item.roles.includes('ROLE_USER') || 

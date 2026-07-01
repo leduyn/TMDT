@@ -1,9 +1,11 @@
 package com.anhtin.tmdt.backend.modules.customer.service;
 
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCustomerAssignmentRepository;
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerDTO;
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerRequest;
 import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
+import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,10 +21,53 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     public List<CustomerDTO> getAllCustomers() {
         return customerRepository.findAll().stream()
                 .map(CustomerDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    public List<CustomerDTO> getCustomersByAgencyId(Long agencyId) {
+        List<Customer> merged = new java.util.ArrayList<>();
+        // customers từ assignment (N-N)
+        agencyCustomerAssignmentRepository.findByAgencyId(agencyId)
+                .forEach(a -> merged.add(a.getCustomer()));
+        // customers có agencyId trực tiếp (quan hệ cũ)
+        customerRepository.findByAgencyId(agencyId).forEach(c -> {
+            if (merged.stream().noneMatch(m -> m.getId().equals(c.getId()))) {
+                merged.add(c);
+            }
+        });
+        return merged.stream()
+                .map(CustomerDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    public CustomerDTO checkCustomer(String phone, String taxCode, Long agencyId) {
+        Customer customer = null;
+
+        if (phone != null && !phone.isBlank()) {
+            customer = userRepository.findByPhone(phone)
+                    .flatMap(u -> customerRepository.findByUserId(u.getId()))
+                    .orElse(null);
+        }
+
+        if (customer == null && taxCode != null && !taxCode.isBlank()) {
+            customer = customerRepository.findByTaxCode(taxCode).orElse(null);
+        }
+
+        if (customer == null) return null;
+
+        boolean assigned = agencyId != null && agencyCustomerAssignmentRepository
+                .findByAgencyIdAndCustomerId(agencyId, customer.getId()).isPresent();
+
+        return new CustomerDTO(customer, assigned);
     }
 
     public CustomerDTO getCustomerById(Long id) {

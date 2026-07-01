@@ -28,11 +28,25 @@ export interface AgencyProductPriceHistoryDTO {
     sourcePriceListName: string;
 }
 
+export interface PricePageResponse<T> {
+    content: T[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    size: number;
+}
+
 export const customerPriceApi = {
-    getPricesForAgency: (agencyId: number, days?: number) => {
+    getPricesForAgency: (agencyId: number, params?: { page?: number; size?: number; search?: string; days?: number; categoryId?: number; productTypeId?: number; isOverride?: boolean }) => {
         let url = `/api/customer-prices?agencyId=${agencyId}`;
-        if (days && days > 0) url += `&days=${days}`;
-        return fetchJSON<AgencyProductPriceDTO[]>(url);
+        if (params?.page !== undefined) url += `&page=${params.page}`;
+        if (params?.size) url += `&size=${params.size}`;
+        if (params?.search) url += `&search=${encodeURIComponent(params.search)}`;
+        if (params?.days && params.days > 0) url += `&days=${params.days}`;
+        if (params?.categoryId) url += `&categoryId=${params.categoryId}`;
+        if (params?.productTypeId) url += `&productTypeId=${params.productTypeId}`;
+        if (params?.isOverride !== undefined) url += `&isOverride=${params.isOverride}`;
+        return fetchJSON<PricePageResponse<AgencyProductPriceDTO>>(url);
     },
     
     getHistory: (agencyId: number, productId: number) => 

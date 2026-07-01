@@ -9,6 +9,8 @@ import com.anhtin.tmdt.backend.modules.agency.entity.AgencyType;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
 import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCustomerAssignmentRepository;
 import com.anhtin.tmdt.backend.modules.credit.service.CreditService;
 import com.anhtin.tmdt.backend.modules.credit.entity.DepositContract;
 import com.anhtin.tmdt.backend.modules.credit.repository.DepositContractRepository;
@@ -39,6 +41,9 @@ public class AgencyService {
 
     @Autowired
     private DepositContractRepository depositContractRepository;
+
+    @Autowired
+    private AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
 
     private java.util.concurrent.atomic.AtomicLong contractSeq = new java.util.concurrent.atomic.AtomicLong(0);
 
@@ -148,11 +153,11 @@ public class AgencyService {
         }
 
         agency.setType(agencyType);
-        agency.setStatus(com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus.APPROVED);
 
         if (agencyType == AgencyType.RETAIL) {
             agency.setHasHmn(false);
             agency.setHmnAmount(0.0);
+            agency.setStatus(com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus.APPROVED);
             agency.setActive(true);
         } else if (agencyType == AgencyType.WHOLESALE) {
             if (request.getDepositAmount() == null || request.getDepositAmount() <= 0) {
@@ -160,6 +165,7 @@ public class AgencyService {
             }
             agency.setHasHmn(true);
             agency.setHmnAmount(request.getDepositAmount());
+            agency.setStatus(com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus.PENDING_DEPOSIT);
             agency.setActive(false); // Kích hoạt sau khi đóng đủ tiền cọc
         }
 
@@ -213,6 +219,7 @@ public class AgencyService {
         if (customerRepository.findByAgencyId(agency.getId()).isEmpty()) {
             Customer customer = new Customer();
             customer.setAgencyId(agency.getId());
+            customer.setUserId(agency.getId());
             customer.setOrganizationName(agency.getName());
             customer.setTaxCode(agency.getTaxCode());
             customer.setShippingAddress(agency.getShippingAddress());
@@ -220,6 +227,15 @@ public class AgencyService {
             customer.setReceiverName(agency.getReceiverName());
             customer.setReceiverPhone(agency.getReceiverPhone());
             customerRepository.save(customer);
+
+            AgencyCustomerAssignment assignment = new AgencyCustomerAssignment();
+            assignment.setCustomer(customer);
+            assignment.setAgency(agency);
+            assignment.setCustomName(agency.getName());
+            assignment.setCustomShippingAddress(agency.getShippingAddress());
+            assignment.setCustomPhone(agency.getReceiverPhone());
+            assignment.setApproved(true);
+            agencyCustomerAssignmentRepository.save(assignment);
         }
     }
 

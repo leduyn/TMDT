@@ -41,4 +41,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE p.category.id IN :categoryIds AND p.brand.id = :brandId")
     Page<Product> findByCategoryIdInAndBrandId(@Param("categoryIds") List<Long> categoryIds, @Param("brandId") Long brandId, Pageable pageable);
+
+    @Query(value = "SELECT p.id FROM products p WHERE CONVERT_FROM(p.name, 'UTF8') ILIKE CONCAT('%', :search, '%') OR p.product_code ILIKE CONCAT('%', :search, '%')", nativeQuery = true)
+    List<Long> findProductIdsByNameOrCodeContaining(@Param("search") String search);
 }
