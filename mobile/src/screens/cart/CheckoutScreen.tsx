@@ -19,11 +19,11 @@ import { orderApi } from '../../api/order';
 import { agencyApi } from '../../api/agency';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
 import type { OrderRequest, UserDTO } from '../../types';
-import { resolveImageUrl } from '../../utils';
+import { resolveImageUrl, formatPrice } from '../../utils';
 
 export function CheckoutScreen({ navigation }: any) {
   const { items, clearCart, totalAmount, totalItems } = useCart();
-  const { user, agencyId } = useAuth();
+  const { user, agencyId, agencyType } = useAuth();
 
   // Shipping Info States
   const [shippingAddress, setShippingAddress] = useState(
@@ -39,14 +39,14 @@ export function CheckoutScreen({ navigation }: any) {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   useEffect(() => {
-    if (agencyId) {
+    if (agencyType === 'WHOLESALE' && agencyId) {
       setLoadingCustomers(true);
       agencyApi.getCustomers(agencyId)
         .then(setCustomers)
         .catch(() => {})
         .finally(() => setLoadingCustomers(false));
     }
-  }, [agencyId]);
+  }, [agencyId, agencyType]);
 
   const handleSelectCustomer = (customer: UserDTO) => {
     setSelectedCustomer(customer);
@@ -272,7 +272,7 @@ export function CheckoutScreen({ navigation }: any) {
           </View>
 
           {/* Customer Selector for agency users */}
-          {agencyId && (
+          {agencyType === 'WHOLESALE' && (
             <TouchableOpacity style={styles.customerSelector} onPress={() => setShowCustomerPicker(true)} activeOpacity={0.85}>
               <View style={styles.customerSelectorLeft}>
                 <Ionicons name="people-outline" size={18} color={Colors.primary} />
@@ -613,7 +613,7 @@ export function CheckoutScreen({ navigation }: any) {
                   <Text style={styles.itemQty}>SL: {item.quantity}</Text>
                 </View>
                 <Text style={styles.itemPrice}>
-                  {((item.product.appliedPrice || item.product.basePrice || 0) * item.quantity).toLocaleString('vi-VN')}đ
+                  {((item.product.appliedPrice && item.product.appliedPrice !== -1 ? item.product.appliedPrice : item.product.basePrice && item.product.basePrice !== -1 ? item.product.basePrice : 0) * item.quantity).toLocaleString('vi-VN')}đ
                 </Text>
               </View>
             ))}

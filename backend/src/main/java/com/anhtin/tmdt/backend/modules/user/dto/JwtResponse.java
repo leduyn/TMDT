@@ -19,6 +19,7 @@ public class JwtResponse {
     private String name;
     private String code;
     private String agencyStatus;
+    private String agencyType;
 
     public JwtResponse(String accessToken, Long id, String username, String email, List<String> roles, Long agencyId, String shippingAddress) {
         this.token = accessToken;
@@ -30,7 +31,7 @@ public class JwtResponse {
         this.shippingAddress = shippingAddress;
     }
 
-    public JwtResponse(String accessToken, Long id, String phone, String name, String code, List<String> roles, Long agencyId, String agencyStatus) {
+    public JwtResponse(String accessToken, Long id, String phone, String name, String code, List<String> roles, Long agencyId, String agencyStatus, String agencyType) {
         this.token = accessToken;
         this.id = id;
         this.username = phone;
@@ -42,5 +43,6 @@ public class JwtResponse {
         this.agencyId = agencyId;
         this.shippingAddress = "";
         this.agencyStatus = agencyStatus;
+        this.agencyType = agencyType;
     }
 }

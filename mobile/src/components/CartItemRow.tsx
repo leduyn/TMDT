@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Colors, BorderRadius, Shadow } from '../theme';
 import type { CartItem } from '../types';
-import { resolveImageUrl } from '../utils';
+import { resolveImageUrl, formatPrice } from '../utils';
 import { useCart } from '../context/CartContext';
 
 interface Props {
@@ -13,9 +13,10 @@ interface Props {
 export function CartItemRow({ item, onUpdateQuantity }: Props) {
   const { product, quantity } = item;
   const { removeItem } = useCart();
-  const price = product.appliedPrice ?? product.price ?? 0;
+  const price = product.appliedPrice ?? product.price;
   const hasDiscount = product.appliedPrice && product.appliedPrice < product.price;
-  const subtotal = price * quantity;
+  const isContactPrice = price === null || price === undefined || price === -1;
+  const subtotal = isContactPrice ? 0 : price * quantity;
 
   // Determine stock status badge
   const getStockBadge = () => {
@@ -92,9 +93,9 @@ export function CartItemRow({ item, onUpdateQuantity }: Props) {
           {/* Price */}
           <View style={styles.priceSection}>
             <Text style={styles.priceMain}>
-              {subtotal.toLocaleString('vi-VN')}đ
+              {isContactPrice ? formatPrice(price) : subtotal.toLocaleString('vi-VN') + 'đ'}
             </Text>
-            {hasDiscount && (
+            {!isContactPrice && hasDiscount && (
               <Text style={styles.priceOriginal}>
                 {(product.price * quantity).toLocaleString('vi-VN')}đ
               </Text>

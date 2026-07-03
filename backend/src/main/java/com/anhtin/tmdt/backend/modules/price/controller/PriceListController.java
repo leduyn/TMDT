@@ -61,6 +61,13 @@ public class PriceListController {
         return ResponseEntity.ok(new MessageResponse("Deleted price list successfully"));
     }
 
+    @PutMapping("/{id}/set-default")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> setDefaultPriceList(@PathVariable Long id) {
+        priceListService.setDefaultPriceList(id);
+        return ResponseEntity.ok(new MessageResponse("Default price list updated successfully"));
+    }
+
     @GetMapping("/{id}/items")
     public Page<PriceListItemDTO> getPriceListItems(
             @PathVariable Long id,

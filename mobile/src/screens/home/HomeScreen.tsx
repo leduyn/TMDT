@@ -11,7 +11,7 @@ import { dashboardApi } from '../../api/notification';
 import { productApi } from '../../api/product';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { ProductDTO, DashboardDTO } from '../../types';
-import { resolveImageUrl } from '../../utils';
+import { resolveImageUrl, formatPrice } from '../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -204,9 +204,10 @@ export function HomeScreen({ navigation }: any) {
         <View style={styles.productsGrid}>
           {products.length > 0 ? (
             products.slice(0, 4).map((p) => {
-              const displayPrice = p.appliedPrice ?? p.price ?? 0;
+              const displayPrice = p.appliedPrice ?? p.price;
               const oldPrice = p.oldAppliedPrice;
-              const hasDiscount = oldPrice && oldPrice > displayPrice;
+              const isContactPrice = displayPrice === null || displayPrice === undefined || displayPrice === -1;
+              const hasDiscount = !isContactPrice && oldPrice && oldPrice > displayPrice;
               const discountPercent = hasDiscount ? Math.round(((oldPrice - displayPrice) / oldPrice) * 100) : 0;
               const isOutOfStock = p.stockQuantity === 0;
 
@@ -227,19 +228,21 @@ export function HomeScreen({ navigation }: any) {
                         <Text style={styles.discountText}>-{discountPercent}%</Text>
                       </View>
                     )}
-                    <TouchableOpacity 
-                      style={styles.addCartFloating}
-                      onPress={() => handleAddToCart(p)}
-                      disabled={isOutOfStock}
-                    >
-                      <Ionicons name="add-outline" size={20} color={Colors.white} />
-                    </TouchableOpacity>
+                    {!isContactPrice && (
+                      <TouchableOpacity 
+                        style={styles.addCartFloating}
+                        onPress={() => handleAddToCart(p)}
+                        disabled={isOutOfStock}
+                      >
+                        <Ionicons name="add-outline" size={20} color={Colors.white} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                   <View style={styles.prodInfo}>
                     <Text style={styles.prodBrand}>{p.brand?.name || 'GENERIC'}</Text>
                     <Text style={styles.prodName} numberOfLines={2}>{p.name}</Text>
                     <View style={styles.prodPriceRow}>
-                      <Text style={styles.prodPrice}>{displayPrice.toLocaleString('vi-VN')}đ</Text>
+                      <Text style={styles.prodPrice}>{formatPrice(displayPrice)}</Text>
                       {hasDiscount && (
                         <Text style={styles.prodOldPrice}>{oldPrice.toLocaleString('vi-VN')}đ</Text>
                       )}

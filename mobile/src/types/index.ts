@@ -3,6 +3,11 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface AgencyLoginRequest {
+  phone: string;
+  password: string;
+}
+
 export interface RegisterRequest {
   username: string;
   email: string;
@@ -20,6 +25,11 @@ export interface JwtResponse {
   roles: string[];
   agencyId?: number;
   shippingAddress?: string;
+  phone?: string;
+  name?: string;
+  code?: string;
+  agencyStatus?: string;
+  agencyType?: string;
 }
 
 export interface UserDTO {

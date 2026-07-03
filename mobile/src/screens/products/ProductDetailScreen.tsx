@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { ProductDTO } from '../../types';
-import { resolveImageUrl } from '../../utils';
+import { resolveImageUrl, formatPrice } from '../../utils';
 
 const { width } = Dimensions.get('window');
 
@@ -211,9 +211,10 @@ export function ProductDetailScreen({ route, navigation }: any) {
     );
   }
 
-  const price = product.appliedPrice ?? product.price ?? 0;
+  const price = product.appliedPrice ?? product.price;
   const oldPrice = product.oldAppliedPrice;
-  const hasDiscount = oldPrice && oldPrice > price;
+  const isContactPrice = price === null || price === undefined || price === -1;
+  const hasDiscount = !isContactPrice && oldPrice && oldPrice > price;
   const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
   const priceSaving = hasDiscount ? oldPrice - price : 0;
   const minQty = product.minPurchaseQuantity || 1;
@@ -237,7 +238,7 @@ export function ProductDetailScreen({ route, navigation }: any) {
             style={styles.mainImage}
             resizeMode="cover"
           />
-          {hasDiscount && (
+          {!isContactPrice && hasDiscount && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>ƯU ĐÃI -{discountPercent}%</Text>
             </View>
@@ -279,7 +280,7 @@ export function ProductDetailScreen({ route, navigation }: any) {
         {/* B2B Pricing Card */}
         <View style={styles.priceCard}>
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{price.toLocaleString('vi-VN')}đ</Text>
+            <Text style={styles.price}>{formatPrice(price)}</Text>
             {hasDiscount && (
               <Text style={styles.oldPrice}>{oldPrice.toLocaleString('vi-VN')}đ</Text>
             )}
@@ -496,13 +497,22 @@ export function ProductDetailScreen({ route, navigation }: any) {
         <TouchableOpacity style={styles.favBtn}>
           <Ionicons name="heart-outline" size={24} color={Colors.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.addCartBtn} onPress={handleAddToCart}>
-          <Ionicons name="cart-outline" size={20} color={Colors.primary} />
-          <Text style={styles.addCartBtnText}>Thêm giỏ hàng</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.buyNowBtn} onPress={handleBuyNow}>
-          <Text style={styles.buyNowBtnText}>Mua ngay</Text>
-        </TouchableOpacity>
+        {isContactPrice ? (
+          <TouchableOpacity style={styles.contactBtn}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={Colors.white} />
+            <Text style={styles.contactBtnText}>Liên hệ ngay</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity style={styles.addCartBtn} onPress={handleAddToCart}>
+              <Ionicons name="cart-outline" size={20} color={Colors.primary} />
+              <Text style={styles.addCartBtnText}>Thêm giỏ hàng</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buyNowBtn} onPress={handleBuyNow}>
+              <Text style={styles.buyNowBtnText}>Mua ngay</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
@@ -980,6 +990,22 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   buyNowBtnText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  contactBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    ...Shadow.sm,
+  },
+  contactBtnText: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
     color: Colors.white,

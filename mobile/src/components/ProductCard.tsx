@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import type { ProductDTO } from '../types';
 import { Colors } from '../theme';
-import { resolveImageUrl } from '../utils';
+import { resolveImageUrl, formatPrice } from '../utils';
 
 interface ProductCardProps {
   product: ProductDTO;
@@ -11,8 +11,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps) {
-  const displayPrice = product.appliedPrice ?? product.price ?? 0;
+  const displayPrice = product.appliedPrice ?? product.price;
   const oldPrice = product.oldAppliedPrice;
+  const isContactPrice = displayPrice === null || displayPrice === undefined || displayPrice === -1;
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(product)} activeOpacity={0.7}>
@@ -25,13 +26,13 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
         <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
         <Text style={styles.sku}>{product.sku || ''}</Text>
         <View style={styles.priceRow}>
-          <Text style={styles.price}>{displayPrice?.toLocaleString('vi-VN')}đ</Text>
-          {oldPrice && oldPrice > displayPrice && (
+          <Text style={styles.price}>{formatPrice(displayPrice)}</Text>
+          {!isContactPrice && oldPrice && oldPrice > displayPrice && (
             <Text style={styles.oldPrice}>{oldPrice.toLocaleString('vi-VN')}đ</Text>
           )}
         </View>
-        {product.unit && <Text style={styles.unit}>/ {product.unit}</Text>}
-        {onAddToCart && (
+        {!isContactPrice && product.unit && <Text style={styles.unit}>/ {product.unit}</Text>}
+        {!isContactPrice && onAddToCart && (
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => onAddToCart(product)}

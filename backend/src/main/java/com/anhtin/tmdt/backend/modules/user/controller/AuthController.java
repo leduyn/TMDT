@@ -114,7 +114,8 @@ public class AuthController {
                 agency.getCode(),
                 roles,
                 agency.getId(),
-                agency.getStatus().name()));
+                agency.getStatus().name(),
+                agency.getType().name()));
     }
 
     @PostMapping("/signup")

@@ -88,6 +88,20 @@ export default function PriceListsPage() {
     }
   };
 
+  const handleSetDefault = async (id: number) => {
+    if (!confirm('Thiết lập bảng giá này làm mặc định?')) return;
+    try {
+      const res = await fetch(`http://localhost:8080/api/price-lists/${id}/set-default`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchPriceLists();
+      else alert('Không thể thiết lập bảng giá mặc định');
+    } catch (err) {
+      alert('Lỗi hệ thống');
+    }
+  };
+
   const columns: Column<PriceListDTO>[] = [
     { 
       header: 'Tên bảng giá', 
@@ -148,6 +162,15 @@ export default function PriceListsPage() {
           <Link href={`/price-lists/${pl.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>
             <Eye size={16} />
           </Link>
+          {!pl.isDefault && (
+            <button className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#fbbf24' }} 
+                    onClick={() => handleSetDefault(pl.id)}
+                    title="Đặt làm bảng giá mặc định">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </button>
+          )}
           {!pl.isDefault && (
             <button className="btn-outline" style={{ padding: '8px', borderRadius: 8, color: '#ef4444' }} 
                     onClick={() => handleDelete(pl.id)}>

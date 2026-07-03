@@ -120,11 +120,19 @@ public class OrderService {
             Customer selectedCustomer = customerRepository.findById(customerIdSelected)
                     .orElseThrow(() -> new RuntimeException("Customer not found"));
             if (!agencyCustomerAssignmentRepository.existsByAgencyIdAndCustomerId(agencyId, customerIdSelected)) {
-                throw new RuntimeException("Customer does not belong to this agency");
+                AgencyCustomerAssignment assignment = new AgencyCustomerAssignment();
+                assignment.setCustomer(selectedCustomer);
+                assignment.setAgency(agency);
+                assignment.setCustomName(selectedCustomer.getOrganizationName() != null ?
+                        selectedCustomer.getOrganizationName() : selectedCustomer.getReceiverName());
+                assignment.setCustomShippingAddress(selectedCustomer.getShippingAddress());
+                assignment.setCustomPhone(selectedCustomer.getReceiverPhone());
+                assignment.setApproved(true);
+                agencyCustomerAssignmentRepository.save(assignment);
             }
             Long userId = selectedCustomer.getUserId();
             receiver = userId != null ? userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found for customer")) : null;
+                    .orElse(null) : null;
             receiverType = "CUSTOMER";
             priceListId = priceListService.resolveForCustomer(userId != null ? userId : agencyId, agencyId).getId();
             orderCustomer = selectedCustomer;
@@ -279,11 +287,19 @@ public class OrderService {
             Customer selectedCustomer = customerRepository.findById(customerIdSelected)
                     .orElseThrow(() -> new RuntimeException("Customer not found"));
             if (!agencyCustomerAssignmentRepository.existsByAgencyIdAndCustomerId(agencyId, customerIdSelected)) {
-                throw new RuntimeException("Customer does not belong to this agency");
+                AgencyCustomerAssignment assignment = new AgencyCustomerAssignment();
+                assignment.setCustomer(selectedCustomer);
+                assignment.setAgency(agency);
+                assignment.setCustomName(selectedCustomer.getOrganizationName() != null ?
+                        selectedCustomer.getOrganizationName() : selectedCustomer.getReceiverName());
+                assignment.setCustomShippingAddress(selectedCustomer.getShippingAddress());
+                assignment.setCustomPhone(selectedCustomer.getReceiverPhone());
+                assignment.setApproved(true);
+                agencyCustomerAssignmentRepository.save(assignment);
             }
             Long userId = selectedCustomer.getUserId();
             receiver = userId != null ? userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found for customer")) : null;
+                    .orElse(null) : null;
             receiverType = "CUSTOMER";
             priceListId = priceListService.resolveForCustomer(userId != null ? userId : agencyId, agencyId).getId();
             orderCustomer = selectedCustomer;
@@ -438,9 +454,6 @@ public class OrderService {
         Agency agency = agencyRepository.findById(agencyId)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
 
-        User creator = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Creator user not found"));
-
         Long customerIdSelected = request.getCustomerId();
         User receiver = null;
         Customer orderCustomer = null;
@@ -451,11 +464,19 @@ public class OrderService {
             Customer selectedCustomer = customerRepository.findById(customerIdSelected)
                     .orElseThrow(() -> new RuntimeException("Customer not found"));
             if (!agencyCustomerAssignmentRepository.existsByAgencyIdAndCustomerId(agencyId, customerIdSelected)) {
-                throw new RuntimeException("Customer does not belong to this agency");
+                AgencyCustomerAssignment assignment = new AgencyCustomerAssignment();
+                assignment.setCustomer(selectedCustomer);
+                assignment.setAgency(agency);
+                assignment.setCustomName(selectedCustomer.getOrganizationName() != null ?
+                        selectedCustomer.getOrganizationName() : selectedCustomer.getReceiverName());
+                assignment.setCustomShippingAddress(selectedCustomer.getShippingAddress());
+                assignment.setCustomPhone(selectedCustomer.getReceiverPhone());
+                assignment.setApproved(true);
+                agencyCustomerAssignmentRepository.save(assignment);
             }
             Long userIdFromCustomer = selectedCustomer.getUserId();
             receiver = userIdFromCustomer != null ? userRepository.findById(userIdFromCustomer)
-                    .orElseThrow(() -> new RuntimeException("User not found for customer")) : null;
+                    .orElse(null) : null;
             receiverType = "CUSTOMER";
             priceListId = priceListService.resolveForCustomer(userIdFromCustomer != null ? userIdFromCustomer : agencyId, agencyId).getId();
             orderCustomer = selectedCustomer;
@@ -470,7 +491,6 @@ public class OrderService {
         Order order = new Order();
         order.setCustomer(orderCustomer);
         order.setAgency(agency);
-        order.setCreatedBy(creator);
         order.setUpdatedDate(LocalDateTime.now());
         order.setStatus("PENDING");
         order.setShippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : orderCustomer.getShippingAddress());
@@ -741,6 +761,8 @@ public class OrderService {
         if (order.getCreatedBy() != null) {
             dto.setCreatedByName(order.getCreatedBy().getOrganizationName() != null ? 
                     order.getCreatedBy().getOrganizationName() : order.getCreatedBy().getUsername());
+        } else if (order.getAgency() != null) {
+            dto.setCreatedByName(order.getAgency().getName());
         }
         dto.setUpdatedDate(order.getUpdatedDate());
         

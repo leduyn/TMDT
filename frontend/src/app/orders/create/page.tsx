@@ -71,8 +71,13 @@ export default function CreateOrderPage() {
     } else if (user.roles.includes('ROLE_AGENCY') && user.agencyId) {
       const agency = await agencyApi.getMe();
       setAgencies([agency]);
-      setSelectedAgency(agency);
-      loadAgencyCustomers(agency.id);
+
+      if (agency.type === 'WHOLESALE') {
+        await handleSelectAgency(agency);
+      } else {
+        setSelectedAgency(agency);
+        loadAgencyCustomers(agency.id);
+      }
     }
   };
 

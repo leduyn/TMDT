@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Trophy,
   Home,
+  Timer,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -56,6 +57,7 @@ export default function Sidebar() {
     { label: 'Danh mục', href: '/categories', icon: Layers, roles: ['ROLE_USER'] },
     { label: 'Loại SP', href: '/product-types', icon: Layers, roles: ['ROLE_USER'] },
     { label: 'Bảng giá', href: '/price-lists', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Override giá', href: '/price-override-vouchers', icon: Timer, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Hẹn giờ giá', href: '/price-vouchers', icon: Clock, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Chính sách BH', href: '/sales-policies', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Đơn hàng', href: '/orders', icon: FileText, roles: ['ROLE_USER'] },

@@ -81,6 +81,7 @@ export const priceListApi = {
   },
   getPage: (page: number, size: number = 20) =>
     fetchJSON<PageResponse<PriceListDTO>>(`/api/price-lists/page?page=${page}&size=${size}`),
+  setDefault: (id: number) => fetchJSON<void>(`/api/price-lists/${id}/set-default`, { method: 'PUT' }),
 };
 
 export const priceAssignmentVoucherApi = {
@@ -127,4 +128,51 @@ export const priceUpdateVoucherApi = {
     method: 'POST'
   }),
   getActiveHistoryForAgency: (agencyId: number) => fetchJSON<PriceUpdateVoucherDTO[]>(`/api/price-vouchers/active-history/agency/${agencyId}`)
+};
+
+export interface PriceOverrideVoucherDTO {
+  id: number;
+  name: string;
+  description?: string;
+  scheduledAt: string;
+  status: string;
+  createdAt: string;
+  appliedAt?: string;
+  items: PriceOverrideVoucherItemDTO[];
+}
+
+export interface PriceOverrideVoucherItemDTO {
+  agencyId: number;
+  agencyName: string;
+  productId: number;
+  productName: string;
+  newPrice: number;
+  isVisible: boolean;
+}
+
+export interface PriceOverrideVoucherRequest {
+  name: string;
+  description?: string;
+  scheduledAt: string;
+  items: { agencyId: number; productId: number; newPrice: number; isVisible: boolean }[];
+}
+
+export const priceOverrideVoucherApi = {
+  getAll: (page?: number, size?: number) => {
+    if (page !== undefined) {
+      return fetchJSON<PageResponse<PriceOverrideVoucherDTO>>(`/api/price-override-vouchers/page?page=${page}&size=${size ?? 20}`);
+    }
+    return fetchJSON<PriceOverrideVoucherDTO[]>('/api/price-override-vouchers');
+  },
+  getById: (id: number) => fetchJSON<PriceOverrideVoucherDTO>(`/api/price-override-vouchers/${id}`),
+  create: (data: PriceOverrideVoucherRequest) => fetchJSON<PriceOverrideVoucherDTO>('/api/price-override-vouchers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  cancel: (id: number) => fetchJSON<any>(`/api/price-override-vouchers/${id}/cancel`, {
+    method: 'POST'
+  }),
+  apply: (id: number) => fetchJSON<any>(`/api/price-override-vouchers/${id}/apply`, {
+    method: 'POST'
+  }),
 };

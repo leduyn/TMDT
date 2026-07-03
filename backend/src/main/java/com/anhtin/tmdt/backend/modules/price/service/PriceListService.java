@@ -157,6 +157,21 @@ public class PriceListService {
         priceListRepository.delete(pl);
     }
 
+    @Transactional
+    public void setDefaultPriceList(Long id) {
+        if (id == null) throw new IllegalArgumentException("ID cannot be null");
+        // Unset current default
+        priceListRepository.findByIsDefaultTrue().ifPresent(pl -> {
+            pl.setIsDefault(false);
+            priceListRepository.save(pl);
+        });
+        // Set new default
+        PriceList pl = priceListRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Price list not found"));
+        pl.setIsDefault(true);
+        priceListRepository.save(pl);
+    }
+
     public List<PriceListItemDTO> getPriceListItems(Long priceListId) {
         return priceListItemRepository.findByPriceListId(priceListId).stream()
                 .map(PriceListItemDTO::new)

@@ -1,9 +1,14 @@
 import { fetchJSON } from './client';
-import type { LoginRequest, RegisterRequest, JwtResponse, UserDTO } from '../types';
+import type { LoginRequest, AgencyLoginRequest, RegisterRequest, JwtResponse, UserDTO } from '../types';
 
 export const authApi = {
   login: (data: LoginRequest) =>
     fetchJSON<JwtResponse>('/api/auth/signin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  agencyLogin: (data: AgencyLoginRequest) =>
+    fetchJSON<JwtResponse>('/api/auth/agency/signin', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

@@ -12,8 +12,10 @@ import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../
 const { width } = Dimensions.get('window');
 
 export function LoginScreen({ navigation }: any) {
-  const { login } = useAuth();
+  const { login, agencyLogin } = useAuth();
+  const [loginMode, setLoginMode] = useState<'username' | 'phone'>('username');
   const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,17 +31,32 @@ export function LoginScreen({ navigation }: any) {
   }, []);
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên đăng nhập và mật khẩu');
-      return;
-    }
-    setLoading(true);
-    try {
-      await login({ username: username.trim(), password: password.trim() });
-    } catch (err: any) {
-      Alert.alert('Đăng nhập thất bại', err.message || 'Sai tên đăng nhập hoặc mật khẩu');
-    } finally {
-      setLoading(false);
+    if (loginMode === 'username') {
+      if (!username.trim() || !password.trim()) {
+        Alert.alert('Lỗi', 'Vui lòng nhập tên đăng nhập và mật khẩu');
+        return;
+      }
+      setLoading(true);
+      try {
+        await login({ username: username.trim(), password: password.trim() });
+      } catch (err: any) {
+        Alert.alert('Đăng nhập thất bại', err.message || 'Sai tên đăng nhập hoặc mật khẩu');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!phone.trim() || !password.trim()) {
+        Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại và mật khẩu');
+        return;
+      }
+      setLoading(true);
+      try {
+        await agencyLogin({ phone: phone.trim(), password: password.trim() });
+      } catch (err: any) {
+        Alert.alert('Đăng nhập thất bại', err.message || 'Sai số điện thoại hoặc mật khẩu');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -78,19 +95,56 @@ export function LoginScreen({ navigation }: any) {
           <Text style={styles.formTitle}>Đăng nhập</Text>
           <Text style={styles.formSubtitle}>Chào mừng bạn quay trở lại</Text>
 
+          {/* Login mode toggle */}
+          <View style={styles.modeToggle}>
+            <TouchableOpacity
+              style={[styles.modeTab, loginMode === 'username' && styles.modeTabActive]}
+              onPress={() => setLoginMode('username')}
+            >
+              <Ionicons name="person-outline" size={16} color={loginMode === 'username' ? Colors.white : Colors.textSecondary} />
+              <Text style={[styles.modeTabText, loginMode === 'username' && styles.modeTabTextActive]}>
+                Tên đăng nhập
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, loginMode === 'phone' && styles.modeTabActive]}
+              onPress={() => setLoginMode('phone')}
+            >
+              <Ionicons name="phone-portrait-outline" size={16} color={loginMode === 'phone' ? Colors.white : Colors.textSecondary} />
+              <Text style={[styles.modeTabText, loginMode === 'phone' && styles.modeTabTextActive]}>
+                Số điện thoại
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.inputGroup}>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Tên đăng nhập"
-                placeholderTextColor={Colors.textTertiary}
-                autoCapitalize="none"
-                editable={!loading}
-              />
-            </View>
+            {loginMode === 'username' ? (
+              <View style={styles.inputWrapper}>
+                <Ionicons name="person-outline" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="Tên đăng nhập"
+                  placeholderTextColor={Colors.textTertiary}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+              </View>
+            ) : (
+              <View style={styles.inputWrapper}>
+                <Ionicons name="phone-portrait-outline" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Số điện thoại"
+                  placeholderTextColor={Colors.textTertiary}
+                  keyboardType="phone-pad"
+                  editable={!loading}
+                />
+              </View>
+            )}
 
             <View style={styles.inputWrapper}>
               <Ionicons name="lock-closed-outline" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
@@ -182,6 +236,33 @@ const styles = StyleSheet.create({
   formSubtitle: {
     fontSize: FontSize.md, color: Colors.textSecondary,
     marginBottom: Spacing.xxl,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: 3,
+    marginBottom: Spacing.lg,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md - 2,
+    gap: 6,
+  },
+  modeTabActive: {
+    backgroundColor: Colors.primary,
+  },
+  modeTabText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+  },
+  modeTabTextActive: {
+    color: Colors.white,
   },
   inputGroup: { gap: Spacing.lg },
   inputWrapper: {
