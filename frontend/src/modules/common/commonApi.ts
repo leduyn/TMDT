@@ -117,4 +117,21 @@ export const uploadApi = {
     }
     return res.json();
   },
+  uploadAvatar: async (file: File): Promise<{ url: string }> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/api/upload/avatar`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      throw new Error(err.message || 'Upload avatar thất bại');
+    }
+    return res.json();
+  },
 };

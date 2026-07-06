@@ -17,6 +17,9 @@ public class OrderRequest {
     private Integer debtTermDays;
     private String paymentMethod;
     private String orderSource;
+    private String invoiceName;
+    private String invoiceTaxCode;
+    private String invoiceAddress;
 
     public static class NewCustomerInfo {
         private String name;
@@ -72,4 +75,10 @@ public class OrderRequest {
 
     public String getOrderSource() { return orderSource; }
     public void setOrderSource(String orderSource) { this.orderSource = orderSource; }
+    public String getInvoiceName() { return invoiceName; }
+    public void setInvoiceName(String invoiceName) { this.invoiceName = invoiceName; }
+    public String getInvoiceTaxCode() { return invoiceTaxCode; }
+    public void setInvoiceTaxCode(String invoiceTaxCode) { this.invoiceTaxCode = invoiceTaxCode; }
+    public String getInvoiceAddress() { return invoiceAddress; }
+    public void setInvoiceAddress(String invoiceAddress) { this.invoiceAddress = invoiceAddress; }
 }

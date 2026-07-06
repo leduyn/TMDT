@@ -156,6 +156,9 @@ public class OrderService {
         order.setDebtTermDays(request.getDebtTermDays());
         order.setPaymentMethod(request.getPaymentMethod());
         order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "Web");
+        order.setInvoiceName(request.getInvoiceName());
+        order.setInvoiceTaxCode(request.getInvoiceTaxCode());
+        order.setInvoiceAddress(request.getInvoiceAddress());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -326,6 +329,9 @@ public class OrderService {
         order.setDebtTermDays(request.getDebtTermDays());
         order.setPaymentMethod(request.getPaymentMethod());
         order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "Web");
+        order.setInvoiceName(request.getInvoiceName());
+        order.setInvoiceTaxCode(request.getInvoiceTaxCode());
+        order.setInvoiceAddress(request.getInvoiceAddress());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -499,6 +505,9 @@ public class OrderService {
         order.setDebtTermDays(request.getDebtTermDays());
         order.setPaymentMethod(request.getPaymentMethod());
         order.setOrderSource(request.getOrderSource() != null ? request.getOrderSource() : "Web");
+        order.setInvoiceName(request.getInvoiceName());
+        order.setInvoiceTaxCode(request.getInvoiceTaxCode());
+        order.setInvoiceAddress(request.getInvoiceAddress());
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -765,7 +774,10 @@ public class OrderService {
             dto.setCreatedByName(order.getAgency().getName());
         }
         dto.setUpdatedDate(order.getUpdatedDate());
-        
+        dto.setInvoiceName(order.getInvoiceName());
+        dto.setInvoiceTaxCode(order.getInvoiceTaxCode());
+        dto.setInvoiceAddress(order.getInvoiceAddress());
+
         dto.setItems(order.getItems().stream()
                 .map(this::convertToItemDTO)
                 .collect(Collectors.toList()));

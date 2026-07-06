@@ -19,6 +19,7 @@ import { DebtScreen } from '../screens/debt/DebtScreen';
 import { PromotionsScreen } from '../screens/promotions/PromotionsScreen';
 import { NotificationsScreen } from '../screens/notifications/NotificationsScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { OrderDetailScreen } from '../screens/orders/OrderDetailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -112,6 +113,11 @@ export function AppNavigator() {
               name="Checkout"
               component={CheckoutScreen}
               options={{ title: 'Xác nhận giỏ hàng' }}
+            />
+            <Stack.Screen
+              name="OrderDetail"
+              component={OrderDetailScreen}
+              options={{ title: 'Chi tiết đơn hàng' }}
             />
           </>
         )}

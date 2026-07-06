@@ -14,6 +14,7 @@ public class AgencyRequest {
     private String password;
     private Boolean active;
     private String type;
+    private String avatarUrl;
 
     public String getCode() { return code; }
     public void setCode(String code) { this.code = code; }
@@ -41,4 +42,6 @@ public class AgencyRequest {
     public void setActive(Boolean active) { this.active = active; }
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

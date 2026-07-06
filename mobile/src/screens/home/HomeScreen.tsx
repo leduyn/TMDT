@@ -86,9 +86,13 @@ export function HomeScreen({ navigation }: any) {
             style={styles.avatarContainer}
             onPress={() => navigation.navigate('Profile')}
           >
-            <Text style={styles.avatarText}>
-              {user?.username ? user.username.substring(0, 2).toUpperCase() : 'MP'}
-            </Text>
+            {user?.avatarUrl ? (
+              <Image source={{ uri: resolveImageUrl(user.avatarUrl) }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {user?.username ? user.username.substring(0, 2).toUpperCase() : 'MP'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -394,6 +398,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 0,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   avatarText: {
     fontSize: FontSize.xs,

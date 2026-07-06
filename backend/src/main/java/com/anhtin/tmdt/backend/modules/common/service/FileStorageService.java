@@ -16,7 +16,7 @@ import java.util.UUID;
 public class FileStorageService {
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
+            "image/jpeg", "image/png", "image/gif", "image/webp", "image/jpg"
     );
 
     @Value("${file.upload-dir}")

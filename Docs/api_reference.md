@@ -1,4 +1,4 @@
-# 📡 API Reference — TMDT Backend
+﻿# 📡 API Reference — TMDT Backend
 
 > **Base URL**: `http://localhost:8080`  
 > **Auth**: Bearer Token (`Authorization: Bearer <token>`) — trừ các endpoint public  
@@ -10,7 +10,8 @@
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
-| `POST` | `/api/auth/signin` | Đăng nhập, trả về JWT token | Public |
+| `POST` | `/api/auth/signin` | Đăng nhập (Customer/Admin), trả về JWT token | Public |
+| `POST` | `/api/auth/agency/signin` | Đăng nhập dành riêng cho Agency | Public |
 | `POST` | `/api/auth/signup` | Đăng ký tài khoản mới | Public |
 
 **Frontend**: [`userApi.ts`](file:///d:/Java%20lean/TMDT/frontend/src/modules/user/userApi.ts)
@@ -24,13 +25,10 @@
 | `GET` | `/api/users/me` | Lấy thông tin user hiện tại | ✅ |
 | `PUT` | `/api/users/profile` | Cập nhật profile | ✅ |
 | `GET` | `/api/users/all` | Danh sách tất cả users | Admin |
-| `GET` | `/api/users/customers` | Danh sách khách hàng | Admin |
-| `GET` | `/api/users/agencies-unassigned` | Users chưa gán agency | Admin |
 | `GET` | `/api/users/{id}` | Chi tiết user theo ID | Admin |
-| `POST` | `/api/users/customers` | Tạo khách hàng mới | Admin |
-| `PUT` | `/api/users/customers/{id}` | Cập nhật khách hàng | Admin |
-| `PUT` | `/api/users/customers/{id}/activate` | Kích hoạt/vô hiệu hóa | Admin |
 | `DELETE` | `/api/users/{id}` | Xóa user | Admin |
+
+> **Lưu ý**: Các endpoint `/api/users/customers`, `/api/users/agencies-unassigned` đã chuyển sang module `/api/customers` và `/api/agencies`.
 
 **Frontend**: [`userApi.ts`](file:///d:/Java%20lean/TMDT/frontend/src/modules/user/userApi.ts)
 
@@ -42,34 +40,65 @@
 |--------|----------|-------|------|
 | `GET` | `/api/agencies` | Danh sách đại lý | ✅ |
 | `GET` | `/api/agencies/{id}` | Chi tiết đại lý | ✅ |
-| `POST` | `/api/agencies` | Tạo đại lý | Admin |
-| `POST` | `/api/agencies/with-account` | Tạo đại lý kèm tài khoản | Admin |
+| `POST` | `/api/agencies` | Tạo đại lý (Admin tạo) | Admin |
+| `POST` | `/api/agencies/register` | Đăng ký trở thành đại lý | ✅ |
 | `PUT` | `/api/agencies/{id}/approve` | Duyệt đại lý | Admin |
-| `POST` | `/api/agencies/convert-from-user/{userId}` | Chuyển user → đại lý | Admin |
 | `PUT` | `/api/agencies/{id}` | Cập nhật đại lý | ✅ |
 | `GET` | `/api/agencies/{id}/customers` | Khách hàng của đại lý | ✅ |
+| `GET` | `/api/agencies/{id}/prices` | Bảng giá của đại lý | ✅ |
 | `GET` | `/api/agencies/me` | Thông tin đại lý hiện tại | Agency |
-| `POST` | `/api/agencies/{id}/approve/{customerId}` | Duyệt khách hàng vào đại lý | Agency |
 
 **Frontend**: [`agencyApi.ts`](file:///d:/Java%20lean/TMDT/frontend/src/modules/agency/agencyApi.ts)
 
 ---
 
-## 4. 📦 Product (Sản phẩm) — `/api/products`
+## 4. 🧑 Customer — `/api/customers`
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET` | `/api/customers` | Danh sách khách hàng (filter by agencyId) | Admin/Agency |
+| `GET` | `/api/customers/{id}` | Chi tiết khách hàng | Admin/Agency |
+| `GET` | `/api/customers/check` | Kiểm tra khách hàng theo phone/taxCode | Admin/Agency |
+| `GET` | `/api/customers/search` | Tìm kiếm theo mã số thuế | Admin/Agency |
+| `POST` | `/api/customers` | Tạo khách hàng mới | Admin/Agency |
+| `PUT` | `/api/customers/{id}` | Cập nhật khách hàng | Admin/Agency |
+| `DELETE` | `/api/customers/{id}` | Xóa khách hàng | Admin |
+
+---
+
+## 5. 📦 Product (Sản phẩm) — `/api/products`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
 | `GET` | `/api/products` | Danh sách sản phẩm (hỗ trợ filter) | Public |
+| `GET` | `/api/products/page` | Danh sách sản phẩm có phân trang | Public |
 | `GET` | `/api/products/{id}` | Chi tiết sản phẩm | Public |
 | `POST` | `/api/products` | Tạo sản phẩm | Admin |
 | `PUT` | `/api/products/{id}` | Cập nhật sản phẩm | Admin |
 | `DELETE` | `/api/products/{id}` | Xóa sản phẩm | Admin |
+| `GET` | `/api/products/import` | Xem form import Excel | Admin |
+| `POST` | `/api/products/import` | Import sản phẩm từ Excel | Admin |
+| `GET` | `/api/products/import-json` | Xem form import JSON | Admin |
+| `POST` | `/api/products/import-json` | Import sản phẩm từ JSON | Admin |
+| `GET` | `/api/products/import/template` | Tải file template import | Admin |
 
 **Frontend**: [`productApi.ts`](file:///d:/Java%20lean/TMDT/frontend/src/modules/product/productApi.ts)
 
 ---
 
-## 5. 🏷️ Attribute (Thuộc tính) — `/api/attributes`, `/api/products/{id}/attributes`
+## 6. 🏷️ Product Type (Loại sản phẩm) — `/api/product-types`
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET` | `/api/product-types` | Danh sách loại sản phẩm | Public |
+| `GET` | `/api/product-types/{id}` | Chi tiết loại sản phẩm | Public |
+| `POST` | `/api/product-types` | Tạo loại sản phẩm | Admin |
+| `PUT` | `/api/product-types/{id}` | Cập nhật loại sản phẩm | Admin |
+| `DELETE` | `/api/product-types/{id}` | Xóa loại sản phẩm | Admin |
+
+---
+
+## 7. 🏷️ Attribute (Thuộc tính) — `/api/attributes`, `/api/products/{id}/attributes`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -89,7 +118,7 @@
 
 ---
 
-## 6. 📂 Category (Danh mục) — `/api/categories`
+## 8. 📂 Category (Danh mục) — `/api/categories`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -101,7 +130,7 @@
 
 ---
 
-## 7. 🏭 Brand (Thương hiệu) — `/api/brands`
+## 9. 🏭 Brand (Thương hiệu) — `/api/brands`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -113,7 +142,7 @@
 
 ---
 
-## 8. 🛒 Order (Đơn hàng) — `/api/orders`
+## 10. 🛒 Order (Đơn hàng) — `/api/orders`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -132,15 +161,17 @@
 
 ---
 
-## 9. 💰 Price List (Bảng giá) — `/api/price-lists`
+## 11. 💰 Price List (Bảng giá) — `/api/price-lists`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
 | `GET` | `/api/price-lists` | Danh sách bảng giá | Admin |
+| `GET` | `/api/price-lists/page` | Danh sách bảng giá có phân trang | Admin |
 | `GET` | `/api/price-lists/{id}` | Chi tiết bảng giá | Admin |
 | `POST` | `/api/price-lists` | Tạo bảng giá | Admin |
 | `PUT` | `/api/price-lists/{id}` | Cập nhật bảng giá | Admin |
 | `DELETE` | `/api/price-lists/{id}` | Xóa bảng giá | Admin |
+| `PUT` | `/api/price-lists/{id}/set-default` | Đặt làm bảng giá mặc định | Admin |
 | `GET` | `/api/price-lists/{id}/items` | Sản phẩm trong bảng giá | Admin |
 | `PUT` | `/api/price-lists/{id}/items` | Cập nhật items bảng giá | Admin |
 | `POST` | `/api/price-lists/assign-agency` | Gán bảng giá cho đại lý | Admin |
@@ -155,12 +186,13 @@
 
 ---
 
-## 10. 📋 Price Voucher — `/api/price-vouchers`
+## 12. 📋 Price Update Voucher (Phiếu điều chỉnh giá) — `/api/price-vouchers`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
-| `GET` | `/api/price-vouchers` | Danh sách phiếu điều chỉnh giá | Admin |
+| `GET` | `/api/price-vouchers` | Danh sách phiếu điều chỉnh giá (phân trang) | Admin |
 | `GET` | `/api/price-vouchers/{id}` | Chi tiết phiếu | Admin |
+| `GET` | `/api/price-vouchers/{id}/items` | Danh sách items của phiếu (phân trang) | Admin |
 | `POST` | `/api/price-vouchers` | Tạo phiếu điều chỉnh | Admin |
 | `POST` | `/api/price-vouchers/{id}/cancel` | Hủy phiếu | Admin |
 | `POST` | `/api/price-vouchers/{id}/apply` | Áp dụng phiếu | Admin |
@@ -169,7 +201,20 @@
 
 ---
 
-## 11. 📄 Price Assignment Voucher — `/api/price-assignment-vouchers`
+## 13. 🔁 Price Override Voucher (Phiếu ghi đè giá) — `/api/price-override-vouchers`
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET` | `/api/price-override-vouchers` | Danh sách phiếu ghi đè giá | Admin |
+| `GET` | `/api/price-override-vouchers/page` | Danh sách có phân trang | Admin |
+| `GET` | `/api/price-override-vouchers/{id}` | Chi tiết phiếu ghi đè | Admin |
+| `POST` | `/api/price-override-vouchers` | Tạo phiếu ghi đè giá | Admin |
+| `POST` | `/api/price-override-vouchers/{id}/cancel` | Hủy phiếu ghi đè | Admin |
+| `POST` | `/api/price-override-vouchers/{id}/apply` | Áp dụng phiếu ghi đè | Admin |
+
+---
+
+## 14. 📄 Price Assignment Voucher — `/api/price-assignment-vouchers`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -178,27 +223,28 @@
 | `POST` | `/api/price-assignment-vouchers/{id}/cancel` | Hủy | Admin |
 | `POST` | `/api/price-assignment-vouchers/{id}/stop` | Dừng | Admin |
 | `POST` | `/api/price-assignment-vouchers/{id}/reactivate` | Kích hoạt lại | Admin |
+| `GET` | `/api/price-assignment-vouchers/fix-db` | Sửa dữ liệu DB (tool nội bộ) | Admin |
 
 ---
 
-## 12. 💲 Customer Prices (Giá riêng) — `/api/customer-prices`
+## 15. 💲 Customer Prices (Giá riêng khách hàng) — `/api/customer-prices`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
-| `GET` | `/api/customer-prices` | Danh sách giá theo đại lý | ✅ |
-| `GET` | `/api/customer-prices/history` | Lịch sử điều chỉnh | ✅ |
+| `GET` | `/api/customer-prices` | Danh sách giá theo đại lý (phân trang, filter) | Admin |
+| `GET` | `/api/customer-prices/history` | Lịch sử điều chỉnh giá theo sản phẩm | Admin |
 | `POST` | `/api/customer-prices/override` | Ghi đè giá sản phẩm | Admin |
 | `POST` | `/api/customer-prices/remove-override` | Xóa ghi đè | Admin |
 | `POST` | `/api/customer-prices/rollback/{historyId}` | Rollback về giá trước | Admin |
 | `POST` | `/api/customer-prices/sync/{agencyId}` | Đồng bộ giá cho đại lý | Admin |
-| `GET` | `/api/customer-prices/export/{agencyId}` | Xuất bảng giá | Admin |
-| `POST` | `/api/customer-prices/import/{agencyId}` | Nhập bảng giá | Admin |
+| `GET` | `/api/customer-prices/export/{agencyId}` | Xuất bảng giá (Excel) | Admin |
+| `POST` | `/api/customer-prices/import/{agencyId}` | Nhập bảng giá (Excel) | Admin |
 
 **Frontend**: [`customerPriceApi.ts`](file:///d:/Java%20lean/TMDT/frontend/src/modules/agency/customerPriceApi.ts)
 
 ---
 
-## 13. 🏷️ Sales Policy (Chính sách bán hàng) — `/api/sales-policies`
+## 16. 🏷️ Sales Policy (Chính sách bán hàng) — `/api/sales-policies`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -214,7 +260,7 @@
 
 ---
 
-## 14. 🏆 Accumulation (Tích lũy / BXH) — `/api/accumulation-programs`
+## 17. 🏆 Accumulation (Tích lũy / BXH) — `/api/accumulation-programs`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -239,7 +285,7 @@
 
 ---
 
-## 15. 💳 Credit (Hạn mức tín dụng) — `/api/credit`
+## 18. 💳 Credit (Hạn mức tín dụng) — `/api/credit`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -249,6 +295,8 @@
 | `GET` | `/api/credit/agents/{agencyId}/detail` | Chi tiết credit đại lý | ✅ |
 | `PUT` | `/api/credit/agents/{agencyId}/limit` | Cập nhật hạn mức | Admin |
 | `POST` | `/api/credit/agents/{agencyId}/deposit` | Nạp tiền ký quỹ | Admin |
+| `GET` | `/api/credit/deposit-contracts/agency/{agencyId}` | Hợp đồng ký quỹ của đại lý | Admin |
+| `GET` | `/api/credit/deposit-contracts/{id}` | Chi tiết hợp đồng ký quỹ | Admin |
 | `POST` | `/api/credit/orders` | Tạo giao dịch credit cho đơn hàng | ✅ |
 | `POST` | `/api/credit/payments` | Thanh toán credit | ✅ |
 | `POST` | `/api/credit/admin/recalculate/{agencyId}` | Tính lại credit | Admin |
@@ -259,7 +307,7 @@
 
 ---
 
-## 16. 📜 Agency Debt (Công nợ đại lý) — `/api/agency-debts`
+## 19. 📜 Agency Debt (Công nợ đại lý) — `/api/agency-debts`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -270,7 +318,7 @@
 
 ---
 
-## 17. 🎁 Loyalty (Điểm thưởng) — `/api/loyalty`
+## 20. 🎁 Loyalty (Điểm thưởng) — `/api/loyalty`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -279,7 +327,45 @@
 
 ---
 
-## 18. 🎫 Promotion (Khuyến mãi / CTKM) — `/api/promotions`
+## 21. 🎮 Gamification — `/api/gamification`
+
+### Public / User endpoints
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET` | `/api/gamification/rules` | Danh sách luật thi đua (active) | ✅ |
+| `GET` | `/api/gamification/rules/evaluated/{customerId}` | Luật đã được evaluate cho customer | ✅ |
+| `GET` | `/api/gamification/profile/{customerId}` | Hồ sơ gamification của customer | ✅ |
+| `GET` | `/api/gamification/leaderboard` | Bảng xếp hạng | ✅ |
+| `GET` | `/api/gamification/badges` | Danh sách huy hiệu | ✅ |
+| `GET` | `/api/gamification/certificates/{customerId}` | Bằng khen danh dự | ✅ |
+| `GET` | `/api/gamification/points/{customerId}` | Số dư và lịch sử điểm | ✅ |
+
+### Admin endpoints
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET` | `/api/gamification/admin/rules` | Tất cả luật (kể cả inactive) | Admin |
+| `POST` | `/api/gamification/admin/rules` | Thêm/cập nhật luật thi đua | Admin |
+| `PATCH` | `/api/gamification/admin/rules/{id}/toggle` | Bật/tắt luật | Admin |
+| `DELETE` | `/api/gamification/admin/rules/{id}` | Xóa luật | Admin |
+| `GET` | `/api/gamification/admin/badges` | Tất cả huy hiệu (kể cả inactive) | Admin |
+| `POST` | `/api/gamification/admin/badges` | Thêm/cập nhật huy hiệu | Admin |
+| `DELETE` | `/api/gamification/admin/badges/{id}` | Xóa huy hiệu | Admin |
+| `GET` | `/api/gamification/admin/levels` | Cấu hình cấp bậc thành viên | Admin |
+| `POST` | `/api/gamification/admin/levels` | Thêm/cập nhật cấp bậc | Admin |
+| `DELETE` | `/api/gamification/admin/levels/{id}` | Xóa cấp bậc | Admin |
+| `GET` | `/api/gamification/admin/points-formula` | Lấy công thức tính điểm | Admin |
+| `PUT` | `/api/gamification/admin/points-formula` | Cập nhật công thức tính điểm | Admin |
+| `GET` | `/api/gamification/admin/spel-variables` | Danh sách biến SpEL | Admin |
+| `POST` | `/api/gamification/admin/spel-variables` | Lưu biến SpEL | Admin |
+| `DELETE` | `/api/gamification/admin/spel-variables/{id}` | Xóa biến SpEL | Admin |
+| `GET` | `/api/gamification/admin/spel-metadata` | Metadata SpEL (bảng, cột, hàm) | Admin |
+| `POST` | `/api/gamification/admin/spel-variables/test` | Test query SpEL | Admin |
+
+---
+
+## 22. 🎫 Promotion (Khuyến mãi / CTKM) — `/api/promotions`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -292,7 +378,7 @@
 
 ---
 
-## 19. 🌟 Review (Đánh giá) — `/api/reviews`
+## 23. 🌟 Review (Đánh giá) — `/api/reviews`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -305,7 +391,7 @@
 
 ---
 
-## 20. 💬 Chat — `/api/chat`
+## 24. 💬 Chat — `/api/chat`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -320,16 +406,17 @@
 
 ---
 
-## 21. 📤 Upload — `/api/upload`
+## 25. 📤 Upload — `/api/upload`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
 | `POST` | `/api/upload/image` | Upload ảnh sản phẩm | Admin |
 | `POST` | `/api/upload/brand-logo` | Upload logo thương hiệu | Admin |
+| `POST` | `/api/upload/avatar` | Upload ảnh đại diện (avatar) | ✅ |
 
 ---
 
-## 22. ⚙️ Config — `/api/config`
+## 26. ⚙️ Config — `/api/config`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -340,7 +427,7 @@
 
 ---
 
-## 23. 🗺️ Region / Location — `/api/regions`, `/api/locations`
+## 27. 🗺️ Region / Location — `/api/regions`, `/api/locations`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -357,7 +444,7 @@
 
 ---
 
-## 24. 👥 Customer Group — `/api/customer-groups`
+## 28. 👥 Customer Group — `/api/customer-groups`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -366,14 +453,14 @@
 | `POST` | `/api/customer-groups` | Tạo nhóm | Admin |
 | `PUT` | `/api/customer-groups/{id}` | Cập nhật nhóm | Admin |
 | `DELETE` | `/api/customer-groups/{id}` | Xóa nhóm | Admin |
-| `POST` | `/api/customer-groups/{id}/assign/{userId}` | Thêm user vào nhóm | Admin |
-| `POST` | `/api/customer-groups/remove-user/{userId}` | Xóa user khỏi nhóm | Admin |
+
+> **Lưu ý**: Endpoint `assign/{userId}` và `remove-user/{userId}` không còn trong controller hiện tại.
 
 **Frontend**: [`customerApi.ts`](file:///d:/Java%20lean/TMDT/frontend/src/modules/customer/customerApi.ts)
 
 ---
 
-## 25. 💼 Commission — `/api/commissions`
+## 29. 💼 Commission — `/api/commissions`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -383,7 +470,7 @@
 
 ---
 
-## 26. 📊 Dashboard — `/api/dashboard`
+## 30. 📊 Dashboard — `/api/dashboard`
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
@@ -397,32 +484,37 @@
 
 | Module | Số endpoints |
 |--------|-------------|
-| Auth | 2 |
-| User | 10 |
-| Agency | 11 |
-| Product | 5 |
-| Attribute | 12 |
+| Auth | 3 |
+| User | 5 |
+| Agency | 9 |
+| Customer | 7 |
+| Product | 11 |
+| Product Type | 5 |
+| Attribute | 11 |
 | Category | 5 |
 | Brand | 5 |
-| Order | 11 |
-| Price List | 15 |
-| Price Voucher | 7 |
-| Price Assignment | 5 |
-| Customer Price | 9 |
-| Sales Policy | 8 |
+| Order | 10 |
+| Price List | 16 |
+| Price Update Voucher | 8 |
+| Price Override Voucher | 6 |
+| Price Assignment | 6 |
+| Customer Price | 8 |
+| Sales Policy | 7 |
 | Accumulation | 17 |
-| Credit | 11 |
+| Credit | 13 |
 | Agency Debt | 4 |
 | Loyalty | 2 |
+| Gamification | 24 |
 | Promotion | 6 |
 | Review | 6 |
 | Chat | 5 |
-| Upload | 2 |
+| Upload | 3 |
 | Config | 4 |
-| Region/Location | 7 |
-| Customer Group | 7 |
+| Region/Location | 8 |
+| Customer Group | 5 |
 | Commission | 3 |
 | Dashboard | 1 |
-| **Tổng** | **~180** |
+| **Tổng** | **~233** |
 
-> **Legend**: ✅ = Cần đăng nhập | Admin = Role ADMIN | Agency = Role AGENCY | Public = Không cần token
+
+> **Legend**: ✅ = Cần đăng nhập | Admin = Role ADMIN/COMPANY | Agency = Role AGENCY | Public = Không cần token

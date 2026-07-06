@@ -1,6 +1,7 @@
 package com.anhtin.tmdt.backend.modules.user.service;
 
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerRequest;
+import com.anhtin.tmdt.backend.modules.user.dto.UserProfileRequest;
 import com.anhtin.tmdt.backend.modules.user.dto.UserDTO;
 import com.anhtin.tmdt.backend.modules.user.entity.Role;
 import com.anhtin.tmdt.backend.modules.user.entity.User;
@@ -112,5 +113,25 @@ public class UserService {
         if (id == null) throw new RuntimeException("ID cannot be null");
         if (!userRepository.existsById(id)) throw new RuntimeException("User not found");
         userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public UserDTO updateProfile(Long id, UserProfileRequest request) {
+        if (id == null) throw new RuntimeException("ID cannot be null");
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.getEmail() != null) user.setEmail(request.getEmail());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getTaxCode() != null) user.setTaxCode(request.getTaxCode());
+        if (request.getOrganizationName() != null) user.setOrganizationName(request.getOrganizationName());
+        if (request.getShippingAddress() != null) user.setShippingAddress(request.getShippingAddress());
+        if (request.getBillingAddress() != null) user.setBillingAddress(request.getBillingAddress());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
+
+        return new UserDTO(userRepository.save(user));
     }
 }

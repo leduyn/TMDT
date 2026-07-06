@@ -129,17 +129,30 @@ export function CheckoutScreen({ navigation }: any) {
     setIsEditingInvoice(false);
   };
 
-  const handleInvoiceForCreator = () => {
+  const handleInvoiceForCreator = async () => {
     setInvoiceFor('creator');
-    const newName = user?.organizationName || '';
-    const newTaxCode = user?.taxCode || '';
-    const newAddress = user?.billingAddress || user?.shippingAddress || '';
-    setInvoiceName(newName);
-    setInvoiceTaxCode(newTaxCode);
-    setInvoiceAddress(newAddress);
-    setTempInvoiceName(newName);
-    setTempInvoiceTaxCode(newTaxCode);
-    setTempInvoiceAddress(newAddress);
+    try {
+      const agency = await agencyApi.getById(agencyId!);
+      const newName = agency.name || '';
+      const newTaxCode = agency.taxCode || '';
+      const newAddress = agency.billingAddress || agency.shippingAddress || '';
+      setInvoiceName(newName);
+      setInvoiceTaxCode(newTaxCode);
+      setInvoiceAddress(newAddress);
+      setTempInvoiceName(newName);
+      setTempInvoiceTaxCode(newTaxCode);
+      setTempInvoiceAddress(newAddress);
+    } catch {
+      const newName = user?.organizationName || '';
+      const newTaxCode = user?.taxCode || '';
+      const newAddress = user?.billingAddress || user?.shippingAddress || '';
+      setInvoiceName(newName);
+      setInvoiceTaxCode(newTaxCode);
+      setInvoiceAddress(newAddress);
+      setTempInvoiceName(newName);
+      setTempInvoiceTaxCode(newTaxCode);
+      setTempInvoiceAddress(newAddress);
+    }
   };
 
   const handleInvoiceForCustomer = () => {
@@ -204,10 +217,11 @@ export function CheckoutScreen({ navigation }: any) {
       };
 
       // Determine which API depending on user roles
+      let result: { message: string; orderId?: number };
       if (user?.role === 'ROLE_AGENCY') {
-        await orderApi.createByAgency(requestData);
+        result = await orderApi.createByAgency(requestData);
       } else {
-        await orderApi.create(requestData);
+        result = await orderApi.create(requestData);
       }
 
       setLoading(false);
@@ -219,7 +233,13 @@ export function CheckoutScreen({ navigation }: any) {
             text: 'Xem đơn hàng',
             onPress: () => {
               clearCart();
-              // Reset to main dashboard stack
+              navigation.replace('OrderDetail', { orderId: result.orderId });
+            }
+          },
+          {
+            text: 'Về trang chủ',
+            onPress: () => {
+              clearCart();
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'MainTabs' }],

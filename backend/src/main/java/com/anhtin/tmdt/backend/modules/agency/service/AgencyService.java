@@ -1,5 +1,6 @@
 package com.anhtin.tmdt.backend.modules.agency.service;
 
+import com.anhtin.tmdt.backend.modules.agency.dto.AgencyCustomerDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRequest;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
@@ -21,7 +22,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -264,6 +268,7 @@ public class AgencyService {
             if (request.getReceiverName() != null) agency.setReceiverName(request.getReceiverName());
             if (request.getReceiverPhone() != null) agency.setReceiverPhone(request.getReceiverPhone());
             if (request.getNickname() != null) agency.setNickname(request.getNickname());
+            if (request.getAvatarUrl() != null) agency.setAvatarUrl(request.getAvatarUrl());
         } else {
             if (request.getCode() != null) agency.setCode(request.getCode());
             if (request.getName() != null) agency.setName(request.getName());
@@ -275,6 +280,7 @@ public class AgencyService {
             if (request.getReceiverPhone() != null) agency.setReceiverPhone(request.getReceiverPhone());
             if (request.getNickname() != null) agency.setNickname(request.getNickname());
             if (request.getPhone() != null) agency.setPhone(request.getPhone());
+            if (request.getAvatarUrl() != null) agency.setAvatarUrl(request.getAvatarUrl());
             if (request.getPassword() != null && !request.getPassword().isBlank()) {
                 agency.setPassword(passwordEncoder.encode(request.getPassword()));
             }
@@ -297,5 +303,23 @@ public class AgencyService {
         return agencyRepository.findByPhone(phone)
                 .map(AgencyDTO::new)
                 .orElseThrow(() -> new RuntimeException("Agency not found"));
+    }
+
+    public List<AgencyCustomerDTO> getAgencyCustomers(Long agencyId) {
+        List<AgencyCustomerDTO> result = new ArrayList<>();
+        Set<Long> addedIds = new HashSet<>();
+
+        agencyCustomerAssignmentRepository.findByAgencyId(agencyId).forEach(a -> {
+            result.add(new AgencyCustomerDTO(a, a.getCustomer()));
+            addedIds.add(a.getCustomer().getId());
+        });
+
+        customerRepository.findByAgencyId(agencyId).forEach(c -> {
+            if (!addedIds.contains(c.getId())) {
+                result.add(new AgencyCustomerDTO(null, c));
+            }
+        });
+
+        return result;
     }
 }

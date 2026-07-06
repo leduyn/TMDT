@@ -1,5 +1,6 @@
 package com.anhtin.tmdt.backend.modules.agency.controller;
 
+import com.anhtin.tmdt.backend.modules.agency.dto.AgencyCustomerDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRequest;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
@@ -89,5 +90,11 @@ public class AgencyController {
         com.anhtin.tmdt.backend.security.services.AgencyUserDetails agencyDetails =
                 (com.anhtin.tmdt.backend.security.services.AgencyUserDetails) auth.getPrincipal();
         return agencyService.getAgencyById(agencyDetails.getId());
+    }
+
+    @GetMapping("/{id}/customers")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
+    public List<AgencyCustomerDTO> getAgencyCustomers(@PathVariable Long id) {
+        return agencyService.getAgencyCustomers(id);
     }
 }

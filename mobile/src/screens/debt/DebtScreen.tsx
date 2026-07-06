@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
-  ActivityIndicator, Alert, Animated, Platform, Dimensions, StatusBar,
+  ActivityIndicator, Alert, Animated, Platform, Dimensions, StatusBar, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { creditApi } from '../../api/credit';
 import { agencyApi } from '../../api/agency';
 import { useAuth } from '../../context/AuthContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
+import { resolveImageUrl } from '../../utils';
 import type { AgencyDebtDTO, CreditDetailResponse } from '../../types';
 
 const { width } = Dimensions.get('window');
@@ -184,9 +185,13 @@ export function DebtScreen({ navigation }: any) {
           <Text style={styles.headerTitle}>Công nợ & Tín dụng</Text>
         </View>
         <TouchableOpacity style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
-            {user?.username ? user.username.substring(0, 2).toUpperCase() : 'MP'}
-          </Text>
+          {user?.avatarUrl ? (
+            <Image source={{ uri: resolveImageUrl(user.avatarUrl) }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>
+              {user?.username ? user.username.substring(0, 2).toUpperCase() : 'MP'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -272,9 +277,13 @@ export function DebtScreen({ navigation }: any) {
           <Text style={styles.agencyLabel}>THÔNG TIN ĐẠI LÝ</Text>
           <View style={styles.agencyRow}>
             <View style={styles.agencyAvatar}>
-              <Text style={styles.agencyAvatarText}>
-                {user?.username ? user.username.substring(0, 2).toUpperCase() : 'MP'}
-              </Text>
+              {user?.avatarUrl ? (
+                <Image source={{ uri: resolveImageUrl(user.avatarUrl) }} style={styles.agencyAvatarImage} />
+              ) : (
+                <Text style={styles.agencyAvatarText}>
+                  {user?.username ? user.username.substring(0, 2).toUpperCase() : 'MP'}
+                </Text>
+              )}
             </View>
             <View style={styles.agencyInfo}>
               <Text style={styles.agencyName}>
@@ -326,7 +335,7 @@ export function DebtScreen({ navigation }: any) {
             const overdueDays = daysOverdue(debt.dueDate);
             const badge = debt.debtType ? debtTypeBadge[debt.debtType] : null;
             return (
-              <TouchableOpacity key={debt.id} style={styles.invoiceCard} activeOpacity={0.7}>
+              <TouchableOpacity key={debt.id} style={styles.invoiceCard} activeOpacity={0.7} onPress={() => debt.orderId && navigation.navigate('OrderDetail', { orderId: debt.orderId })}>
                 <View style={styles.invoiceLeft}>
                   <View style={[
                     styles.invoiceIcon,
@@ -385,7 +394,7 @@ export function DebtScreen({ navigation }: any) {
               </View>
             </View>
             {credit.overdueDebts.map((od) => (
-              <TouchableOpacity key={od.id} style={styles.overdueCard} activeOpacity={0.7}>
+              <TouchableOpacity key={od.id} style={styles.overdueCard} activeOpacity={0.7} onPress={() => od.orderId && navigation.navigate('OrderDetail', { orderId: od.orderId })}>
                 <View style={styles.overdueRow}>
                   <Text style={styles.overdueOrderId}>Đơn hàng #{od.orderId}</Text>
                   <Text style={styles.overdueTotal}>
@@ -535,6 +544,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   avatarText: {
     fontSize: FontSize.xs,
@@ -753,6 +768,12 @@ const styles = StyleSheet.create({
     borderColor: '#adc7f7',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  agencyAvatarImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   agencyAvatarText: {
     fontSize: FontSize.lg,

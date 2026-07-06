@@ -62,9 +62,14 @@ public class AuthController {
                 .collect(Collectors.toList());
 
         Long agencyId = null;
+        String avatarUrl = null;
         if (roles.contains("ROLE_AGENCY")) {
             agencyId = agencyRepository.findByPhone(userDetails.getUsername())
                     .map(Agency::getId)
+                    .orElse(null);
+        } else {
+            avatarUrl = userRepository.findById(userDetails.getId())
+                    .map(User::getAvatarUrl)
                     .orElse(null);
         }
 
@@ -74,7 +79,8 @@ public class AuthController {
                 userDetails.getEmail(),
                 roles,
                 agencyId,
-                userDetails.getShippingAddress()));
+                userDetails.getShippingAddress(),
+                avatarUrl));
     }
 
     @PostMapping("/agency/signin")
@@ -115,7 +121,8 @@ public class AuthController {
                 roles,
                 agency.getId(),
                 agency.getStatus().name(),
-                agency.getType().name()));
+                agency.getType().name(),
+                agency.getAvatarUrl()));
     }
 
     @PostMapping("/signup")

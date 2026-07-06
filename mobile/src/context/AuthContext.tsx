@@ -73,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: res.roles?.[0] || '',
         agencyId: res.agencyId,
         shippingAddress: res.shippingAddress,
+        avatarUrl: res.avatarUrl,
       } as UserDTO;
     }
     await AsyncStorage.setItem('user', JSON.stringify(fullUser));
@@ -98,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       agencyId: res.agencyId,
       displayName: res.name || res.username,
       phone: res.phone || data.phone,
+      avatarUrl: res.avatarUrl,
     };
     await AsyncStorage.setItem('user', JSON.stringify(fullUser));
     setToken(res.token);

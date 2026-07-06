@@ -1,18 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, StatusBar
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, StatusBar, Image, Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { userApi } from '../../api/auth';
+import { agencyApi, type AgencyDTO } from '../../api/agency';
+import { uploadApi } from '../../api/upload';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
+import { resolveImageUrl } from '../../utils';
 import type { UserDTO } from '../../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function ProfileScreen({ navigation }: any) {
   const { user, logout, userRole } = useAuth();
   const [profile, setProfile] = useState<UserDTO | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
@@ -26,6 +32,39 @@ export function ProfileScreen({ navigation }: any) {
       setProfile(data);
     } catch {} finally {
       setLoading(false);
+    }
+  };
+
+  const pickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh để đổi avatar');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    setSaving(true);
+    try {
+      const { url } = await uploadApi.uploadAvatar(result.assets[0].uri, result.assets[0].mimeType);
+      const aid = profile?.agencyId || user?.agencyId;
+      if (userRole === 'AGENCY' && aid) {
+        await agencyApi.update(aid, { avatarUrl: url });
+      } else {
+        await userApi.updateProfile({ avatarUrl: url });
+      }
+      const updated = { ...(profile || (user as UserDTO)), avatarUrl: url };
+      setProfile(updated);
+      await AsyncStorage.setItem('user', JSON.stringify(updated));
+      Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện');
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể tải ảnh lên');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -67,11 +106,22 @@ export function ProfileScreen({ navigation }: any) {
       </View>
       <ScrollView style={styles.container}>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(profile?.username || user?.username || '?')[0].toUpperCase()}
-            </Text>
-          </View>
+          <TouchableOpacity style={styles.avatarWrapper} onPress={pickAvatar} disabled={saving}>
+            {saving ? (
+              <ActivityIndicator size="large" color={Colors.primary} style={styles.avatarLoading} />
+            ) : profile?.avatarUrl || user?.avatarUrl ? (
+              <Image source={{ uri: resolveImageUrl(profile?.avatarUrl || user?.avatarUrl) }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {(profile?.username || user?.username || '?')[0].toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.avatarOverlay}>
+              <Ionicons name="camera" size={20} color={Colors.white} />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.name}>{profile?.username || user?.username}</Text>
           <Text style={styles.role}>
             {userRole === 'ADMIN' ? 'Quản trị viên' : userRole === 'AGENCY' ? 'Đại lý' : 'Khách hàng'}
@@ -155,6 +205,32 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     ...Shadow.md,
   },
+  avatarWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: Spacing.md,
+    position: 'relative',
+  },
+  avatarLoading: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primaryLight,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
   avatar: {
     width: 80,
     height: 80,
@@ -165,6 +241,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   avatarText: { fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white },
+  avatarImage: { width: 80, height: 80, borderRadius: 40, marginBottom: Spacing.md },
   name: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: Colors.textPrimary },
   role: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
   section: {

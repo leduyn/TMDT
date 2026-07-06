@@ -69,6 +69,15 @@ public class Order {
     @Column(name = "order_source", length = 100)
     private String orderSource;
 
+    @Column(name = "invoice_name")
+    private String invoiceName;
+
+    @Column(name = "invoice_tax_code")
+    private String invoiceTaxCode;
+
+    @Column(name = "invoice_address", columnDefinition = "TEXT")
+    private String invoiceAddress;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
@@ -114,6 +123,12 @@ public class Order {
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
     public String getOrderSource() { return orderSource; }
     public void setOrderSource(String orderSource) { this.orderSource = orderSource; }
+    public String getInvoiceName() { return invoiceName; }
+    public void setInvoiceName(String invoiceName) { this.invoiceName = invoiceName; }
+    public String getInvoiceTaxCode() { return invoiceTaxCode; }
+    public void setInvoiceTaxCode(String invoiceTaxCode) { this.invoiceTaxCode = invoiceTaxCode; }
+    public String getInvoiceAddress() { return invoiceAddress; }
+    public void setInvoiceAddress(String invoiceAddress) { this.invoiceAddress = invoiceAddress; }
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }

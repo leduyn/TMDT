@@ -3,7 +3,8 @@ import { API_BASE } from './api/client';
 export const resolveImageUrl = (url?: string): string | undefined => {
   if (!url) return undefined;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `${API_BASE}${url}`;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${API_BASE}${path}`;
 };
 
 export const formatPrice = (price: number | null | undefined): string => {

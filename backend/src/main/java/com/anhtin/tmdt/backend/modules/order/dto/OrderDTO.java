@@ -28,6 +28,9 @@ public class OrderDTO {
     private String createdByName;
     private Integer debtTermDays;
     private LocalDateTime updatedDate;
+    private String invoiceName;
+    private String invoiceTaxCode;
+    private String invoiceAddress;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -73,4 +76,10 @@ public class OrderDTO {
     public void setDebtTermDays(Integer debtTermDays) { this.debtTermDays = debtTermDays; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
+    public String getInvoiceName() { return invoiceName; }
+    public void setInvoiceName(String invoiceName) { this.invoiceName = invoiceName; }
+    public String getInvoiceTaxCode() { return invoiceTaxCode; }
+    public void setInvoiceTaxCode(String invoiceTaxCode) { this.invoiceTaxCode = invoiceTaxCode; }
+    public String getInvoiceAddress() { return invoiceAddress; }
+    public void setInvoiceAddress(String invoiceAddress) { this.invoiceAddress = invoiceAddress; }
 }

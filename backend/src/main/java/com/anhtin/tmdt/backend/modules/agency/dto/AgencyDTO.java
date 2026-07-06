@@ -19,6 +19,7 @@ public class AgencyDTO {
     private String type;
     private boolean hasHmn;
     private Double hmnAmount;
+    private String avatarUrl;
     private String createdAt;
 
     public AgencyDTO() {}
@@ -40,6 +41,7 @@ public class AgencyDTO {
         this.type = agency.getType() != null ? agency.getType().name() : null;
         this.hasHmn = agency.isHasHmn();
         this.hmnAmount = agency.getHmnAmount();
+        this.avatarUrl = agency.getAvatarUrl();
         this.createdAt = agency.getCreatedAt() != null ? agency.getCreatedAt().toString() : null;
     }
 
@@ -75,6 +77,8 @@ public class AgencyDTO {
     public void setHasHmn(boolean hasHmn) { this.hasHmn = hasHmn; }
     public Double getHmnAmount() { return hmnAmount; }
     public void setHmnAmount(Double hmnAmount) { this.hmnAmount = hmnAmount; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

@@ -6,17 +6,18 @@ export interface AgencyDTO {
   name: string;
   representativeName?: string;
   taxCode?: string;
-  billingAddress?: string;
   shippingAddress?: string;
+  billingAddress?: string;
   receiverName?: string;
   receiverPhone?: string;
   nickname?: string;
-  phone: string;
+  phone?: string;
   active: boolean;
-  status: string;
+  status?: string;
   type?: string;
   hasHmn?: boolean;
   hmnAmount?: number;
+  avatarUrl?: string;
   createdAt?: string;
 }
 

@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import NotificationModal from '@/components/NotificationModal';
-import { agencyApi } from '@/lib/api';
+import { agencyApi, uploadApi } from '@/lib/api';
+import { resolveImageUrl } from '@/lib/utils';
 
 import PageHeader from '@/components/ui/PageHeader';
 import GlassCard from '@/components/ui/GlassCard';
 import Main from '@/components/Main';
+import ImageUploader from '@/modules/common/components/ImageUploader';
 import { User, ShieldCheck, Building, MapPin, Save, Smartphone, UserCircle } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -29,7 +31,8 @@ export default function ProfilePage() {
     shippingAddress: '',
     billingAddress: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    avatarUrl: ''
   });
 
   useEffect(() => {
@@ -50,7 +53,8 @@ export default function ProfilePage() {
               shippingAddress: data.shippingAddress || '',
               billingAddress: data.billingAddress || '',
               password: '',
-              confirmPassword: ''
+              confirmPassword: '',
+              avatarUrl: data.avatarUrl || ''
             });
           })
         : fetch('/api/users/me', {
@@ -65,7 +69,8 @@ export default function ProfilePage() {
               shippingAddress: data.shippingAddress || '',
               billingAddress: data.billingAddress || '',
               password: '',
-              confirmPassword: ''
+              confirmPassword: '',
+              avatarUrl: data.avatarUrl || ''
             });
           });
 
@@ -91,7 +96,7 @@ export default function ProfilePage() {
         ? `/api/agencies/${profile.id}`
         : '/api/users/profile';
       const body = isAgency
-        ? { taxCode: formData.taxCode, shippingAddress: formData.shippingAddress, billingAddress: formData.billingAddress, phone: formData.phone }
+        ? { taxCode: formData.taxCode, shippingAddress: formData.shippingAddress, billingAddress: formData.billingAddress, phone: formData.phone, avatarUrl: formData.avatarUrl || undefined }
         : formData;
 
       const res = await fetch(endpoint, {
@@ -127,7 +132,19 @@ export default function ProfilePage() {
         icon="User"
       />
 
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 24, marginTop: 32 }}>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <div style={{ width: 200 }}>
+            <ImageUploader
+              label="Ảnh đại diện"
+              value={formData.avatarUrl}
+              onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
+              uploadFn={uploadApi.uploadAvatar}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <GlassCard style={{ padding: 32 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -230,6 +247,7 @@ export default function ProfilePage() {
             <Save size={20} />
             {saving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
           </button>
+        </div>
         </div>
       </form>
 

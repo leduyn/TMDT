@@ -51,6 +51,8 @@ public class Agency {
     @Column(name = "hmn_amount")
     private Double hmnAmount = 0.0;
 
+    private String avatarUrl;
+
     private boolean active = false;
 
     @Column(name = "created_at")
@@ -88,6 +90,8 @@ public class Agency {
     public void setHasHmn(boolean hasHmn) { this.hasHmn = hasHmn; }
     public Double getHmnAmount() { return hmnAmount; }
     public void setHmnAmount(Double hmnAmount) { this.hmnAmount = hmnAmount; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public LocalDateTime getCreatedAt() { return createdAt; }

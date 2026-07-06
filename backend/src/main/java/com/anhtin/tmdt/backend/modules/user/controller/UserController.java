@@ -1,9 +1,12 @@
 package com.anhtin.tmdt.backend.modules.user.controller;
 
 import com.anhtin.tmdt.backend.modules.user.dto.UserDTO;
+import com.anhtin.tmdt.backend.modules.user.dto.UserProfileRequest;
 import com.anhtin.tmdt.backend.modules.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,5 +48,17 @@ public class UserController {
     @PreAuthorize("hasRole('COMPANY')")
     public void deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
+    }
+
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public UserDTO updateProfile(@RequestBody UserProfileRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth.getPrincipal() instanceof com.anhtin.tmdt.backend.security.services.UserDetailsImpl) {
+            com.anhtin.tmdt.backend.security.services.UserDetailsImpl userDetails =
+                    (com.anhtin.tmdt.backend.security.services.UserDetailsImpl) auth.getPrincipal();
+            return userService.updateProfile(userDetails.getId(), request);
+        }
+        throw new RuntimeException("Không hỗ trợ cập nhật profile cho tài khoản đại lý");
     }
 }

@@ -20,6 +20,7 @@ public class UserDTO {
     private Long agencyId;
     private List<Long> agencyIds;
     private List<String> agencyNames;
+    private String avatarUrl;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -51,6 +52,8 @@ public class UserDTO {
     public void setAgencyIds(List<Long> agencyIds) { this.agencyIds = agencyIds; }
     public List<String> getAgencyNames() { return agencyNames; }
     public void setAgencyNames(List<String> agencyNames) { this.agencyNames = agencyNames; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public UserDTO() {}
 
@@ -63,6 +66,7 @@ public class UserDTO {
         this.organizationName = user.getOrganizationName();
         this.taxCode = user.getTaxCode();
         this.phone = user.getPhone();
+        this.avatarUrl = user.getAvatarUrl();
         this.shippingAddress = user.getShippingAddress();
         this.billingAddress = user.getBillingAddress();
         if (user.getCustomerGroup() != null) {

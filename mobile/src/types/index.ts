@@ -30,6 +30,7 @@ export interface JwtResponse {
   code?: string;
   agencyStatus?: string;
   agencyType?: string;
+  avatarUrl?: string;
 }
 
 export interface UserDTO {
@@ -54,6 +55,7 @@ export interface UserDTO {
   customShippingAddress?: string;
   customPhone?: string;
   totalDebt?: number;
+  avatarUrl?: string;
 }
 
 export interface CategoryDTO {
@@ -147,6 +149,9 @@ export interface OrderDTO {
   orderSource?: string;
   createdByName?: string;
   updatedDate?: string;
+  invoiceName?: string;
+  invoiceTaxCode?: string;
+  invoiceAddress?: string;
 }
 
 export type OrderStatus = 'NEW' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'PENDING_PAYMENT';
