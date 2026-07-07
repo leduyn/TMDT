@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Badge from './ui/Badge';
-import { 
+import {
   ChevronLeft, 
   ChevronRight, 
   ShoppingBag, 
@@ -25,6 +25,7 @@ import {
   Trophy,
   Home,
   Timer,
+  HelpCircle,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -70,6 +71,7 @@ export default function Sidebar() {
     { label: 'Công nợ', href: '/credit/debts', icon: ClipboardList, roles: ['ROLE_COMPANY', 'ROLE_AGENCY', 'ROLE_ACCOUNTANT'] },
     { label: 'Tích điểm & Vinh danh', href: '/dashboard/loyalty', icon: Trophy, roles: ['ROLE_USER'] },
     { label: 'Tích lũy', href: '/accumulation-programs', icon: ShieldCheck, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Khảo sát', href: '/survey', icon: HelpCircle, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Cài đặt', href: '/settings', icon: Settings, roles: ['ROLE_COMPANY'] },
   ];
 
