@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [catLevelLoading, setCatLevelLoading] = useState(true);
   const [catLevelSaving, setCatLevelSaving] = useState(false);
   const [catLevelMessage, setCatLevelMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [levelNames, setLevelNames] = useState<Record<number, string>>({});
 
   // Redirect if not COMPANY role
   useEffect(() => {
@@ -94,16 +95,25 @@ export default function SettingsPage() {
   const loadCatLevel = useCallback(async () => {
     try {
       setCatLevelLoading(true);
-      const res = await fetch(`${API_BASE}/api/config/registration-category-level`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const level: number = await res.json();
+      const [levelRes, namesRes] = await Promise.all([
+        fetch(`${API_BASE}/api/config/registration-category-level`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        fetch(`${API_BASE}/api/categories/levels`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+      ]);
+      if (levelRes.ok) {
+        const level: number = await levelRes.json();
         setCatLevel(level);
         setCatLevelInput(String(level));
       }
+      if (namesRes.ok) {
+        const names: Record<number, string> = await namesRes.json();
+        setLevelNames(names);
+      }
     } catch {
-      // use default
+      // use defaults
     } finally {
       setCatLevelLoading(false);
     }
@@ -115,8 +125,8 @@ export default function SettingsPage() {
 
   const handleSaveCatLevel = async () => {
     const level = parseInt(catLevelInput, 10);
-    if (isNaN(level) || level < 1 || level > 10) {
-      setCatLevelMessage({ type: 'error', text: 'Cấp danh mục phải từ 1 đến 10.' });
+    if (isNaN(level) || level < 0) {
+      setCatLevelMessage({ type: 'error', text: 'Vui lòng chọn cấp danh mục hợp lệ.' });
       return;
     }
 
@@ -606,8 +616,12 @@ export default function SettingsPage() {
                 fontSize: '1.4rem', fontWeight: 700, color: '#10b981',
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                {catLevel}
-                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-secondary)' }}>cấp</span>
+                <span>Cấp {catLevel}</span>
+                {levelNames[catLevel] && (
+                  <span style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                    - {levelNames[catLevel]}
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -619,41 +633,27 @@ export default function SettingsPage() {
                 fontSize: '0.82rem', fontWeight: 600,
                 color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em',
               }}>
-                Nhập cấp danh mục (1-10)
+                Chọn cấp danh mục
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={catLevelInput}
-                  onChange={e => setCatLevelInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveCatLevel()}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    borderRadius: '8px 0 0 8px',
-                    border: '1.5px solid var(--border)',
-                    borderRight: 'none',
-                    background: 'var(--surface)',
-                    color: 'var(--text)',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                  }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
-                />
-                <span style={{
-                  padding: '10px 14px',
-                  border: '1.5px solid var(--border)',
-                  borderLeft: 'none', borderRadius: '0 8px 8px 0',
-                  background: 'rgba(0,0,0,0.15)',
-                  color: 'var(--text-muted)', fontSize: '0.9rem', whiteSpace: 'nowrap',
-                }}>
-                  cấp
-                </span>
-              </div>
+              <select
+                value={catLevelInput}
+                onChange={e => setCatLevelInput(e.target.value)}
+                style={{
+                  width: '100%', padding: '10px 14px', borderRadius: 8,
+                  border: '1.5px solid var(--border)', background: 'var(--surface)',
+                  color: 'var(--text)', fontSize: '0.95rem', outline: 'none',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                {Object.entries(levelNames)
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([level, name]) => (
+                    <option key={level} value={level}>
+                      Cấp {level} - {name}
+                    </option>
+                  ))}
+              </select>
             </div>
             <button
               onClick={handleSaveCatLevel}
