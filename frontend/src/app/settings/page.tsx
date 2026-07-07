@@ -32,6 +32,13 @@ export default function SettingsPage() {
   const [trendSaving, setTrendSaving] = useState(false);
   const [trendMessage, setTrendMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Registration category level config
+  const [catLevel, setCatLevel] = useState<number>(1);
+  const [catLevelInput, setCatLevelInput] = useState<string>('1');
+  const [catLevelLoading, setCatLevelLoading] = useState(true);
+  const [catLevelSaving, setCatLevelSaving] = useState(false);
+  const [catLevelMessage, setCatLevelMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Redirect if not COMPANY role
   useEffect(() => {
     if (!isLoading && !user) {
@@ -82,6 +89,63 @@ export default function SettingsPage() {
   useEffect(() => {
     if (user && token) loadTrendConfig();
   }, [user, token, loadTrendConfig]);
+
+  // Load registration category level
+  const loadCatLevel = useCallback(async () => {
+    try {
+      setCatLevelLoading(true);
+      const res = await fetch(`${API_BASE}/api/config/registration-category-level`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const level: number = await res.json();
+        setCatLevel(level);
+        setCatLevelInput(String(level));
+      }
+    } catch {
+      // use default
+    } finally {
+      setCatLevelLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (user && token) loadCatLevel();
+  }, [user, token, loadCatLevel]);
+
+  const handleSaveCatLevel = async () => {
+    const level = parseInt(catLevelInput, 10);
+    if (isNaN(level) || level < 1 || level > 10) {
+      setCatLevelMessage({ type: 'error', text: 'Cấp danh mục phải từ 1 đến 10.' });
+      return;
+    }
+
+    setCatLevelSaving(true);
+    setCatLevelMessage(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/config/registration-category-level`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ level }),
+      });
+
+      if (res.ok) {
+        setCatLevel(level);
+        setCatLevelMessage({ type: 'success', text: `✅ Đã cập nhật: cấp danh mục đăng ký là cấp ${level}.` });
+      } else {
+        const err = await res.text();
+        setCatLevelMessage({ type: 'error', text: `❌ Lỗi: ${err || res.statusText}` });
+      }
+    } catch {
+      setCatLevelMessage({ type: 'error', text: '❌ Không thể kết nối đến máy chủ.' });
+    } finally {
+      setCatLevelSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     const days = parseInt(inputDays, 10);
@@ -501,6 +565,127 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
+          )}
+        </div>
+
+        {/* Registration Category Level Card */}
+        <div className="glass-card fade-in-up" style={{ padding: 32, marginBottom: 24, animationDelay: '0.15s' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 10,
+              background: 'rgba(16,185,129,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, border: '1px solid rgba(16,185,129,0.3)', flexShrink: 0,
+            }}>📂</div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>
+                Cấp danh mục đăng ký đại lý
+              </h2>
+              <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                Khi đại lý đăng ký, hệ thống sẽ hiển thị danh mục sản phẩm ở cấp độ này để đại lý chọn.
+                Ví dụ: cấp 1 là danh mục cha, cấp 2 là danh mục con, v.v.
+              </p>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24,
+            padding: '16px 20px',
+            background: 'rgba(16,185,129,0.08)', borderRadius: 10,
+            border: '1px solid rgba(16,185,129,0.2)',
+          }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Cấp hiện tại:</span>
+            {catLevelLoading ? (
+              <div style={{
+                width: 20, height: 20,
+                border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
+                borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+              }} />
+            ) : (
+              <span style={{
+                fontSize: '1.4rem', fontWeight: 700, color: '#10b981',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {catLevel}
+                <span style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-secondary)' }}>cấp</span>
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{
+                display: 'block', marginBottom: 8,
+                fontSize: '0.82rem', fontWeight: 600,
+                color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>
+                Nhập cấp danh mục (1-10)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={catLevelInput}
+                  onChange={e => setCatLevelInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveCatLevel()}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    borderRadius: '8px 0 0 8px',
+                    border: '1.5px solid var(--border)',
+                    borderRight: 'none',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+                />
+                <span style={{
+                  padding: '10px 14px',
+                  border: '1.5px solid var(--border)',
+                  borderLeft: 'none', borderRadius: '0 8px 8px 0',
+                  background: 'rgba(0,0,0,0.15)',
+                  color: 'var(--text-muted)', fontSize: '0.9rem', whiteSpace: 'nowrap',
+                }}>
+                  cấp
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveCatLevel}
+              disabled={catLevelSaving || catLevelLoading}
+              style={{
+                padding: '10px 28px', borderRadius: 8, cursor: 'pointer',
+                border: 'none',
+                background: catLevelSaving
+                  ? 'rgba(99,102,241,0.5)'
+                  : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: 'white', fontWeight: 600, fontSize: '0.95rem',
+                boxShadow: catLevelSaving ? 'none' : '0 4px 14px rgba(99,102,241,0.4)',
+                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {catLevelSaving ? '⏳ Đang lưu...' : '💾 Lưu cài đặt'}
+            </button>
+          </div>
+
+          {catLevelMessage && (
+            <div style={{
+              marginTop: 16, padding: '12px 16px', borderRadius: 8,
+              background: catLevelMessage.type === 'success'
+                ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+              border: `1px solid ${catLevelMessage.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+              color: catLevelMessage.type === 'success' ? '#10b981' : '#ef4444',
+              fontSize: '0.9rem', fontWeight: 500,
+              animation: 'fadeIn 0.3s ease',
+            }}>
+              {catLevelMessage.text}
+            </div>
           )}
         </div>
 
