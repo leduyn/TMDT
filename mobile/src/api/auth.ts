@@ -1,5 +1,5 @@
 import { fetchJSON } from './client';
-import type { LoginRequest, AgencyLoginRequest, RegisterRequest, JwtResponse, UserDTO } from '../types';
+import type { LoginRequest, AgencyLoginRequest, RegisterRequest, AgencyRegisterRequest, JwtResponse, UserDTO } from '../types';
 
 export const authApi = {
   login: (data: LoginRequest) =>
@@ -14,6 +14,11 @@ export const authApi = {
     }),
   register: (data: RegisterRequest) =>
     fetchJSON<{ message: string }>('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  registerAgency: (data: AgencyRegisterRequest) =>
+    fetchJSON<{ message: string }>('/api/auth/agency/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

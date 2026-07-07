@@ -5,7 +5,7 @@ import {
 import { productApi } from '../../api/product';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ProductCard } from '../../components/ProductCard';
+import { ProductCardHorizontal } from '../../components/ProductCardHorizontal';
 import type { ProductDTO } from '../../types';
 
 export function ProductListScreen({ route, navigation }: any) {
@@ -52,7 +52,7 @@ export function ProductListScreen({ route, navigation }: any) {
         data={products}
         keyExtractor={item => String(item.id)}
         renderItem={({ item }) => (
-          <ProductCard
+          <ProductCardHorizontal
             product={item}
             onPress={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
             onAddToCart={handleAddToCart}

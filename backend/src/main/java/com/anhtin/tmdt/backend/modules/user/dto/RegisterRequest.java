@@ -24,6 +24,8 @@ public class RegisterRequest {
     private String shippingAddress;
     private String billingAddress;
     private String role; // "AGENCY", "SYSTEM"
+    private String representativeName;
+    private String referralCode;
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
@@ -51,4 +53,10 @@ public class RegisterRequest {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getRepresentativeName() { return representativeName; }
+    public void setRepresentativeName(String representativeName) { this.representativeName = representativeName; }
+
+    public String getReferralCode() { return referralCode; }
+    public void setReferralCode(String referralCode) { this.referralCode = referralCode; }
 }

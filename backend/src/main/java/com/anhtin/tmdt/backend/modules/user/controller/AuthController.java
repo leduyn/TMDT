@@ -11,8 +11,10 @@ import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import com.anhtin.tmdt.backend.security.jwt.JwtUtils;
 import com.anhtin.tmdt.backend.security.services.UserDetailsImpl;
 import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
+import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
 import com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyType;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,6 +127,54 @@ public class AuthController {
                 agency.getAvatarUrl()));
     }
 
+    @PostMapping("/agency/signup")
+    public ResponseEntity<?> registerAgency(@Valid @RequestBody AgencyRegisterRequest request) {
+        if (agencyRepository.findByPhone(request.getPhone()).isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Số điện thoại đã được đăng ký!"));
+        }
+        if (agencyRepository.findByCode(request.getCode()).isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Mã khách hàng đã tồn tại!"));
+        }
+        if (agencyRepository.findByEmail(request.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Email đã được sử dụng!"));
+        }
+
+        Agency agency = new Agency();
+        agency.setCode(request.getCode());
+        agency.setName(request.getName());
+        agency.setEmail(request.getEmail());
+        agency.setPhone(request.getPhone());
+        agency.setPassword(encoder.encode(request.getPassword()));
+        agency.setRepresentativeName(request.getRepresentativeName());
+        agency.setTaxCode(request.getTaxCode());
+        agency.setBillingAddress(request.getBillingAddress());
+        agency.setShippingAddress(request.getShippingAddress());
+        agency.setReferralCode(request.getReferralCode());
+        agency.setStatus(AgencyStatus.PENDING);
+        agency.setType(AgencyType.RETAIL);
+        agency.setActive(false);
+        agencyRepository.save(agency);
+
+        AgencyUserDetails agencyDetails = AgencyUserDetails.build(agency);
+        String jwt = jwtUtils.generateJwtTokenFromAgency(agencyDetails);
+
+        List<String> roles = List.of("ROLE_AGENCY");
+
+        return ResponseEntity.ok(new JwtResponse(jwt,
+                agency.getId(),
+                agency.getPhone(),
+                agency.getName(),
+                agency.getCode(),
+                roles,
+                agency.getId(),
+                agency.getStatus().name(),
+                agency.getType().name(),
+                agency.getAvatarUrl()));
+    }
+
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest signUpRequest) {
         if (userRepository.findByUsername(signUpRequest.getUsername()).isPresent()) {
@@ -144,6 +194,12 @@ public class AuthController {
         user.setEmail(signUpRequest.getEmail());
         user.setPhone(signUpRequest.getPhone());
         user.setPassword(encoder.encode(signUpRequest.getPassword()));
+        user.setOrganizationName(signUpRequest.getOrganizationName());
+        user.setTaxCode(signUpRequest.getTaxCode());
+        user.setBillingAddress(signUpRequest.getBillingAddress());
+        user.setShippingAddress(signUpRequest.getShippingAddress());
+        user.setRepresentativeName(signUpRequest.getRepresentativeName());
+        user.setReferralCode(signUpRequest.getReferralCode());
 
         String roleStr = signUpRequest.getRole();
         Role userRole;

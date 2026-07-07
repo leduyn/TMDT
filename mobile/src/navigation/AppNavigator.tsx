@@ -11,6 +11,7 @@ import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { CategoryListScreen } from '../screens/products/CategoryListScreen';
+import { CategoryProductsScreen } from '../screens/products/CategoryProductsScreen';
 import { ProductListScreen } from '../screens/products/ProductListScreen';
 import { ProductDetailScreen } from '../screens/products/ProductDetailScreen';
 import { CartScreen } from '../screens/cart/CartScreen';
@@ -83,11 +84,16 @@ export function AppNavigator() {
           </>
         ) : (
           <>
-            <Stack.Screen name="MainTabs" component={HomeTabs} options={{ headerShown: false }} />
+            <Stack.Screen name="MainTabs" component={HomeTabs} options={{ headerShown: false, title: '' }} />
             <Stack.Screen
               name="CategoryList"
               component={CategoryListScreen}
               options={{ title: 'Danh mục sản phẩm' }}
+            />
+            <Stack.Screen
+              name="CategoryProducts"
+              component={CategoryProductsScreen}
+              options={{ title: 'Sản phẩm' }}
             />
             <Stack.Screen
               name="ProductList"

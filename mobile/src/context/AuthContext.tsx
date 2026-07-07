@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, userApi } from '../api/auth';
-import type { LoginRequest, AgencyLoginRequest, RegisterRequest, JwtResponse, UserDTO } from '../types';
+import type { LoginRequest, AgencyLoginRequest, RegisterRequest, AgencyRegisterRequest, JwtResponse, UserDTO } from '../types';
 
 interface AuthContextType {
   user: UserDTO | null;
@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>;
   agencyLogin: (data: AgencyLoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
+  registerAgency: (data: AgencyRegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   userRole: string | null;
@@ -110,6 +111,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authApi.register(data);
   }, []);
 
+  const registerAgency = useCallback(async (data: AgencyRegisterRequest) => {
+    await authApi.registerAgency(data);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await AsyncStorage.multiRemove(['token', 'user', 'agencyId', 'agencyType']);
@@ -130,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         agencyLogin,
         register,
+        registerAgency,
         logout,
         isAuthenticated: !!token,
         userRole: user?.role ?? null,

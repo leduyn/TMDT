@@ -314,7 +314,7 @@ export default function CategoriesPage() {
 
   const productColumns: Column<ProductDTO>[] = [
     {
-      header: '', key: 'imageUrl', width: 48,
+      header: '', key: 'imageUrl', width: 80,
       render: (p) => (
         <img
           src={resolveImageUrl(p.imageUrl)}
@@ -359,9 +359,16 @@ export default function CategoriesPage() {
     {
       header: '', key: 'id', align: 'right',
       render: (p) => (
-        <Link href={`/products/${p.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8, display: 'inline-flex' }}>
-          <Eye size={16} />
-        </Link>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+          {isAuthorized && (
+            <Link href={`/products/${p.id}/edit`} className="btn-outline" style={{ padding: '8px', borderRadius: 8, display: 'inline-flex' }}>
+              <Edit size={16} />
+            </Link>
+          )}
+          <Link href={`/products/${p.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8, display: 'inline-flex' }}>
+            <Eye size={16} />
+          </Link>
+        </div>
       )
     },
   ];

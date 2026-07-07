@@ -5,6 +5,8 @@ import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRequest;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyApproveRequest;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCategorySelection;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCategorySelectionRepository;
 import com.anhtin.tmdt.backend.modules.agency.service.AgencyService;
 import com.anhtin.tmdt.backend.modules.common.dto.MessageResponse;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
@@ -15,6 +17,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/agencies")
@@ -26,6 +30,9 @@ public class AgencyController {
 
     @Autowired
     private PriceListService priceListService;
+
+    @Autowired
+    private AgencyCategorySelectionRepository categorySelectionRepository;
 
     @GetMapping
     @PreAuthorize("hasRole('COMPANY')")
@@ -96,5 +103,28 @@ public class AgencyController {
     @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
     public List<AgencyCustomerDTO> getAgencyCustomers(@PathVariable Long id) {
         return agencyService.getAgencyCustomers(id);
+    }
+
+    @GetMapping("/{id}/categories")
+    @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
+    public List<Long> getAgencyCategories(@PathVariable Long id) {
+        return categorySelectionRepository.findByAgencyId(id)
+                .stream()
+                .map(AgencyCategorySelection::getCategoryId)
+                .collect(Collectors.toList());
+    }
+
+    @PostMapping("/{id}/categories")
+    public ResponseEntity<?> saveAgencyCategories(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        categorySelectionRepository.deleteByAgencyId(id);
+        @SuppressWarnings("unchecked")
+        List<Integer> categoryIds = (List<Integer>) body.get("categoryIds");
+        categoryIds.forEach(catId -> {
+            AgencyCategorySelection sel = new AgencyCategorySelection();
+            sel.setAgencyId(id);
+            sel.setCategoryId(Long.valueOf(catId));
+            categorySelectionRepository.save(sel);
+        });
+        return ResponseEntity.ok(new MessageResponse("Đã lưu danh mục"));
     }
 }

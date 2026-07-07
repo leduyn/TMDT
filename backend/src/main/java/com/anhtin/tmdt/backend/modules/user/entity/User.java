@@ -41,6 +41,9 @@ public class User {
     @Column(unique = true)
     private String phone;
 
+    private String representativeName;
+    private String referralCode;
+
     private String avatarUrl;
 
     @Column(name = "created_at")
@@ -78,6 +81,10 @@ public class User {
     public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+    public String getRepresentativeName() { return representativeName; }
+    public void setRepresentativeName(String representativeName) { this.representativeName = representativeName; }
+    public String getReferralCode() { return referralCode; }
+    public void setReferralCode(String referralCode) { this.referralCode = referralCode; }
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public LocalDateTime getCreatedAt() { return createdAt; }

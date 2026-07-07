@@ -14,7 +14,25 @@ export interface RegisterRequest {
   password: string;
   phone?: string;
   taxCode?: string;
+  organizationName?: string;
+  shippingAddress?: string;
+  billingAddress?: string;
+  representativeName?: string;
+  referralCode?: string;
   role?: string;
+}
+
+export interface AgencyRegisterRequest {
+  code: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  representativeName?: string;
+  taxCode?: string;
+  billingAddress?: string;
+  shippingAddress?: string;
+  referralCode?: string;
 }
 
 export interface JwtResponse {

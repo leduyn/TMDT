@@ -86,14 +86,15 @@ export default function EditProductPage() {
     const fetchData = async () => {
       try {
         const [allCats, allBrands, allProductTypes, product, currentAttrs, allAttrs] = await Promise.all([
-          categoryApi.getAll(),
+          //categoryApi.getAll(),
+          categoryApi.getByLevel(3),
           brandApi.getAll(),
           productTypeApi.getAll(),
           productApi.getById(Number(id)),
           facetedSearchApi.getProductAttributes(Number(id)),
           attributeApi.getAll(),
         ]);
-        setCategories(allCats.filter((c: CategoryDTO) => c.level === 4));
+        setCategories(allCats);
         setBrands(allBrands);
         setProductTypes(allProductTypes);
         setAllAttributes(allAttrs);
@@ -239,7 +240,7 @@ export default function EditProductPage() {
         ...(newCategoryImageUrl && { imageUrl: newCategoryImageUrl }),
       });
       const updated = await categoryApi.getAll();
-      setCategories(updated.filter((c: CategoryDTO) => c.level === 4));
+      setCategories(updated);
       setFormData(prev => ({ ...prev, categoryId: created.id }));
       setShowCategoryModal(false);
       setNewCategoryName('');
@@ -313,7 +314,7 @@ export default function EditProductPage() {
         imageUrl: imageUrls[0] || undefined,
         attributeValueIds: finalAttributeValueIds,
       });
-      router.push('/products');
+      router.back();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -326,7 +327,7 @@ export default function EditProductPage() {
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked :
-               type === 'number' ? Number(value) : value
+        type === 'number' ? Number(value) : value
     }));
   };
 
@@ -350,12 +351,12 @@ export default function EditProductPage() {
     <>
       <Navbar />
       <Main>
-        <div className="glass-card fade-in-up" style={{ padding: 32 }}>
+        <div className="glass-card fade-in-up" style={{ padding: 32, paddingBottom: 80 }}>
           <h1 style={{ margin: '0 0 24px', fontSize: '1.5rem', fontWeight: 700 }}>
             ✏️ Chỉnh sửa sản phẩm
           </h1>
 
-          <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <form id="editProductForm" onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'block', marginBottom: 8, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Tên sản phẩm</label>
               <input className="input-field" name="name" required value={formData.name} onChange={handleChange} />
@@ -764,16 +765,40 @@ export default function EditProductPage() {
               )}
             </Modal>
 
-            <div style={{ gridColumn: 'span 2', display: 'flex', gap: 12, marginTop: 20 }}>
-              <button type="submit" className="btn-primary" disabled={loading} style={{ flex: 1 }}>
-                {loading ? 'Đang lưu...' : 'Cập nhật sản phẩm'}
-              </button>
-              <button type="button" className="btn-outline" onClick={() => router.back()} style={{ flex: 1 }}>
-                Hủy bỏ
-              </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
+
+          <div style={{
+            position: 'fixed',
+            bottom: 32,
+            right: 32,
+            display: 'flex',
+            gap: 12,
+            zIndex: 100,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            padding: 12,
+            borderRadius: 12,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+          }}>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => router.back()}
+              style={{ minWidth: 120, padding: '10px 20px' }}
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              form="editProductForm"
+              className="btn-primary"
+              disabled={loading}
+              style={{ minWidth: 120, padding: '10px 20px' }}
+            >
+              {loading ? 'Đang lưu...' : 'Cập nhật'}
+            </button>
+          </div>
       </Main>
     </>
   );

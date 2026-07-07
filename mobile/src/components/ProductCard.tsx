@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { ProductDTO } from '../types';
 import { Colors } from '../theme';
 import { resolveImageUrl, formatPrice } from '../utils';
@@ -8,12 +9,37 @@ interface ProductCardProps {
   product: ProductDTO;
   onPress: (product: ProductDTO) => void;
   onAddToCart?: (product: ProductDTO) => void;
+  averageRating?: number;
+  isFavorited?: boolean;
+  onToggleFavorite?: (product: ProductDTO) => void;
 }
 
-export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product, onPress, onAddToCart, averageRating = 0, isFavorited: controlledFav, onToggleFavorite }: ProductCardProps) {
+  const [localFav, setLocalFav] = useState(false);
+  const isFav = controlledFav !== undefined ? controlledFav : localFav;
+
   const displayPrice = product.appliedPrice ?? product.price;
   const oldPrice = product.oldAppliedPrice;
   const isContactPrice = displayPrice === null || displayPrice === undefined || displayPrice === -1;
+
+  const handleToggleFav = () => {
+    if (onToggleFavorite) {
+      onToggleFavorite(product);
+    } else {
+      setLocalFav(prev => !prev);
+    }
+  };
+  const renderStars = (rating: number) => {
+    let star: React.ReactNode;
+    if (rating > 0 && rating < 1.0) {
+      star = (<Ionicons name="star-half" size={20} color="#f59e0b" />);
+    } else if (rating >= 1) {
+      star = (<Ionicons name="star" size={20} color="#f59e0b" />);
+    } else {
+      star = (<Ionicons name="star-outline" size={20} color="#f59e0b" />);
+    }
+    return star;
+  };
 
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(product)} activeOpacity={0.7}>
@@ -23,22 +49,37 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
         resizeMode="cover"
       />
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
-        <Text style={styles.sku}>{product.sku || ''}</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{formatPrice(displayPrice)}</Text>
-          {!isContactPrice && oldPrice && oldPrice > displayPrice && (
-            <Text style={styles.oldPrice}>{oldPrice.toLocaleString('vi-VN')}đ</Text>
-          )}
+        <View style={styles.infoContent}>
+          <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+          <Text style={styles.sku}>{product.sku || ''}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{formatPrice(displayPrice)}</Text>
+            {!isContactPrice && !!oldPrice && oldPrice > displayPrice && (
+              <Text style={styles.oldPrice}>{oldPrice.toLocaleString('vi-VN')}đ</Text>
+            )}
+            {!isContactPrice && product.unit ? (
+              <Text style={styles.unit}>/ {product.unit}</Text>
+            ) : null}
+          </View>
         </View>
-        {!isContactPrice && product.unit && <Text style={styles.unit}>/ {product.unit}</Text>}
-        {!isContactPrice && onAddToCart && (
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => onAddToCart(product)}
-          >
-            <Text style={styles.addBtnText}>+</Text>
-          </TouchableOpacity>
+        {!isContactPrice && (
+          <View style={styles.bottomRow}>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity onPress={handleToggleFav} style={styles.favBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={20} color={isFav ? '#e11d48' : '#9ca3af'} />
+              </TouchableOpacity>
+              <View style={styles.ratingRow}>
+                {renderStars(averageRating)}
+                <Text style={styles.ratingText}>{averageRating.toFixed(1)}</Text>
+              </View>
+            </View>
+
+            {onAddToCart && (
+              <TouchableOpacity style={styles.addBtn} onPress={() => onAddToCart(product)}>
+                <Text style={styles.addBtnText}>+</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     </TouchableOpacity>
@@ -49,7 +90,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginHorizontal: 8,
+    marginHorizontal: 4,
     marginVertical: 6,
     overflow: 'hidden',
     elevation: 2,
@@ -60,11 +101,16 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 140,
+    aspectRatio: 1,
     backgroundColor: '#f3f4f6',
   },
   info: {
+    flex: 1,
+    justifyContent: 'space-between',
     padding: 10,
+  },
+  infoContent: {
+    // wraps name, sku, priceRow to push bottomRow down
   },
   name: {
     fontSize: 14,
@@ -81,6 +127,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexWrap: 'wrap',
   },
   price: {
     fontSize: 16,
@@ -95,12 +142,28 @@ const styles = StyleSheet.create({
   unit: {
     fontSize: 12,
     color: '#6b7280',
-    marginTop: 2,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // Để khoảng cách đều nhau
+    //marginTop: 8,
+  },
+  favBtn: {
+    padding: 2,
+    marginRight: 10,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  ratingText: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '500',
   },
   addBtn: {
-    position: 'absolute',
-    right: 10,
-    bottom: 10,
     backgroundColor: Colors.primary,
     width: 32,
     height: 32,

@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * REST controller exposing system configuration values.
  * Currently provides GET and PUT for the discountMaxDays setting.
@@ -100,6 +102,27 @@ public class SystemConfigController {
             systemConfigService.setConfigValue(KEY_NEUTRAL_LABEL, payload.getNeutralLabel(), adminUserId);
         if (payload.getNeutralColor() != null)
             systemConfigService.setConfigValue(KEY_NEUTRAL_COLOR, payload.getNeutralColor(), adminUserId);
+        return ResponseEntity.ok().build();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Registration category level config
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static final String KEY_REG_CATEGORY_LEVEL = "registration.category.level";
+
+    @GetMapping("/registration-category-level")
+    public ResponseEntity<Integer> getRegistrationCategoryLevel() {
+        String val = systemConfigService.getConfigValue(KEY_REG_CATEGORY_LEVEL);
+        int level = val != null ? Integer.parseInt(val) : 1;
+        return ResponseEntity.ok(level);
+    }
+
+    @PutMapping("/registration-category-level")
+    public ResponseEntity<Void> setRegistrationCategoryLevel(@RequestBody Map<String, Integer> body) {
+        Integer level = body.get("level");
+        if (level == null) return ResponseEntity.badRequest().build();
+        systemConfigService.setConfigValue(KEY_REG_CATEGORY_LEVEL, String.valueOf(level), null);
         return ResponseEntity.ok().build();
     }
 

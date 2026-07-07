@@ -5,14 +5,14 @@
 
 export const Colors = {
   // Primary brand (Stitch Professional Blue)
-  primary: '#002045',       
-  primaryLight: '#1a365d',  
-  primaryDark: '#00142A',   
-  primarySoft: '#F0F4FA',   
+  primary: '#002045',
+  primaryLight: '#1a365d',
+  primaryDark: '#00142A',
+  primarySoft: '#F0F4FA',
 
   // Accent (Stitch Action Orange)
-  accent: '#F2994A',        
-  accentLight: '#FFA454',   
+  accent: '#F2994A',
+  accentLight: '#FFA454',
 
   // Gradients
   gradientStart: '#1a365d',
@@ -21,27 +21,27 @@ export const Colors = {
 
   // Semantic
   success: '#27AE60',       // Success Green
-  successLight: '#EAF7EE',  
+  successLight: '#EAF7EE',
   warning: '#F2994A',       // Amber/Orange
-  warningLight: '#FEF3C7',  
+  warningLight: '#FEF3C7',
   error: '#E11D48',         // Debt Red
-  errorLight: '#FFF0F2',    
-  info: '#0284C7',          
-  infoLight: '#E0F2FE',     
+  errorLight: '#FFF0F2',
+  info: '#0284C7',
+  infoLight: '#E0F2FE',
 
   // Neutrals
   white: '#FFFFFF',
   background: '#f7f9fb',    // Slate-50/Stitch Background
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
-  border: '#E2E8F0',        
-  borderLight: '#F1F5F9',   
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
   divider: '#F1F5F9',
 
   // Text
-  textPrimary: '#0F172A',   
-  textSecondary: '#64748B', 
-  textTertiary: '#94A3B8',  
+  textPrimary: '#0F172A',
+  textSecondary: '#64748B',
+  textTertiary: '#94A3B8',
   textInverse: '#FFFFFF',
   textAccent: '#002045',
 

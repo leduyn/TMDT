@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing } from '../../theme';
 import type { CategoryDTO, ProductDTO, BrandDTO } from '../../types';
+import { CategoryItem } from '../../components/CategoryItem';
 import { resolveImageUrl } from '../../utils';
 import { ProductCard } from '../../components/ProductCard';
 
@@ -29,6 +30,7 @@ export function CategoryListScreen({ navigation }: any) {
   const [activeBrand, setActiveBrand] = useState<BrandDTO | null>(null);
   const [brandProducts, setBrandProducts] = useState<ProductDTO[]>([]);
   const [brandProductsLoading, setBrandProductsLoading] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'default' | 'price_asc' | 'price_desc'>('default');
 
   useEffect(() => {
     loadCategories();
@@ -50,10 +52,10 @@ export function CategoryListScreen({ navigation }: any) {
   const loadCategories = async () => {
     try {
       const data = await categoryApi.getAll();
-      const level2 = data.filter(c => c.level === 2);
-      setCategories(level2);
-      if (level2.length > 0) {
-        setActiveCategory(level2[0]);
+      const level = data.filter(c => c.level === 1);
+      setCategories(level);
+      if (level.length > 0) {
+        setActiveCategory(level[0]);
       }
     } catch (err) {
       console.log('Error loading categories:', err);
@@ -141,23 +143,47 @@ export function CategoryListScreen({ navigation }: any) {
     Alert.alert('Thành công', `Đã thêm ${product.name} vào giỏ hàng`);
   };
 
-  const filteredProductsMap = useMemo(() => {
-    if (!searchQuery.trim()) return subCategoryProducts;
-    const q = searchQuery.toLowerCase().trim();
-    const result: Record<number, ProductDTO[]> = {};
-    Object.entries(subCategoryProducts).forEach(([catIdStr, products]) => {
-      const filtered = products.filter(p => p.name.toLowerCase().includes(q));
-      if (filtered.length > 0) {
-        result[Number(catIdStr)] = filtered;
-      }
-    });
-    return result;
-  }, [searchQuery, subCategoryProducts]);
+  const processedProductsMap = useMemo(() => {
+    let map = subCategoryProducts;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const result: Record<number, ProductDTO[]> = {};
+      Object.entries(subCategoryProducts).forEach(([catIdStr, products]) => {
+        const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+        if (filtered.length > 0) result[Number(catIdStr)] = filtered;
+      });
+      map = result;
+    }
+
+    if (sortOrder !== 'default') {
+      const result: Record<number, ProductDTO[]> = {};
+      Object.entries(map).forEach(([catIdStr, products]) => {
+        result[Number(catIdStr)] = [...products].sort((a, b) => {
+          const pa = a.appliedPrice ?? a.price ?? 0;
+          const pb = b.appliedPrice ?? b.price ?? 0;
+          return sortOrder === 'price_asc' ? pa - pb : pb - pa;
+        });
+      });
+      map = result;
+    }
+
+    return map;
+  }, [searchQuery, subCategoryProducts, sortOrder]);
 
   const visibleSubCategories = useMemo(
-    () => subCategories.filter(c => filteredProductsMap[c.id]),
-    [subCategories, filteredProductsMap]
+    () => subCategories.filter(c => processedProductsMap[c.id]),
+    [subCategories, processedProductsMap]
   );
+
+  const sortedBrandProducts = useMemo(() => {
+    if (sortOrder === 'default') return brandProducts;
+    return [...brandProducts].sort((a, b) => {
+      const pa = a.appliedPrice ?? a.price ?? 0;
+      const pb = b.appliedPrice ?? b.price ?? 0;
+      return sortOrder === 'price_asc' ? pa - pb : pb - pa;
+    });
+  }, [brandProducts, sortOrder]);
 
   if (loading) {
     return (
@@ -175,14 +201,14 @@ export function CategoryListScreen({ navigation }: any) {
   }
 
   const renderSection = (subCat: CategoryDTO) => {
-    const products = filteredProductsMap[subCat.id] || [];
+    const products = processedProductsMap[subCat.id] || [];
     if (products.length === 0) return null;
 
     return (
       <View key={subCat.id} style={styles.section}>
         <TouchableOpacity
           style={styles.sectionHeader}
-          onPress={() => navigation.navigate('ProductList', { categoryId: subCat.id, categoryName: subCat.name })}
+          onPress={() => navigation.navigate('CategoryProducts', { categoryId: subCat.id, categoryName: subCat.name })}
           activeOpacity={0.6}
         >
           <Text style={styles.sectionTitle}>{subCat.name}</Text>
@@ -266,53 +292,50 @@ export function CategoryListScreen({ navigation }: any) {
             contentContainerStyle={styles.sidebarContent}
           >
             {sidebarTab === 'category'
-              ? categories.map((cat) => {
-                  const isActive = activeCategory?.id === cat.id;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[styles.categoryTab, isActive && styles.categoryTabActive]}
-                      onPress={() => setActiveCategory(cat)}
-                    >
-                      <View style={[styles.activeIndicator, isActive && styles.activeIndicatorVisible]} />
-                      <Image
-                        source={{ uri: resolveImageUrl(cat.imageUrl) || 'https://via.placeholder.com/40' }}
-                        style={styles.categoryIcon}
-                      />
-                      <Text
-                        style={[styles.categoryName, isActive && styles.categoryNameActive]}
-                        numberOfLines={2}
-                      >
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })
-              : brands.map((b) => {
-                  const isActive = activeBrand?.id === b.id;
-                  return (
-                    <TouchableOpacity
-                      key={b.id}
-                      style={[styles.categoryTab, isActive && styles.categoryTabActive]}
-                      onPress={() => setActiveBrand(b)}
-                    >
-                      <View style={[styles.activeIndicator, isActive && styles.activeIndicatorVisible]} />
-                      <View style={styles.brandIconWrapper}>
-                        <Ionicons name="pricetag-outline" size={18} color={isActive ? Colors.primary : Colors.textSecondary} />
-                      </View>
-                      <Text
-                        style={[styles.categoryName, isActive && styles.categoryNameActive]}
-                        numberOfLines={2}
-                      >
-                        {b.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              ? categories.map((cat) => (
+                <CategoryItem
+                  key={cat.id}
+                  name={cat.name}
+                  imageUrl={cat.imageUrl}
+                  isActive={activeCategory?.id === cat.id}
+                  onPress={() => setActiveCategory(cat)}
+                />
+              ))
+              : brands.map((b) => (
+                <CategoryItem
+                  key={b.id}
+                  name={b.name}
+                  imageUrl={b.logoUrl}
+                  //iconName="pricetag-outline"
+                  isActive={activeBrand?.id === b.id}
+                  onPress={() => setActiveBrand(b)}
+                />
+              ))}
           </ScrollView>
         </View>
 
         <View style={styles.mainContent}>
+          <View style={styles.sortBar}>
+            <TouchableOpacity
+              style={[styles.sortBtn, sortOrder !== 'default' && styles.sortBtnActive]}
+              onPress={() => {
+                setSortOrder(prev =>
+                  prev === 'default' ? 'price_asc' :
+                  prev === 'price_asc' ? 'price_desc' : 'default'
+                );
+              }}
+            >
+              <Ionicons
+                name={sortOrder === 'price_asc' ? 'arrow-up' : sortOrder === 'price_desc' ? 'arrow-down' : 'swap-vertical'}
+                size={14}
+                color={sortOrder !== 'default' ? Colors.primary : Colors.textSecondary}
+              />
+              <Text style={[styles.sortBtnText, sortOrder !== 'default' && styles.sortBtnTextActive]}>
+                {sortOrder === 'default' ? 'Mặc định' :
+                 sortOrder === 'price_asc' ? 'Giá ↑' : 'Giá ↓'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           {sidebarTab === 'category' ? (
             subLoading ? (
               <View style={styles.productsCenter}>
@@ -343,7 +366,7 @@ export function CategoryListScreen({ navigation }: any) {
             <View style={styles.productsCenter}>
               <ActivityIndicator size="large" color={Colors.primary} />
             </View>
-          ) : brandProducts.length > 0 ? (
+          ) : sortedBrandProducts.length > 0 ? (
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.sectionsContainer}
@@ -351,11 +374,11 @@ export function CategoryListScreen({ navigation }: any) {
               {activeBrand && (
                 <View style={styles.brandHeader}>
                   <Text style={styles.brandHeaderName}>{activeBrand.name}</Text>
-                  <Text style={styles.brandHeaderCount}>{brandProducts.length} sản phẩm</Text>
+                  <Text style={styles.brandHeaderCount}>{sortedBrandProducts.length} sản phẩm</Text>
                 </View>
               )}
               <View style={styles.brandProductsGrid}>
-                {brandProducts.map(product => (
+                {sortedBrandProducts.map(product => (
                   <View key={product.id} style={styles.brandProductCard}>
                     <ProductCard
                       product={product}
@@ -443,46 +466,37 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   sidebarContent: { paddingVertical: Spacing.sm },
-  categoryTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-    position: 'relative',
-    gap: Spacing.sm,
-  },
-  categoryTabActive: { backgroundColor: Colors.primarySoft },
-  activeIndicator: {
-    position: 'absolute',
-    left: 0,
-    top: '30%',
-    bottom: '30%',
-    width: 4,
-    backgroundColor: 'transparent',
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  activeIndicatorVisible: { backgroundColor: Colors.primary },
-  categoryIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    backgroundColor: Colors.background,
-  },
-  categoryName: {
-    flex: 1,
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
-    color: Colors.textSecondary,
-  },
-  categoryNameActive: {
-    color: Colors.primary,
-    fontWeight: FontWeight.bold,
-  },
   mainContent: {
     width: '70%',
+  },
+  sortBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+    backgroundColor: Colors.white,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  sortBtnActive: {
+    backgroundColor: Colors.primarySoft,
+  },
+  sortBtnText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.medium,
+  },
+  sortBtnTextActive: {
+    color: Colors.primary,
+    fontWeight: FontWeight.bold,
   },
   sectionsContainer: {
     paddingVertical: Spacing.md,
@@ -519,13 +533,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   productCardWrapper: {
-    width: 150,
-  },
-  brandIconWrapper: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 180,
   },
   brandHeader: {
     paddingHorizontal: Spacing.sm,
