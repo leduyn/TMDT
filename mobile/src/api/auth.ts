@@ -1,5 +1,5 @@
-import { fetchJSON } from './client';
-import type { LoginRequest, AgencyLoginRequest, RegisterRequest, AgencyRegisterRequest, JwtResponse, UserDTO } from '../types';
+import { fetchJSON, API_BASE } from './client';
+import type { LoginRequest, AgencyLoginRequest, RegisterRequest, AgencyRegisterRequest, JwtResponse, UserDTO, SurveyQuestion, CategoryDTO } from '../types';
 
 export const authApi = {
   login: (data: LoginRequest) =>
@@ -18,7 +18,7 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
   registerAgency: (data: AgencyRegisterRequest) =>
-    fetchJSON<{ message: string }>('/api/auth/agency/signup', {
+    fetchJSON<JwtResponse>('/api/auth/agency/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -30,5 +30,24 @@ export const userApi = {
     fetchJSON<UserDTO>('/api/users/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+};
+
+export const registerApi = {
+  getCategoryLevel: () =>
+    fetchJSON<number>('/api/config/registration-category-level'),
+  getCategoriesByLevel: (level: number) =>
+    fetchJSON<CategoryDTO[]>('/api/categories/level/' + level),
+  getActiveSurveyQuestions: () =>
+    fetchJSON<SurveyQuestion[]>('/api/survey/questions/active'),
+  saveAgencyCategories: (agencyId: number, categoryIds: number[]) =>
+    fetchJSON<{ message: string }>('/api/agencies/' + agencyId + '/categories', {
+      method: 'POST',
+      body: JSON.stringify({ categoryIds }),
+    }),
+  submitSurveyAnswers: (agencyId: number, answers: { questionId: number; answer: string }[]) =>
+    fetchJSON<{ message: string }>('/api/survey/agency/' + agencyId + '/answers', {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
     }),
 };

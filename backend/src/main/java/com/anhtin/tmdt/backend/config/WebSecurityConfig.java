@@ -82,6 +82,8 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/admin/regions/**").permitAll() // Allow for now to debug
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/products/search/faceted").permitAll()
                 .requestMatchers("/api/agencies/register").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/config/registration-category-level").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/survey/questions/active").permitAll()
                 .anyRequest().authenticated()
         );
         

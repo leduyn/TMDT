@@ -309,3 +309,13 @@ export interface CartItem {
   product: ProductDTO;
   quantity: number;
 }
+
+export interface SurveyQuestion {
+  id: number;
+  question: string;
+  type: 'text' | 'radio' | 'checkbox';
+  options: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt?: string;
+}
