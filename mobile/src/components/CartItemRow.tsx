@@ -13,10 +13,13 @@ interface Props {
 export function CartItemRow({ item, onUpdateQuantity }: Props) {
   const { product, quantity } = item;
   const { removeItem } = useCart();
+
+  if (!product || typeof product.id === 'undefined') return null;
+
   const price = product.appliedPrice ?? product.price;
   const hasDiscount = product.appliedPrice && product.appliedPrice < product.price;
   const isContactPrice = price === null || price === undefined || price === -1;
-  const subtotal = isContactPrice ? 0 : price * quantity;
+  const subtotal = isContactPrice || typeof price !== 'number' ? 0 : price * quantity;
 
   // Determine stock status badge
   const getStockBadge = () => {
@@ -93,7 +96,7 @@ export function CartItemRow({ item, onUpdateQuantity }: Props) {
           {/* Price */}
           <View style={styles.priceSection}>
             <Text style={styles.priceMain}>
-              {isContactPrice ? formatPrice(price) : subtotal.toLocaleString('vi-VN') + 'đ'}
+              {isContactPrice ? formatPrice(price) : (isNaN(subtotal) ? '—' : subtotal.toLocaleString('vi-VN') + 'đ')}
             </Text>
             {!isContactPrice && hasDiscount && (
               <Text style={styles.priceOriginal}>

@@ -265,6 +265,7 @@ export const categoryApi = {
     }),
   getByLevel: (level: number) => fetchJSON<CategoryDTO[]>(`/api/categories/level/${level}`),
   getChildren: (id: number) => fetchJSON<CategoryDTO[]>(`/api/categories/${id}/children`),
+  getForAgency: (agencyId: number) => fetchJSON<CategoryDTO[]>(`/api/categories/for-agency/${agencyId}`),
   exportUrl: '/api/categories/export',
 };
 

@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, Platform
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { categoryApi, productApi, brandApi } from '../../api/product';
 import { useAuth } from '../../context/AuthContext';
@@ -12,10 +13,17 @@ import type { CategoryDTO, ProductDTO, BrandDTO } from '../../types';
 import { CategoryItem } from '../../components/CategoryItem';
 import { resolveImageUrl } from '../../utils';
 import { ProductCard } from '../../components/ProductCard';
+import { useGuideTarget } from '../../guide/useGuideTarget';
+import { useGuide } from '../../guide/useGuide';
 
 export function CategoryListScreen({ navigation }: any) {
-  const { agencyId } = useAuth();
+  const { agencyId, userRole } = useAuth();
   const { addItem } = useCart();
+  const { startGuide } = useGuide();
+
+  const fabRef = useGuideTarget('categoryFab');
+  const searchBarRef = useGuideTarget('searchBar');
+  const sidebarRef = useGuideTarget('categorySidebar');
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [activeCategory, setActiveCategory] = useState<CategoryDTO | null>(null);
   const [subCategories, setSubCategories] = useState<CategoryDTO[]>([]);
@@ -32,10 +40,10 @@ export function CategoryListScreen({ navigation }: any) {
   const [brandProductsLoading, setBrandProductsLoading] = useState(false);
   const [sortOrder, setSortOrder] = useState<'default' | 'price_asc' | 'price_desc'>('default');
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     loadCategories();
     loadBrands();
-  }, []);
+  }, []));
 
   useEffect(() => {
     if (activeCategory && sidebarTab === 'category') {
@@ -49,9 +57,20 @@ export function CategoryListScreen({ navigation }: any) {
     }
   }, [activeBrand, sidebarTab]);
 
+  useEffect(() => {
+    if (agencyId) {
+      const timer = setTimeout(() => {
+        try { startGuide('categoryGuide'); } catch {}
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [agencyId]);
+
   const loadCategories = async () => {
     try {
-      const data = await categoryApi.getAll();
+      const data = userRole === 'AGENCY' && agencyId
+        ? await categoryApi.getForAgency(agencyId)
+        : await categoryApi.getAll();
       const level = data.filter(c => c.level === 1);
       setCategories(level);
       if (level.length > 0) {
@@ -191,15 +210,6 @@ export function CategoryListScreen({ navigation }: any) {
     );
   }
 
-  if (categories.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Ionicons name="layers-outline" size={48} color={Colors.textTertiary} />
-        <Text style={styles.emptyText}>Không có danh mục</Text>
-      </View>
-    );
-  }
-
   const renderSection = (subCat: CategoryDTO) => {
     const products = processedProductsMap[subCat.id] || [];
     if (products.length === 0) return null;
@@ -239,7 +249,7 @@ export function CategoryListScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.searchHeader}>
-        <View style={styles.searchWrapper}>
+        <View ref={searchBarRef} style={styles.searchWrapper} collapsable={false}>
           <Ionicons name="search-outline" size={18} color={Colors.textTertiary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
@@ -253,11 +263,25 @@ export function CategoryListScreen({ navigation }: any) {
         <TouchableOpacity style={styles.cartHeaderBtn} onPress={() => navigation.navigate('MainTabs', { screen: 'Cart' })}>
           <Ionicons name="cart-outline" size={24} color={Colors.white} />
         </TouchableOpacity>
+        {userRole === 'AGENCY' && (
+          <TouchableOpacity style={styles.guideBtn} onPress={() => startGuide('categoryGuide')}>
+            <Ionicons name="help-circle-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        )}
       </View>
 
+      {categories.length === 0 ? (
+        <View style={[styles.center, { flex: 1 }]}>
+          <Ionicons name="layers-outline" size={48} color={Colors.textTertiary} />
+          <Text style={styles.emptyText}>Không có danh mục</Text>
+          {userRole === 'AGENCY' && (
+            <Text style={styles.emptyHintText}>Chạm vào nút + để mở thêm danh mục</Text>
+          )}
+        </View>
+      ) : (
       <View style={styles.splitBody}>
         {/* Sidebar Tabs + List */}
-        <View style={styles.sidebar}>
+        <View ref={sidebarRef} style={styles.sidebar} collapsable={false}>
           <View style={styles.sidebarTabs}>
             <TouchableOpacity
               style={[styles.sidebarTab, sidebarTab === 'category' && styles.sidebarTabActive]}
@@ -397,6 +421,20 @@ export function CategoryListScreen({ navigation }: any) {
           )}
         </View>
       </View>
+      )}
+
+      {/* FAB - Open Categories */}
+      {userRole === 'AGENCY' && (
+        <TouchableOpacity
+          ref={fabRef}
+          style={styles.fab}
+          onPress={() => navigation.navigate('OpenCategories')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add-outline" size={24} color={Colors.white} />
+          <Ionicons name="layers-outline" size={18} color={Colors.white} style={{ marginLeft: -6 }} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -432,6 +470,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   cartHeaderBtn: { padding: Spacing.xs },
+  guideBtn: { padding: Spacing.xs, marginLeft: 4 },
   splitBody: { flex: 1, flexDirection: 'row' },
   sidebar: {
     width: '30%',
@@ -573,5 +612,28 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     fontWeight: FontWeight.semibold,
     textAlign: 'center',
+  },
+  emptyHintText: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    elevation: 6,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

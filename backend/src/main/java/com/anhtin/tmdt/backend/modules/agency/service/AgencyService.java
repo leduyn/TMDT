@@ -6,8 +6,14 @@ import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
 import com.anhtin.tmdt.backend.modules.agency.dto.AgencyApproveRequest;
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCategorySelection;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyOpenedCategory;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus;
 import com.anhtin.tmdt.backend.modules.agency.entity.AgencyType;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCategorySelectionRepository;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyOpenedCategoryRepository;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.modules.common.dto.CategoryDTO;
 import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
 import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment;
@@ -16,6 +22,8 @@ import com.anhtin.tmdt.backend.modules.credit.service.CreditService;
 import com.anhtin.tmdt.backend.modules.credit.entity.DepositContract;
 import com.anhtin.tmdt.backend.modules.credit.repository.DepositContractRepository;
 import com.anhtin.tmdt.backend.modules.credit.dto.CreditTermsRequest;
+import com.anhtin.tmdt.backend.modules.product.entity.Category;
+import com.anhtin.tmdt.backend.modules.product.repository.CategoryRepository;
 import com.anhtin.tmdt.backend.security.services.AgencyUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,8 +31,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,6 +58,15 @@ public class AgencyService {
 
     @Autowired
     private AgencyCustomerAssignmentRepository agencyCustomerAssignmentRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private AgencyCategorySelectionRepository categorySelectionRepository;
+
+    @Autowired
+    private AgencyOpenedCategoryRepository openedCategoryRepository;
 
     private java.util.concurrent.atomic.AtomicLong contractSeq = new java.util.concurrent.atomic.AtomicLong(0);
 
@@ -297,6 +316,90 @@ public class AgencyService {
         }
 
         return new AgencyDTO(agencyRepository.save(agency));
+    }
+
+    @Transactional
+    public AgencyDTO updateStatus(Long id, String action) {
+        Agency agency = agencyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Agency not found"));
+
+        switch (action.toLowerCase()) {
+            case "suspend":
+                if (agency.getStatus() != AgencyStatus.APPROVED) {
+                    throw new RuntimeException("Chỉ có thể tạm ngưng đại lý đã được duyệt");
+                }
+                agency.setActive(false);
+                break;
+            case "activate":
+                if (agency.getStatus() == AgencyStatus.REJECTED) {
+                    agency.setStatus(AgencyStatus.APPROVED);
+                }
+                agency.setActive(true);
+                break;
+            case "reject":
+                if (agency.getStatus() == AgencyStatus.REJECTED) {
+                    throw new RuntimeException("Đại lý đã bị từ chối trước đó");
+                }
+                if (agency.getStatus() == AgencyStatus.APPROVED && agency.isActive()) {
+                    throw new RuntimeException("Không thể từ chối đại lý đang hoạt động. Hãy tạm ngưng trước.");
+                }
+                agency.setStatus(AgencyStatus.REJECTED);
+                agency.setActive(false);
+                break;
+            default:
+                throw new RuntimeException("Hành động không hợp lệ: " + action);
+        }
+
+        return new AgencyDTO(agencyRepository.save(agency));
+    }
+
+    public List<Map<String, Object>> getCategoryStats() {
+        List<AgencyCategorySelection> allSelections = categorySelectionRepository.findAll();
+        Map<Long, Long> countByCategory = allSelections.stream()
+                .collect(Collectors.groupingBy(AgencyCategorySelection::getCategoryId, Collectors.counting()));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : countByCategory.entrySet()) {
+            Category category = categoryRepository.findById(entry.getKey()).orElse(null);
+            Map<String, Object> item = new HashMap<>();
+            item.put("categoryId", entry.getKey());
+            item.put("categoryName", category != null ? category.getName() : "Unknown");
+            item.put("count", entry.getValue());
+            result.add(item);
+        }
+        result.sort((a, b) -> Long.compare((Long) b.get("count"), (Long) a.get("count")));
+        return result;
+    }
+
+    public List<CategoryDTO> getAgencyCategories(Long agencyId) {
+        return categorySelectionRepository.findByAgencyId(agencyId).stream()
+                .map(sel -> categoryRepository.findById(sel.getCategoryId()).orElse(null))
+                .filter(c -> c != null)
+                .map(CategoryDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    public List<Long> getOpenedCategoryIds(Long agencyId) {
+        List<AgencyOpenedCategory> opened = openedCategoryRepository.findByAgencyId(agencyId);
+        if (!opened.isEmpty()) {
+            return opened.stream()
+                    .map(AgencyOpenedCategory::getCategoryId)
+                    .collect(Collectors.toList());
+        }
+        return categorySelectionRepository.findByAgencyId(agencyId).stream()
+                .map(AgencyCategorySelection::getCategoryId)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void saveOpenedCategories(Long agencyId, List<Long> categoryIds) {
+        openedCategoryRepository.deleteByAgencyId(agencyId);
+        for (Long catId : categoryIds) {
+            AgencyOpenedCategory oc = new AgencyOpenedCategory();
+            oc.setAgencyId(agencyId);
+            oc.setCategoryId(catId);
+            openedCategoryRepository.save(oc);
+        }
     }
 
     public AgencyDTO getAgencyByPhone(String phone) {

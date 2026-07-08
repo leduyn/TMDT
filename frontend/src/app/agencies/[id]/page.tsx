@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
-import { agencyApi, AgencyDTO, customerApi, CustomerDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO, PricePageResponse, categoryApi, CategoryDTO, productTypeApi, ProductTypeDTO } from '@/lib/api';
+import { agencyApi, AgencyDTO, AgencyApproveRequest, customerApi, CustomerDTO, orderApi, OrderDTO, creditApi, CreditDetail, priceListApi, PriceListDTO, priceUpdateVoucherApi, PriceUpdateVoucherDTO, customerPriceApi, AgencyProductPriceDTO, AgencyProductPriceHistoryDTO, PricePageResponse, categoryApi, CategoryDTO, productTypeApi, ProductTypeDTO, surveyApi, SurveyAnswerDTO } from '@/lib/api';
 import Link from 'next/link';
 
 // UI Components
@@ -17,7 +17,8 @@ import {
   Building2, Phone, MapPin, Mail, User as UserIcon, 
   ShieldCheck, CreditCard, PieChart, Users, ArrowLeft,
   Calendar, Map as MapIcon, Percent, ShoppingCart,
-  Tag, Search, DollarSign, Image as ImageIcon, History, X, Edit, RefreshCw, Upload, Download
+  Tag, Search, DollarSign, Image as ImageIcon, History, X, Edit, RefreshCw, Upload, Download,
+  Layers, HelpCircle
 } from 'lucide-react';
 
 export default function AgencyDetailPage() {
@@ -41,7 +42,7 @@ export default function AgencyDetailPage() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'orders' | 'prices'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'orders' | 'prices' | 'registration'>('info');
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // States for Price Update History Modal
@@ -49,6 +50,20 @@ export default function AgencyDetailPage() {
   const [priceHistory, setPriceHistory] = useState<AgencyProductPriceHistoryDTO[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Registration tab
+  const [registrationCategories, setRegistrationCategories] = useState<CategoryDTO[]>([]);
+  const [surveyAnswers, setSurveyAnswers] = useState<SurveyAnswerDTO[]>([]);
+  const [isLoadingRegistration, setIsLoadingRegistration] = useState(false);
+
+  // Approve Modal
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approveType, setApproveType] = useState('RETAIL');
+  const [approveDeposit, setApproveDeposit] = useState(0);
+  const [approveDebtTerm, setApproveDebtTerm] = useState(30);
+  const [approveInitialVtc, setApproveInitialVtc] = useState(0);
+  const [approveContractTerms, setApproveContractTerms] = useState('');
+  const [isApproving, setIsApproving] = useState(false);
 
   // Edit Price Modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -173,6 +188,7 @@ export default function AgencyDetailPage() {
       fetchData();
       fetchOrders();
       fetchPriceAndProducts();
+      fetchRegistrationData();
       categoryApi.getAll().then(setCategories).catch(() => {});
       productTypeApi.getAll().then(setProductTypes).catch(() => {});
     }
@@ -209,6 +225,61 @@ export default function AgencyDetailPage() {
       console.error('Error fetching agency orders:', err);
     } finally {
       setIsLoadingOrders(false);
+    }
+  };
+
+  const fetchRegistrationData = async () => {
+    if (!token || !id) return;
+    setIsLoadingRegistration(true);
+    try {
+      const agencyId = parseInt(id as string);
+      const [categories, answers] = await Promise.all([
+        agencyApi.getCategoriesDetail(agencyId).catch(() => []),
+        surveyApi.getAgencyAnswers(agencyId).catch(() => []),
+      ]);
+      setRegistrationCategories(categories);
+      setSurveyAnswers(answers);
+    } catch (err) {
+      console.error('Error fetching registration data:', err);
+    } finally {
+      setIsLoadingRegistration(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!id) return;
+    setIsApproving(true);
+    try {
+      const body: AgencyApproveRequest = {
+        type: approveType,
+        depositAmount: approveType === 'WHOLESALE' ? approveDeposit : undefined,
+        debtTermDays: approveType === 'WHOLESALE' ? approveDebtTerm : undefined,
+        initialVtc: approveType === 'WHOLESALE' ? approveInitialVtc : undefined,
+        contractTerms: approveContractTerms || undefined,
+      };
+      await agencyApi.approve(parseInt(id as string), body);
+      setShowApproveModal(false);
+      fetchData();
+    } catch (err: any) {
+      alert('Lỗi duyệt đại lý: ' + (err.message || ''));
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleStatusAction = async (action: string) => {
+    if (!id) return;
+    const confirmMessages: Record<string, string> = {
+      suspend: 'Tạm ngưng hoạt động của đại lý này?',
+      activate: 'Kích hoạt lại đại lý này?',
+      reject: 'Từ chối đại lý này?',
+    };
+    if (!confirm(confirmMessages[action] || 'Thực hiện hành động này?')) return;
+    try {
+      await agencyApi[action as 'suspend' | 'activate' | 'reject'](parseInt(id as string));
+      fetchData();
+    } catch (err: any) {
+      alert('Lỗi: ' + (err.message || ''));
     }
   };
 
@@ -360,6 +431,18 @@ export default function AgencyDetailPage() {
             }}
           >
             Bảng giá áp dụng
+          </button>
+          <button 
+            onClick={() => setActiveTab('registration')}
+            style={{ 
+              padding: '10px 24px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: activeTab === 'registration' ? 'var(--accent)' : 'transparent',
+              color: activeTab === 'registration' ? 'white' : 'var(--text-muted)',
+              fontWeight: 600, transition: 'all 0.3s ease',
+              display: 'flex', alignItems: 'center', gap: 8
+            }}
+          >
+            Đăng ký
           </button>
         </div>
 
@@ -709,6 +792,116 @@ export default function AgencyDetailPage() {
               </GlassCard>
             </div>
           </div>
+        ) : activeTab === 'registration' ? (
+          <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* Action Buttons */}
+            <GlassCard style={{ padding: 24 }}>
+              <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 10, color: '#f59e0b' }}>
+                <ShieldCheck size={20} /> Trạng thái đăng ký
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <Badge 
+                  label={agency.status === 'PENDING' ? 'Chờ duyệt' :
+                    agency.status === 'PENDING_DEPOSIT' ? 'Chờ đặt cọc' :
+                    agency.status === 'REJECTED' ? 'Bị từ chối' :
+                    agency.active ? 'Đang hoạt động' : 'Tạm ngưng'} 
+                  type={agency.status === 'PENDING' ? 'warning' :
+                    agency.status === 'PENDING_DEPOSIT' ? 'info' :
+                    agency.status === 'REJECTED' ? 'error' :
+                    agency.active ? 'success' : 'error'} 
+                  style={{ fontSize: '0.9rem', padding: '8px 16px' }}
+                />
+                {agency.status === 'PENDING' && (
+                  <>
+                    <button onClick={() => setShowApproveModal(true)} className="btn-primary" style={{ background: '#10b981', border: 'none', color: 'white', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ShieldCheck size={18} /> Phê duyệt
+                    </button>
+                    <button onClick={() => handleStatusAction('reject')} className="btn-outline" style={{ padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, borderColor: '#ef4444', color: '#ef4444' }}>
+                      <X size={18} /> Từ chối
+                    </button>
+                  </>
+                )}
+                {agency.status === 'PENDING_DEPOSIT' && (
+                  <button onClick={() => handleStatusAction('reject')} className="btn-outline" style={{ padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, borderColor: '#ef4444', color: '#ef4444' }}>
+                    <X size={18} /> Từ chối
+                  </button>
+                )}
+                {agency.status === 'APPROVED' && agency.active && (
+                  <button onClick={() => handleStatusAction('suspend')} className="btn-outline" style={{ padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, borderColor: '#f59e0b', color: '#f59e0b' }}>
+                    <X size={18} /> Tạm ngưng
+                  </button>
+                )}
+                {agency.status === 'APPROVED' && !agency.active && (
+                  <button onClick={() => handleStatusAction('activate')} className="btn-primary" style={{ background: '#10b981', border: 'none', color: 'white', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ShieldCheck size={18} /> Kích hoạt
+                  </button>
+                )}
+                {agency.status === 'REJECTED' && (
+                  <button onClick={() => handleStatusAction('activate')} className="btn-primary" style={{ background: '#10b981', border: 'none', color: 'white', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ShieldCheck size={18} /> Kích hoạt lại
+                  </button>
+                )}
+              </div>
+            </GlassCard>
+
+            {/* Selected Categories */}
+            <GlassCard style={{ padding: 24 }}>
+              <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-light)' }}>
+                <Layers size={20} /> Danh mục đã chọn
+              </h3>
+              {isLoadingRegistration ? (
+                <div className="spinner" style={{ width: 24, height: 24, margin: '20px auto' }} />
+              ) : registrationCategories.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {registrationCategories.map(cat => (
+                    <span key={cat.id} style={{
+                      padding: '6px 14px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 500,
+                      background: 'rgba(99,102,241,0.12)', color: '#818cf8',
+                      border: '1px solid rgba(99,102,241,0.2)',
+                    }}>
+                      {cat.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Chưa chọn danh mục nào</p>
+              )}
+            </GlassCard>
+
+            {/* Survey Answers */}
+            <GlassCard style={{ padding: 24 }}>
+              <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 10, color: '#f59e0b' }}>
+                <HelpCircle size={20} /> Câu trả lời khảo sát
+              </h3>
+              {isLoadingRegistration ? (
+                <div className="spinner" style={{ width: 24, height: 24, margin: '20px auto' }} />
+              ) : surveyAnswers.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {surveyAnswers.map(ans => (
+                    <div key={ans.id} style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 12, padding: 16
+                    }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {ans.question}
+                        <span style={{
+                          padding: '1px 6px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 500,
+                          background: ans.questionType === 'text' ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)',
+                          color: ans.questionType === 'text' ? '#818cf8' : '#f59e0b',
+                        }}>
+                          {ans.questionType}
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{ans.answer}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Chưa có câu trả lời khảo sát</p>
+              )}
+            </GlassCard>
+          </div>
         ) : (
           <div style={{ padding: '0 24px' }}>
             <GlassCard style={{ padding: 32 }}>
@@ -923,6 +1116,89 @@ export default function AgencyDetailPage() {
                 <button onClick={() => setIsEditModalOpen(false)} className="btn-outline">Hủy</button>
                 <button onClick={handleOverridePrice} className="btn-primary" disabled={isSaving} style={{ background: '#f59e0b', color: '#fff', border: 'none' }}>
                   {isSaving ? 'Đang lưu...' : 'Lưu giá riêng'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approve Modal */}
+        {showApproveModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 1000, padding: 20
+          }}>
+            <div className="glass-card fade-in-up" style={{
+              width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto',
+              padding: 32, borderRadius: 24,
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              position: 'relative',
+              background: 'rgba(25, 25, 35, 0.95)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+            }}>
+              <button 
+                onClick={() => setShowApproveModal(false)}
+                style={{
+                  position: 'absolute', top: 20, right: 20,
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                <X size={24} />
+              </button>
+
+              <h2 style={{ margin: '0 0 16px', fontSize: '1.4rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <ShieldCheck size={24} /> Phê duyệt đại lý
+              </h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.9rem' }}>
+                Xác nhận phê duyệt đại lý <strong>{agency?.name}</strong>
+              </p>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loại đại lý</label>
+                <select value={approveType} onChange={e => setApproveType(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.95rem' }}>
+                  <option value="RETAIL">Bán lẻ</option>
+                  <option value="WHOLESALE">Bán sỉ</option>
+                </select>
+              </div>
+
+              {approveType === 'WHOLESALE' && (
+                <>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Số tiền đặt cọc (VNĐ)</label>
+                    <input type="number" value={approveDeposit} onChange={e => setApproveDeposit(Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.95rem' }} />
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Thời hạn nợ (ngày)</label>
+                    <input type="number" value={approveDebtTerm} onChange={e => setApproveDebtTerm(Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.95rem' }} />
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Ký quỹ ban đầu (VTC)</label>
+                    <input type="number" value={approveInitialVtc} onChange={e => setApproveInitialVtc(Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.95rem' }} />
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Điều khoản hợp đồng</label>
+                    <textarea value={approveContractTerms} onChange={e => setApproveContractTerms(e.target.value)} rows={3}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '0.95rem', fontFamily: 'inherit', resize: 'vertical' }} />
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowApproveModal(false)} className="btn-outline" style={{ padding: '10px 24px', borderRadius: 12, cursor: 'pointer' }}>Hủy</button>
+                <button onClick={handleApprove} disabled={isApproving}
+                  style={{
+                    padding: '10px 24px', borderRadius: 12, cursor: 'pointer', border: 'none',
+                    background: isApproving ? 'rgba(16,185,129,0.5)' : '#10b981', color: 'white', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: 8
+                  }}>
+                  {isApproving ? 'Đang xử lý...' : 'Xác nhận duyệt'}
                 </button>
               </div>
             </div>

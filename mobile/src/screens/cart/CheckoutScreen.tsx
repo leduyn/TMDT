@@ -183,7 +183,7 @@ export function CheckoutScreen({ navigation }: any) {
       return;
     }
 
-    setLoading(false);
+    setLoading(true);
     
     // We confirm with user using standard Alert
     Alert.alert(

@@ -162,7 +162,12 @@ export default function CategoriesPage() {
 
   const loadCategories = () => {
     setLoading(true);
-    categoryApi.getAll()
+    const isAgency = user?.roles.includes('ROLE_AGENCY');
+    const agencyId = user?.agencyId;
+    const promise = isAgency && agencyId
+      ? categoryApi.getForAgency(agencyId)
+      : categoryApi.getAll();
+    promise
       .then(setCategories)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));

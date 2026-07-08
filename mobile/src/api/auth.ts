@@ -40,6 +40,11 @@ export const registerApi = {
     fetchJSON<CategoryDTO[]>('/api/categories/level/' + level),
   getActiveSurveyQuestions: () =>
     fetchJSON<SurveyQuestion[]>('/api/survey/questions/active'),
+  registerAgency: (data: AgencyRegisterRequest) =>
+    fetchJSON<JwtResponse>('/api/auth/agency/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   saveAgencyCategories: (agencyId: number, categoryIds: number[]) =>
     fetchJSON<{ message: string }>('/api/agencies/' + agencyId + '/categories', {
       method: 'POST',

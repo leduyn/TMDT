@@ -81,6 +81,12 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getChildCategories(id));
     }
 
+    @GetMapping("/for-agency/{agencyId}")
+    @PreAuthorize("hasRole('AGENCY')")
+    public ResponseEntity<List<CategoryDTO>> getCategoriesForAgency(@PathVariable Long agencyId) {
+        return ResponseEntity.ok(categoryService.getCategoriesForAgency(agencyId));
+    }
+
     @PreAuthorize("hasRole('ADMIN') or hasRole('COMPANY') or hasRole('AGENCY')")
     @PostMapping
     public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryRequest request) {

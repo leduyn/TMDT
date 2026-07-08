@@ -4,14 +4,12 @@ import {
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../../context/AuthContext';
 import { registerApi } from '../../api/auth';
 import type { CategoryDTO, SurveyQuestion } from '../../types';
 
 type Step = 'form' | 'categories' | 'survey' | 'submitting';
 
 export function RegisterScreen({ navigation }: any) {
-  const { registerAgency } = useAuth();
   const [form, setForm] = useState({
     customerCode: '', companyName: '', email: '', phone: '',
     representativeName: '', taxCode: '', billingAddress: '',

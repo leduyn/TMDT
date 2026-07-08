@@ -7,6 +7,7 @@ export const categoryApi = {
   getLevelNames: () => fetchJSON<Record<number, string>>('/api/categories/levels'),
   getByLevel: (level: number) => fetchJSON<CategoryDTO[]>(`/api/categories/level/${level}`),
   getChildren: (parentId: number) => fetchJSON<CategoryDTO[]>(`/api/categories/${parentId}/children`),
+  getForAgency: (agencyId: number) => fetchJSON<CategoryDTO[]>(`/api/categories/for-agency/${agencyId}`),
 };
 
 export const productApi = {

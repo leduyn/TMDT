@@ -22,6 +22,13 @@ export const agencyApi = {
     fetchJSON<AgencyDTO>(`/api/agencies/${id}`),
   getCustomers: (agencyId: number) =>
     fetchJSON<UserDTO[]>(`/api/agencies/${agencyId}/customers`),
+  getOpenedCategories: (id: number) =>
+    fetchJSON<number[]>(`/api/agencies/${id}/opened-categories`),
+  saveOpenedCategories: (id: number, categoryIds: number[]) =>
+    fetchJSON<{ message: string }>(`/api/agencies/${id}/opened-categories`, {
+      method: 'PUT',
+      body: JSON.stringify({ categoryIds }),
+    }),
   update: async (id: number, data: Partial<{ name: string; phone: string; avatarUrl: string }>) => {
     const token = await AsyncStorage.getItem('token');
     const res = await fetch(`${API_BASE}/api/agencies/${id}`, {

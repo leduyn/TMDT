@@ -1,6 +1,7 @@
 package com.anhtin.tmdt.backend.modules.survey.controller;
 
 import com.anhtin.tmdt.backend.modules.common.dto.MessageResponse;
+import com.anhtin.tmdt.backend.modules.survey.dto.SurveyAnswerDTO;
 import com.anhtin.tmdt.backend.modules.survey.entity.SurveyAnswer;
 import com.anhtin.tmdt.backend.modules.survey.entity.SurveyQuestion;
 import com.anhtin.tmdt.backend.modules.survey.service.SurveyService;
@@ -63,5 +64,17 @@ public class SurveyController {
         }).toList();
         surveyService.submitAnswers(agencyId, entities);
         return ResponseEntity.ok(new MessageResponse("Đã gửi câu trả lời khảo sát"));
+    }
+
+    @GetMapping("/agency/{agencyId}/answers")
+    @PreAuthorize("hasAnyRole('COMPANY', 'ADMIN')")
+    public List<SurveyAnswerDTO> getAgencyAnswers(@PathVariable Long agencyId) {
+        return surveyService.getAgencyAnswers(agencyId);
+    }
+
+    @GetMapping("/answers/stats")
+    @PreAuthorize("hasRole('COMPANY')")
+    public List<Map<String, Object>> getAnswerStats() {
+        return surveyService.getAnswerStats();
     }
 }

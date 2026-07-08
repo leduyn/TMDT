@@ -6,11 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../theme';
+import { GuideOverlay } from '../guide/GuideOverlay';
 
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { CategoryListScreen } from '../screens/products/CategoryListScreen';
+import { OpenCategoriesScreen } from '../screens/products/OpenCategoriesScreen';
 import { CategoryProductsScreen } from '../screens/products/CategoryProductsScreen';
 import { ProductListScreen } from '../screens/products/ProductListScreen';
 import { ProductDetailScreen } from '../screens/products/ProductDetailScreen';
@@ -69,6 +71,7 @@ export function AppNavigator() {
 
   return (
     <NavigationContainer>
+      <GuideOverlay />
       <Stack.Navigator
         key={isAuthenticated ? 'auth' : 'guest'}
         screenOptions={{
@@ -89,6 +92,11 @@ export function AppNavigator() {
               name="CategoryList"
               component={CategoryListScreen}
               options={{ title: 'Danh mục sản phẩm' }}
+            />
+            <Stack.Screen
+              name="OpenCategories"
+              component={OpenCategoriesScreen}
+              options={{ title: 'Mở thêm danh mục' }}
             />
             <Stack.Screen
               name="CategoryProducts"

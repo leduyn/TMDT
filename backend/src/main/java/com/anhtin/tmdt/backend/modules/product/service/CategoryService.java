@@ -1,5 +1,9 @@
 package com.anhtin.tmdt.backend.modules.product.service;
 
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCategorySelection;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyOpenedCategory;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCategorySelectionRepository;
+import com.anhtin.tmdt.backend.modules.agency.repository.AgencyOpenedCategoryRepository;
 import com.anhtin.tmdt.backend.modules.product.dto.CategoryRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.CategoryDTO;
 import com.anhtin.tmdt.backend.modules.product.entity.Category;
@@ -13,10 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +34,12 @@ public class CategoryService {
 
     @Autowired
     private com.anhtin.tmdt.backend.modules.common.repository.SystemConfigRepository configRepository;
+
+    @Autowired
+    private AgencyCategorySelectionRepository categorySelectionRepository;
+
+    @Autowired
+    private AgencyOpenedCategoryRepository openedCategoryRepository;
 
     private Map<Integer, String> levelNamesCache;
 
@@ -336,6 +343,48 @@ public class CategoryService {
             currentLevel = nextLevel;
         }
         return allIds;
+    }
+
+    public List<CategoryDTO> getCategoriesForAgency(Long agencyId) {
+        Map<Integer, String> levelNames = getLevelNames();
+        Set<Long> allowedIds = new HashSet<>();
+
+        List<AgencyOpenedCategory> opened = openedCategoryRepository.findByAgencyId(agencyId);
+        List<Long> sourceCategoryIds;
+
+        if (!opened.isEmpty()) {
+            sourceCategoryIds = opened.stream()
+                    .map(AgencyOpenedCategory::getCategoryId)
+                    .collect(Collectors.toList());
+        } else {
+            sourceCategoryIds = categorySelectionRepository.findByAgencyId(agencyId).stream()
+                    .map(AgencyCategorySelection::getCategoryId)
+                    .collect(Collectors.toList());
+        }
+
+        for (Long catId : sourceCategoryIds) {
+            allowedIds.addAll(getAllDescendantIds(catId));
+            allowedIds.addAll(getAllAncestorIds(catId));
+        }
+
+        return allowedIds.stream()
+                .map(id -> categoryRepository.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .map(c -> new CategoryDTO(c, levelNames))
+                .collect(Collectors.toList());
+    }
+
+    private Set<Long> getAllAncestorIds(Long categoryId) {
+        Set<Long> ancestors = new HashSet<>();
+        Long currentId = categoryId;
+        while (currentId != null) {
+            Category cat = categoryRepository.findById(currentId).orElse(null);
+            if (cat == null || cat.getParent() == null) break;
+            Long parentId = cat.getParent().getId();
+            ancestors.add(parentId);
+            currentId = parentId;
+        }
+        return ancestors;
     }
 }
 

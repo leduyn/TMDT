@@ -80,4 +80,18 @@ export const agencyApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  suspend: (id: number) =>
+    fetchJSON<AgencyDTO>(`/api/agencies/${id}/status?action=suspend`, {
+      method: 'PUT',
+    }),
+  activate: (id: number) =>
+    fetchJSON<AgencyDTO>(`/api/agencies/${id}/status?action=activate`, {
+      method: 'PUT',
+    }),
+  reject: (id: number) =>
+    fetchJSON<AgencyDTO>(`/api/agencies/${id}/status?action=reject`, {
+      method: 'PUT',
+    }),
+  getCategoriesDetail: (id: number) =>
+    fetchJSON<{ id: number; name: string }[]>(`/api/agencies/${id}/categories`),
 };

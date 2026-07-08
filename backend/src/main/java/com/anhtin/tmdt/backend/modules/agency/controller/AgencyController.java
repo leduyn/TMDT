@@ -8,6 +8,7 @@ import com.anhtin.tmdt.backend.modules.agency.dto.AgencyApproveRequest;
 import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCategorySelection;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCategorySelectionRepository;
 import com.anhtin.tmdt.backend.modules.agency.service.AgencyService;
+import com.anhtin.tmdt.backend.modules.common.dto.CategoryDTO;
 import com.anhtin.tmdt.backend.modules.common.dto.MessageResponse;
 import com.anhtin.tmdt.backend.modules.price.service.PriceListService;
 import jakarta.validation.Valid;
@@ -107,11 +108,35 @@ public class AgencyController {
 
     @GetMapping("/{id}/categories")
     @PreAuthorize("hasAnyRole('COMPANY', 'AGENCY')")
-    public List<Long> getAgencyCategories(@PathVariable Long id) {
-        return categorySelectionRepository.findByAgencyId(id)
-                .stream()
-                .map(AgencyCategorySelection::getCategoryId)
-                .collect(Collectors.toList());
+    public List<CategoryDTO> getAgencyCategories(@PathVariable Long id) {
+        return agencyService.getAgencyCategories(id);
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('COMPANY')")
+    public AgencyDTO updateAgencyStatus(@PathVariable Long id, @RequestParam String action) {
+        return agencyService.updateStatus(id, action);
+    }
+
+    @GetMapping("/categories/stats")
+    @PreAuthorize("hasRole('COMPANY')")
+    public List<Map<String, Object>> getCategoryStats() {
+        return agencyService.getCategoryStats();
+    }
+
+    @GetMapping("/{id}/opened-categories")
+    @PreAuthorize("hasRole('AGENCY')")
+    public List<Long> getOpenedCategories(@PathVariable Long id) {
+        return agencyService.getOpenedCategoryIds(id);
+    }
+
+    @PutMapping("/{id}/opened-categories")
+    @PreAuthorize("hasRole('AGENCY')")
+    public ResponseEntity<?> saveOpenedCategories(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Integer> categoryIds = (List<Integer>) body.get("categoryIds");
+        agencyService.saveOpenedCategories(id, categoryIds.stream().map(Long::valueOf).collect(Collectors.toList()));
+        return ResponseEntity.ok(new MessageResponse("Đã lưu danh mục đã mở"));
     }
 
     @PostMapping("/{id}/categories")
