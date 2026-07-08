@@ -22,7 +22,7 @@ export function GuideOverlay() {
 
   if (!ctx.isRunning || !ctx.currentStep) return null;
 
-  const { currentStep, currentStepIndex, activeGuide, targetLayout, nextStep, previousStep, skip, finish } = ctx;
+  const { currentStep, currentStepIndex, activeGuide, nextStep, previousStep, skip } = ctx;
   const totalSteps = activeGuide?.steps.length ?? 0;
 
   const handleNext = () => {
@@ -45,25 +45,27 @@ export function GuideOverlay() {
               <View style={[styles.dim, { top: tl.pageY, left: tl.pageX + tl.width, right: 0, height: tl.height }]} />
             </>
           ) : (
-            <View style={StyleSheet.absoluteFill}>
-              <View style={[styles.dim, StyleSheet.absoluteFill]} />
-            </View>
+            <View style={[styles.dim, StyleSheet.absoluteFill]} />
           )}
         </View>
       </TouchableWithoutFeedback>
-      {tl && <GuideHighlight layout={tl} />}
 
-      <GuideTooltip
-        title={currentStep.title}
-        description={currentStep.description}
-        placement={currentStep.placement}
-        currentStep={currentStepIndex}
-        totalSteps={totalSteps}
-        onNext={handleNext}
-        onPrevious={previousStep}
-        onSkip={skip}
-        targetLayout={tl ?? { x: 0, y: 0, width: 0, height: 0, pageX: SCREEN_W / 2, pageY: SCREEN_H / 2 }}
-      />
+      {tl && (
+        <>
+          <GuideHighlight layout={tl} />
+          <GuideTooltip
+            title={currentStep.title}
+            description={currentStep.description}
+            placement={currentStep.placement}
+            currentStep={currentStepIndex}
+            totalSteps={totalSteps}
+            onNext={handleNext}
+            onPrevious={previousStep}
+            onSkip={skip}
+            targetLayout={tl}
+          />
+        </>
+      )}
     </Animated.View>
   );
 }

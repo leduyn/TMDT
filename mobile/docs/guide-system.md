@@ -71,11 +71,16 @@ Steps can define `navigateTo: { screen, params }`. When `next()` is called, if n
 
 ## Animations
 
-Uses `react-native-reanimated` for:
+Uses React Native `Animated` API for:
 - Fade in/out overlay
 - Scale pulse on highlight
-- Spring tooltip entrance
-- Smooth target transition between steps
+- Fade + slide tooltip entrance
+
+## Reanimated Note
+
+`react-native-reanimated` (~4.1.7) is installed but disabled in babel.config.js
+due to "runtime not ready" native module issue on iOS.
+Swith to RN Animated as fallback.
 
 ## Conditions
 
@@ -102,3 +107,35 @@ Guides can specify conditions:
 - [x] src/guide/guides/index.ts
 - [x] App.tsx — wrap with GuideProvider
 - [x] CategoryListScreen.tsx — register targets + auto-start
+
+---
+
+## Phase 2: Full CRUD Guide Management (Frontend)
+
+### Backend — New Entities
+
+| Entity | Fields |
+|---|---|
+| `Guide` | id, name, description, version, isActive, conditions (JSON), createdAt, updatedAt |
+| `GuideTarget` | id, key, name, description, screenName, createdAt |
+| `GuideStep` | id, guideId, targetId (FK), title, description, placement, order, navigateToScreen, navigateToParams (JSON) |
+
+### Endpoints
+- `GET/POST/PUT/DELETE /api/guide-targets`
+- `GET/POST /api/guides`
+- `GET/PUT/DELETE /api/guides/{id}`
+- `POST /api/guides/{id}/steps`
+- `PUT/DELETE /api/guides/{guideId}/steps/{stepId}`
+- `GET /api/guides/active` (for mobile: isActive=true + full steps + targets)
+
+### Frontend Pages
+1. `/admin/guide-targets` — CRUD target keys
+2. `/admin/guides` — List + toggle active
+3. `/admin/guides/{id}` — Detail + step list editor
+   - Step form: target dropdown, title, desc, placement, navigateTo
+
+### Mobile Changes
+- `src/api/guide.ts` — fetch from API
+- GuideRegistry loads from API + AsyncStorage cache
+- GuideProvider fetches on mount
+- testID convention: every element with useGuideTarget should have matching testID prop
