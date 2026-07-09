@@ -1,9 +1,11 @@
 package com.anhtin.tmdt.backend.modules.agency.repository;
 
 import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
+import com.anhtin.tmdt.backend.modules.agency.entity.AgencyType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,4 +18,5 @@ public interface AgencyRepository extends JpaRepository<Agency, Long> {
     boolean existsByTaxCode(String taxCode);
     boolean existsByEmail(String email);
     Optional<Agency> findByEmail(String email);
+    List<Agency> findByType(AgencyType type);
 }

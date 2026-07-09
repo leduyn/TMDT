@@ -43,4 +43,23 @@ public class AdminAgencyUpgradeController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
+    @GetMapping("/retail")
+    @PreAuthorize("hasRole('COMPANY')")
+    public List<AgencyDTO> getRetailAgencies() {
+        return agencyService.getRetailAgencies();
+    }
+
+    @PostMapping("/{agencyId}/direct-upgrade")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> directUpgrade(@PathVariable Long agencyId) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+            agencyService.directUpgrade(agencyId, user.getId(), user.getUsername());
+            return ResponseEntity.ok(Map.of("message", "Đã nâng cấp thành công lên khách sỉ"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

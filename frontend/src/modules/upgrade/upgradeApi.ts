@@ -5,6 +5,14 @@ export interface UpgradeTerms {
   version: string;
 }
 
+export interface RetailAgencyDTO {
+  id: number;
+  code: string;
+  name: string;
+  phone?: string;
+  type: string;
+}
+
 export const upgradeApi = {
   getTerms: () => fetchJSON<UpgradeTerms>('/api/terms/customer-upgrade'),
 
@@ -32,4 +40,12 @@ export const upgradeApi = {
     fetchJSON<{ type: string; history: any[]; upgradeStatus: string }>(
       '/api/agencies/me/upgrade-status'
     ),
+
+  getRetailAgencies: () =>
+    fetchJSON<RetailAgencyDTO[]>('/api/admin/agencies/retail'),
+
+  directUpgrade: (agencyId: number) =>
+    fetchJSON<{ message: string }>(`/api/admin/agencies/${agencyId}/direct-upgrade`, {
+      method: 'POST',
+    }),
 };
