@@ -84,6 +84,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/agencies/register").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/config/registration-category-level").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/survey/questions/active").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/guides/active").permitAll()
                 .anyRequest().authenticated()
         );
         
