@@ -218,16 +218,28 @@ export default function DashboardPage() {
               {statsCards.map((s, i) => (
                 <div key={s.label} className="glass-card fade-in-up" style={{ padding: 20, animationDelay: `${i * 0.08}s` }}>
                   {s.label === 'Đại lý' && data?.stats.totalAgencies > 0 ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: 8 }}>Đại lý</p>
-                        <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#3b82f6' }}>{formatNumber(data.stats.totalAgencies)}</p>
-                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: '0.8rem', color: '#6366f1' }}>Sỉ: {formatNumber(data.stats.wholesaleAgencies)}</span>
-                          <span style={{ fontSize: '0.8rem', color: '#8b5cf6' }}>Lẻ: {formatNumber(data.stats.retailAgencies)}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Đại lý</span>
+                        <span style={{ fontSize: 28 }}>{s.icon}</span>
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '1.3rem', color: '#3b82f6' }}>
+                        {formatNumber(data.stats.totalAgencies)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: '0.78rem', color: '#6366f1' }}>Sỉ</span>
+                          <div style={{ fontWeight: 600, fontSize: '1.05rem', color: '#6366f1' }}>
+                            {formatNumber(data.stats.wholesaleAgencies)}
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: '0.78rem', color: '#8b5cf6' }}>Lẻ</span>
+                          <div style={{ fontWeight: 600, fontSize: '1.05rem', color: '#8b5cf6' }}>
+                            {formatNumber(data.stats.retailAgencies)}
+                          </div>
                         </div>
                       </div>
-                      <span style={{ fontSize: 28 }}>{s.icon}</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
