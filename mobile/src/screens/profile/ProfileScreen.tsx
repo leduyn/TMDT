@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, StatusBar, Image, Alert
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, StatusBar, Image, Alert, Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { userApi } from '../../api/auth';
 import { agencyApi, type AgencyDTO } from '../../api/agency';
 import { uploadApi } from '../../api/upload';
+import { upgradeApi } from '../../api/upgrade';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import { resolveImageUrl } from '../../utils';
@@ -20,9 +21,16 @@ export function ProfileScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [upgradeStatus, setUpgradeStatus] = useState<string>('NONE');
+  const [agencyType, setAgencyType] = useState<string>('');
+  const [terms, setTerms] = useState<{ content: string; version: string } | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   useEffect(() => {
     loadProfile();
+    loadUpgradeStatus();
   }, []);
 
   const loadProfile = async () => {
@@ -32,6 +40,40 @@ export function ProfileScreen({ navigation }: any) {
       setProfile(data);
     } catch {} finally {
       setLoading(false);
+    }
+  };
+
+  const loadUpgradeStatus = async () => {
+    try {
+      const data = await upgradeApi.getUpgradeStatus();
+      setAgencyType(data.type);
+      setUpgradeStatus(data.upgradeStatus);
+    } catch {}
+  };
+
+  const handleRequestUpgrade = async () => {
+    if (!terms || !agreedToTerms) return;
+    setUpgradeLoading(true);
+    try {
+      await upgradeApi.requestUpgrade(true, terms.version);
+      Alert.alert('Thành công', 'Yêu cầu nâng cấp đã được gửi. Vui lòng chờ xét duyệt.');
+      setShowUpgradeModal(false);
+      setUpgradeStatus('PENDING');
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể gửi yêu cầu');
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
+  const openUpgradeModal = async () => {
+    try {
+      const data = await upgradeApi.getTerms();
+      setTerms(data);
+      setAgreedToTerms(false);
+      setShowUpgradeModal(true);
+    } catch (e: any) {
+      Alert.alert('Lỗi', 'Không thể tải điều khoản');
     }
   };
 
@@ -151,6 +193,30 @@ export function ProfileScreen({ navigation }: any) {
           )}
         </View>
 
+        {userRole === 'AGENCY' && agencyType === 'RETAIL' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Nâng cấp tài khoản</Text>
+            {upgradeStatus === 'NONE' && (
+              <TouchableOpacity style={styles.upgradeBtn} onPress={openUpgradeModal}>
+                <Ionicons name="arrow-up-circle-outline" size={20} color={Colors.white} />
+                <Text style={styles.upgradeBtnText}>Yêu cầu nâng cấp lên Bán buôn</Text>
+              </TouchableOpacity>
+            )}
+            {upgradeStatus === 'PENDING' && (
+              <View style={styles.pendingBox}>
+                <Ionicons name="time-outline" size={20} color={Colors.warning} />
+                <Text style={styles.pendingText}>Đang chờ xét duyệt</Text>
+              </View>
+            )}
+            {upgradeStatus === 'REJECTED' && (
+              <View style={styles.rejectedBox}>
+                <Ionicons name="close-circle-outline" size={20} color={Colors.error} />
+                <Text style={styles.rejectedText}>Yêu cầu đã bị từ chối</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={Colors.error} />
           <Text style={styles.logoutBtnText}>Đăng xuất</Text>
@@ -168,6 +234,42 @@ export function ProfileScreen({ navigation }: any) {
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
       />
+
+      <Modal visible={showUpgradeModal} transparent animationType="fade" onRequestClose={() => setShowUpgradeModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Điều khoản nâng cấp</Text>
+            <Text style={styles.modalSubtitle}>Vui lòng đọc và đồng ý với điều khoản trước khi gửi yêu cầu</Text>
+            <ScrollView style={styles.termsScroll}>
+              <Text style={styles.termsText}>{terms?.content || 'Đang tải...'}</Text>
+            </ScrollView>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => setAgreedToTerms(!agreedToTerms)}>
+              <Ionicons
+                name={agreedToTerms ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={agreedToTerms ? Colors.primary : Colors.textSecondary}
+              />
+              <Text style={styles.checkboxLabel}>Tôi đồng ý với điều khoản nâng cấp</Text>
+            </TouchableOpacity>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowUpgradeModal(false)}>
+                <Text style={styles.cancelBtnText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitBtn, !agreedToTerms && styles.submitBtnDisabled]}
+                disabled={!agreedToTerms || upgradeLoading}
+                onPress={handleRequestUpgrade}
+              >
+                {upgradeLoading ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={styles.submitBtnText}>Gửi yêu cầu</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -273,4 +375,45 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   logoutBtnText: { color: Colors.error, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  upgradeBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.primary, borderRadius: BorderRadius.md, padding: Spacing.lg, gap: Spacing.sm,
+  },
+  upgradeBtnText: { color: Colors.white, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  pendingBox: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    backgroundColor: Colors.warningLight, borderRadius: BorderRadius.md, padding: Spacing.lg,
+  },
+  pendingText: { color: Colors.warning, fontSize: FontSize.md, fontWeight: FontWeight.semibold },
+  rejectedBox: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    backgroundColor: Colors.errorLight, borderRadius: BorderRadius.md, padding: Spacing.lg,
+  },
+  rejectedText: { color: Colors.error, fontSize: FontSize.md, fontWeight: FontWeight.semibold },
+  modalOverlay: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.overlay, padding: Spacing.xxl,
+  },
+  modalContent: {
+    width: '100%', backgroundColor: Colors.white, borderRadius: BorderRadius.lg,
+    padding: Spacing.xxl, maxHeight: '80%',
+  },
+  modalTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: Colors.textPrimary, marginBottom: Spacing.xs },
+  modalSubtitle: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.lg },
+  termsScroll: { maxHeight: 250, marginBottom: Spacing.lg },
+  termsText: { fontSize: FontSize.sm, color: Colors.textPrimary, lineHeight: 20 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.lg },
+  checkboxLabel: { fontSize: FontSize.md, color: Colors.textPrimary, flex: 1 },
+  modalActions: { flexDirection: 'row', gap: Spacing.md },
+  cancelBtn: {
+    flex: 1, alignItems: 'center', padding: Spacing.lg,
+    backgroundColor: Colors.borderLight, borderRadius: BorderRadius.md,
+  },
+  cancelBtnText: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.textSecondary },
+  submitBtn: {
+    flex: 1, alignItems: 'center', padding: Spacing.lg,
+    backgroundColor: Colors.primary, borderRadius: BorderRadius.md,
+  },
+  submitBtnDisabled: { opacity: 0.5 },
+  submitBtnText: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.white },
 });

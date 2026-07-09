@@ -29,6 +29,8 @@ import {
   BarChart,
   BookOpen,
   Target,
+  ArrowUpDown,
+  FileText,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -78,6 +80,8 @@ export default function Sidebar() {
     { label: 'Hướng dẫn', href: '/admin/guides', icon: BookOpen, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Guide Targets', href: '/admin/guide-targets', icon: Target, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'TK Đăng ký', href: '/registration-stats', icon: BarChart, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Điều khoản nâng cấp', href: '/admin/terms/customer-upgrade', icon: FileText, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
+    { label: 'Yêu cầu nâng cấp', href: '/admin/customer-upgrade', icon: ArrowUpDown, roles: ['ROLE_COMPANY', 'ROLE_ADMIN'] },
     { label: 'Cài đặt', href: '/settings', icon: Settings, roles: ['ROLE_COMPANY'] },
   ];
 

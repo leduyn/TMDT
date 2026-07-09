@@ -15,3 +15,4 @@ export * from '../modules/dashboard/dashboardApi';
 export * from '../modules/survey/surveyApi';
 export * from '../modules/guide/guideApi';
 export * from '../modules/guide/guideTargetApi';
+export * from '../modules/upgrade/upgradeApi';

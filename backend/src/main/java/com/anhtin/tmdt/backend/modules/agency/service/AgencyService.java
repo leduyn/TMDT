@@ -1,23 +1,13 @@
 package com.anhtin.tmdt.backend.modules.agency.service;
 
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyCustomerDTO;
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRequest;
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyDTO;
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyRegisterRequest;
-import com.anhtin.tmdt.backend.modules.agency.dto.AgencyApproveRequest;
-import com.anhtin.tmdt.backend.modules.agency.entity.Agency;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCategorySelection;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyOpenedCategory;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyType;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCategorySelectionRepository;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyOpenedCategoryRepository;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
+import com.anhtin.tmdt.backend.modules.agency.dto.*;
+import com.anhtin.tmdt.backend.modules.agency.entity.*;
+import com.anhtin.tmdt.backend.modules.agency.repository.*;
 import com.anhtin.tmdt.backend.modules.common.dto.CategoryDTO;
+import com.anhtin.tmdt.backend.modules.common.entity.SystemConfig;
+import com.anhtin.tmdt.backend.modules.common.repository.SystemConfigRepository;
 import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
-import com.anhtin.tmdt.backend.modules.agency.entity.AgencyCustomerAssignment;
-import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCustomerAssignmentRepository;
 import com.anhtin.tmdt.backend.modules.credit.service.CreditService;
 import com.anhtin.tmdt.backend.modules.credit.entity.DepositContract;
 import com.anhtin.tmdt.backend.modules.credit.repository.DepositContractRepository;
@@ -67,6 +57,12 @@ public class AgencyService {
 
     @Autowired
     private AgencyOpenedCategoryRepository openedCategoryRepository;
+
+    @Autowired
+    private AgencyTypeChangeHistoryRepository typeChangeHistoryRepository;
+
+    @Autowired
+    private SystemConfigRepository systemConfigRepository;
 
     private java.util.concurrent.atomic.AtomicLong contractSeq = new java.util.concurrent.atomic.AtomicLong(0);
 
@@ -424,5 +420,92 @@ public class AgencyService {
         });
 
         return result;
+    }
+
+    @Transactional
+    public void requestUpgrade(Long agencyId) {
+        Agency agency = agencyRepository.findById(agencyId)
+                .orElseThrow(() -> new RuntimeException("Agency not found"));
+
+        if (agency.getType() == AgencyType.WHOLESALE) {
+            throw new RuntimeException("Agency already WHOLESALE");
+        }
+
+        AgencyTypeChangeHistory existingPending = typeChangeHistoryRepository
+                .findByAgencyIdOrderByCreatedAtDesc(agencyId)
+                .stream().findFirst().orElse(null);
+        if (existingPending != null && "PENDING".equals(existingPending.getReason())) {
+            throw new RuntimeException("Already has a pending upgrade request");
+        }
+
+        AgencyTypeChangeHistory history = new AgencyTypeChangeHistory();
+        history.setAgencyId(agencyId);
+        history.setOldType(AgencyType.RETAIL.name());
+        history.setNewType(AgencyType.WHOLESALE.name());
+        history.setReason("PENDING");
+        history.setCreatedAt(java.time.LocalDateTime.now());
+        typeChangeHistoryRepository.save(history);
+    }
+
+    public List<Map<String, Object>> getUpgradeRequests() {
+        List<AgencyTypeChangeHistory> histories = typeChangeHistoryRepository.findAll();
+        return histories.stream()
+                .filter(h -> "PENDING".equals(h.getReason()) || "APPROVED".equals(h.getReason()) || "REJECTED".equals(h.getReason()))
+                .map(h -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", h.getId());
+                    m.put("agencyId", h.getAgencyId());
+                    m.put("oldType", h.getOldType());
+                    m.put("newType", h.getNewType());
+                    m.put("status", h.getReason());
+                    m.put("rejectReason", null);
+                    m.put("changedByName", h.getChangedByName());
+                    m.put("createdAt", h.getCreatedAt());
+                    try {
+                        Agency a = agencyRepository.findById(h.getAgencyId()).orElse(null);
+                        m.put("agencyName", a != null ? a.getName() : "Unknown");
+                        m.put("agencyPhone", a != null ? a.getPhone() : "");
+                    } catch (Exception ignored) {}
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void approveUpgrade(Long historyId, ApproveUpgradeRequest request, Long adminId, String adminName) {
+        AgencyTypeChangeHistory history = typeChangeHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new RuntimeException("History not found"));
+
+        if (!"PENDING".equals(history.getReason())) {
+            throw new RuntimeException("Request is not pending");
+        }
+
+        if (request.isApproved()) {
+            Agency agency = agencyRepository.findById(history.getAgencyId())
+                    .orElseThrow(() -> new RuntimeException("Agency not found"));
+
+            history.setOldType(agency.getType().name());
+            agency.setType(AgencyType.WHOLESALE);
+            history.setNewType(AgencyType.WHOLESALE.name());
+            history.setReason("APPROVED");
+            history.setChangedBy(adminId);
+            history.setChangedByName(adminName);
+            agencyRepository.save(agency);
+        } else {
+            history.setReason("REJECTED");
+            history.setChangedBy(adminId);
+            history.setChangedByName(adminName);
+        }
+        typeChangeHistoryRepository.save(history);
+    }
+
+    public List<AgencyTypeChangeHistoryDTO> getTypeHistory(Long agencyId) {
+        return typeChangeHistoryRepository.findByAgencyIdOrderByCreatedAtDesc(agencyId)
+                .stream()
+                .map(h -> new AgencyTypeChangeHistoryDTO(
+                        h.getId(), h.getAgencyId(), h.getOldType(), h.getNewType(),
+                        h.getChangedByName(), "PENDING".equals(h.getReason()) ? null : h.getReason(),
+                        h.getCreatedAt()))
+                .collect(Collectors.toList());
     }
 }
