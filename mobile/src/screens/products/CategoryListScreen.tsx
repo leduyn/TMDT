@@ -60,7 +60,7 @@ export function CategoryListScreen({ navigation }: any) {
   useEffect(() => {
     if (agencyId) {
       const timer = setTimeout(() => {
-        try { startGuide('categoryGuide'); } catch { }
+        try { startGuide('3'); } catch { }
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -264,7 +264,7 @@ export function CategoryListScreen({ navigation }: any) {
           <Ionicons name="cart-outline" size={24} color={Colors.white} />
         </TouchableOpacity>
         {userRole === 'AGENCY' && (
-          <TouchableOpacity style={styles.guideBtn} onPress={() => startGuide('categoryGuide')}>
+          <TouchableOpacity style={styles.guideBtn} onPress={() => startGuide('3')}>
             <Ionicons name="help-circle-outline" size={22} color={Colors.white} />
           </TouchableOpacity>
         )}

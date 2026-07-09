@@ -1,8 +1,8 @@
 import React, { createContext, useState, useCallback, useRef, useEffect } from 'react';
-import { findNodeHandle, UIManager, Platform, Alert } from 'react-native';
+import { findNodeHandle, UIManager, Platform, Alert, LogBox } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GuideDefinition, GuideStep, TargetLayout, CompletedGuide } from './types';
-import { registerGuide, getGuide, loadGuidesFromApi } from './GuideRegistry';
+import { registerGuide, getGuide, getAllGuides, loadGuidesFromApi } from './GuideRegistry';
 import { categoryGuide } from './guides/categoryGuide';
 import { guideApi } from '../api/guide';
 import { useAuth } from '../context/AuthContext';
@@ -134,14 +134,19 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   }, [measureSingleRef]);
 
   const measureCurrentTarget = useCallback(async (retries = 3) => {
-    if (!activeGuide) return;
+    if (!activeGuide) { console.log('GUIDE_DEBUG: measureCurrentTarget - no activeGuide'); return; }
     const step = activeGuide.steps[currentStepIndex];
-    if (!step) return;
+    if (!step) { console.log('GUIDE_DEBUG: measureCurrentTarget - no step at index', currentStepIndex); return; }
+    console.log('GUIDE_DEBUG: measuring target', step.target, 'retries left', retries);
     const layout = await measureTarget(step.target);
     if (layout) {
+      console.log('GUIDE_DEBUG: got layout', layout);
       setTargetLayout(layout);
     } else if (retries > 0) {
+      console.log('GUIDE_DEBUG: retrying in 500ms');
       setTimeout(() => measureCurrentTarget(retries - 1), 500);
+    } else {
+      console.log('GUIDE_DEBUG: gave up measuring target after retries');
     }
   }, [activeGuide, currentStepIndex, measureTarget]);
 
@@ -155,16 +160,16 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   }, [isRunning, activeGuide, currentStepIndex, measureCurrentTarget]);
 
   const startGuide = useCallback(async (id: string) => {
+    console.log('GUIDE_DEBUG: startGuide called with id', id);
+    console.log('GUIDE_DEBUG: registry has keys', Array.from(getAllGuides().map(g => g.id)));
     const guide = getGuide(id);
-    if (!guide) { Alert.alert('Debug', `Guide "${id}" not found`); return; }
+    if (!guide) { console.log('GUIDE_DEBUG: guide not found in registry'); Alert.alert('Debug', `Guide "${id}" not found`); return; }
+    console.log('GUIDE_DEBUG: found guide', guide.title, 'steps:', guide.steps.length);
 
     if (guide.condition?.role && guide.condition.role.length > 0) {
+      console.log('GUIDE_DEBUG: checking role', userRole, 'against', guide.condition.role);
       if (!userRole || !guide.condition.role.includes(userRole)) { Alert.alert('Debug', `Role mismatch: userRole=${userRole}, required=${guide.condition.role}`); return; }
       if (userRole === 'AGENCY' && !agencyId) { Alert.alert('Debug', 'Agency ID is null'); return; }
-    }
-    if (guide.condition?.predicate) {
-      const ok = await guide.condition.predicate();
-      if (!ok) return;
     }
 
     Alert.alert('Guide', `Starting: ${guide.title} (${guide.steps.length} steps)`);

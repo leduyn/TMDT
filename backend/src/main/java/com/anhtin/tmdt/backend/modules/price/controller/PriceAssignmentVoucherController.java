@@ -3,7 +3,7 @@ package com.anhtin.tmdt.backend.modules.price.controller;
 import com.anhtin.tmdt.backend.modules.price.dto.PriceAssignmentVoucherRequest;
 import com.anhtin.tmdt.backend.modules.common.dto.PriceAssignmentVoucherDTO;
 import com.anhtin.tmdt.backend.modules.price.entity.PriceAssignmentVoucher;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -25,16 +25,28 @@ import com.anhtin.tmdt.backend.modules.customer.repository.CustomerGroupReposito
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/price-assignment-vouchers")
-@RequiredArgsConstructor
 public class PriceAssignmentVoucherController {
 
-    private final PriceAssignmentVoucherRepository voucherRepository;
-    private final PriceListRepository priceListRepository;
-    private final AgencyRepository agencyRepository;
-    private final CustomerGroupRepository customerGroupRepository;
-    private final UserRepository userRepository;
-    private final com.anhtin.tmdt.backend.modules.price.service.PriceAssignmentService priceAssignmentService;
-    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PriceAssignmentVoucherRepository voucherRepository;
+
+    @Autowired
+    private PriceListRepository priceListRepository;
+
+    @Autowired
+    private AgencyRepository agencyRepository;
+
+    @Autowired
+    private CustomerGroupRepository customerGroupRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PriceAssignmentService priceAssignmentService;
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @GetMapping("/fix-db")
     @PreAuthorize("permitAll()")
@@ -80,8 +92,8 @@ public class PriceAssignmentVoucherController {
     @PreAuthorize("hasAnyRole('COMPANY', 'ADMIN')")
     public ResponseEntity<?> cancelVoucher(@PathVariable @org.springframework.lang.NonNull Long id) {
         return voucherRepository.findById(id).map(v -> {
-            if (v.getStatus() == com.anhtin.tmdt.backend.modules.common.entity.VoucherStatus.PENDING) {
-                v.setStatus(com.anhtin.tmdt.backend.modules.common.entity.VoucherStatus.CANCELLED);
+            if (v.getStatus() == VoucherStatus.PENDING) {
+                v.setStatus(VoucherStatus.CANCELLED);
                 voucherRepository.save(v);
                 return ResponseEntity.ok(java.util.Map.of("message", "Thành công"));
             }
