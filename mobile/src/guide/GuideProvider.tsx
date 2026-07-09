@@ -85,6 +85,21 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     return new Promise(resolve => {
       if (!ref) { resolve(null); return; }
 
+      if (Platform.OS === 'web') {
+        const node = findNodeHandle(ref) as any;
+        if (node && typeof node.getBoundingClientRect === 'function') {
+          const rect = node.getBoundingClientRect();
+          if (rect.width > 0 || rect.height > 0) {
+            resolve({ x: rect.left, y: rect.top, width: rect.width, height: rect.height, pageX: rect.left, pageY: rect.top });
+          } else {
+            resolve(null);
+          }
+        } else {
+          resolve(null);
+        }
+        return;
+      }
+
       if (typeof ref.measureInWindow === 'function') {
         ref.measureInWindow((x: number, y: number, width: number, height: number) => {
           if (width > 0 || height > 0) {

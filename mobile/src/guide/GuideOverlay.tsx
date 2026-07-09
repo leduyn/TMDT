@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useContext } from 'react';
 import {
   View, StyleSheet, Animated, Dimensions,
-  TouchableWithoutFeedback, Platform,
+  Pressable, Platform,
 } from 'react-native';
 import { Colors } from '../theme';
 import { GuideContext } from './GuideProvider';
@@ -35,20 +35,18 @@ export function GuideOverlay() {
 
   return (
     <Animated.View style={[styles.overlay, { opacity: fadeAnim }]} pointerEvents="box-none">
-      <TouchableWithoutFeedback>
-        <View style={StyleSheet.absoluteFill}>
-          {tl ? (
-            <>
-              <View style={[styles.dim, { top: 0, left: 0, right: 0, height: tl.pageY }]} />
-              <View style={[styles.dim, { top: tl.pageY + tl.height, left: 0, right: 0, bottom: 0 }]} />
-              <View style={[styles.dim, { top: tl.pageY, left: 0, width: tl.pageX, height: tl.height }]} />
-              <View style={[styles.dim, { top: tl.pageY, left: tl.pageX + tl.width, right: 0, height: tl.height }]} />
-            </>
-          ) : (
-            <View style={[styles.dim, StyleSheet.absoluteFill]} />
-          )}
-        </View>
-      </TouchableWithoutFeedback>
+      <Pressable style={StyleSheet.absoluteFill}>
+        {tl ? (
+          <>
+            <View style={[styles.dim, { top: 0, left: 0, right: 0, height: tl.pageY }]} />
+            <View style={[styles.dim, { top: tl.pageY + tl.height, left: 0, right: 0, bottom: 0 }]} />
+            <View style={[styles.dim, { top: tl.pageY, left: 0, width: tl.pageX, height: tl.height }]} />
+            <View style={[styles.dim, { top: tl.pageY, left: tl.pageX + tl.width, right: 0, height: tl.height }]} />
+          </>
+        ) : (
+          <View style={[styles.dim, StyleSheet.absoluteFill]} />
+        )}
+      </Pressable>
 
       {tl && (
         <>
