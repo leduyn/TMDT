@@ -60,7 +60,7 @@ export function CategoryListScreen({ navigation }: any) {
   useEffect(() => {
     if (agencyId) {
       const timer = setTimeout(() => {
-        try { startGuide('categoryGuide'); } catch {}
+        try { startGuide('categoryGuide'); } catch { }
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -279,148 +279,148 @@ export function CategoryListScreen({ navigation }: any) {
           )}
         </View>
       ) : (
-      <View style={styles.splitBody}>
-        {/* Sidebar Tabs + List */}
-        <View ref={sidebarRef} style={styles.sidebar} collapsable={false}>
-          <View style={styles.sidebarTabs}>
-            <TouchableOpacity
-              style={[styles.sidebarTab, sidebarTab === 'category' && styles.sidebarTabActive]}
-              onPress={() => setSidebarTab('category')}
+        <View style={styles.splitBody}>
+          {/* Sidebar Tabs + List */}
+          <View ref={sidebarRef} style={styles.sidebar} collapsable={false}>
+            <View style={styles.sidebarTabs}>
+              <TouchableOpacity
+                style={[styles.sidebarTab, sidebarTab === 'category' && styles.sidebarTabActive]}
+                onPress={() => setSidebarTab('category')}
+              >
+                <Ionicons
+                  name="grid-outline"
+                  size={14}
+                  color={sidebarTab === 'category' ? Colors.primary : Colors.textTertiary}
+                />
+                <Text style={[styles.sidebarTabText, sidebarTab === 'category' && styles.sidebarTabTextActive]}>
+                  DM
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sidebarTab, sidebarTab === 'brand' && styles.sidebarTabActive]}
+                onPress={() => setSidebarTab('brand')}
+              >
+                <Ionicons
+                  name="pricetag-outline"
+                  size={14}
+                  color={sidebarTab === 'brand' ? Colors.primary : Colors.textTertiary}
+                />
+                <Text style={[styles.sidebarTabText, sidebarTab === 'brand' && styles.sidebarTabTextActive]}>
+                  TH
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sidebarContent}
             >
-              <Ionicons
-                name="grid-outline"
-                size={14}
-                color={sidebarTab === 'category' ? Colors.primary : Colors.textTertiary}
-              />
-              <Text style={[styles.sidebarTabText, sidebarTab === 'category' && styles.sidebarTabTextActive]}>
-                DM
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.sidebarTab, sidebarTab === 'brand' && styles.sidebarTabActive]}
-              onPress={() => setSidebarTab('brand')}
-            >
-              <Ionicons
-                name="pricetag-outline"
-                size={14}
-                color={sidebarTab === 'brand' ? Colors.primary : Colors.textTertiary}
-              />
-              <Text style={[styles.sidebarTabText, sidebarTab === 'brand' && styles.sidebarTabTextActive]}>
-                TH
-              </Text>
-            </TouchableOpacity>
+              {sidebarTab === 'category'
+                ? categories.map((cat) => (
+                  <CategoryItem
+                    key={cat.id}
+                    name={cat.name}
+                    imageUrl={cat.imageUrl}
+                    isActive={activeCategory?.id === cat.id}
+                    onPress={() => setActiveCategory(cat)}
+                  />
+                ))
+                : brands.map((b) => (
+                  <CategoryItem
+                    key={b.id}
+                    name={b.name}
+                    imageUrl={b.logoUrl}
+                    //iconName="pricetag-outline"
+                    isActive={activeBrand?.id === b.id}
+                    onPress={() => setActiveBrand(b)}
+                  />
+                ))}
+            </ScrollView>
           </View>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sidebarContent}
-          >
-            {sidebarTab === 'category'
-              ? categories.map((cat) => (
-                <CategoryItem
-                  key={cat.id}
-                  name={cat.name}
-                  imageUrl={cat.imageUrl}
-                  isActive={activeCategory?.id === cat.id}
-                  onPress={() => setActiveCategory(cat)}
+          <View style={styles.mainContent}>
+            <View style={styles.sortBar}>
+              <TouchableOpacity
+                style={[styles.sortBtn, sortOrder !== 'default' && styles.sortBtnActive]}
+                onPress={() => {
+                  setSortOrder(prev =>
+                    prev === 'default' ? 'price_asc' :
+                      prev === 'price_asc' ? 'price_desc' : 'default'
+                  );
+                }}
+              >
+                <Ionicons
+                  name={sortOrder === 'price_asc' ? 'arrow-up' : sortOrder === 'price_desc' ? 'arrow-down' : 'swap-vertical'}
+                  size={14}
+                  color={sortOrder !== 'default' ? Colors.primary : Colors.textSecondary}
                 />
-              ))
-              : brands.map((b) => (
-                <CategoryItem
-                  key={b.id}
-                  name={b.name}
-                  imageUrl={b.logoUrl}
-                  //iconName="pricetag-outline"
-                  isActive={activeBrand?.id === b.id}
-                  onPress={() => setActiveBrand(b)}
-                />
-              ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.mainContent}>
-          <View style={styles.sortBar}>
-            <TouchableOpacity
-              style={[styles.sortBtn, sortOrder !== 'default' && styles.sortBtnActive]}
-              onPress={() => {
-                setSortOrder(prev =>
-                  prev === 'default' ? 'price_asc' :
-                  prev === 'price_asc' ? 'price_desc' : 'default'
-                );
-              }}
-            >
-              <Ionicons
-                name={sortOrder === 'price_asc' ? 'arrow-up' : sortOrder === 'price_desc' ? 'arrow-down' : 'swap-vertical'}
-                size={14}
-                color={sortOrder !== 'default' ? Colors.primary : Colors.textSecondary}
-              />
-              <Text style={[styles.sortBtnText, sortOrder !== 'default' && styles.sortBtnTextActive]}>
-                {sortOrder === 'default' ? 'Mặc định' :
-                 sortOrder === 'price_asc' ? 'Giá ↑' : 'Giá ↓'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {sidebarTab === 'category' ? (
-            subLoading ? (
+                <Text style={[styles.sortBtnText, sortOrder !== 'default' && styles.sortBtnTextActive]}>
+                  {sortOrder === 'default' ? 'Mặc định' :
+                    sortOrder === 'price_asc' ? 'Giá ↑' : 'Giá ↓'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {sidebarTab === 'category' ? (
+              subLoading ? (
+                <View style={styles.productsCenter}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+              ) : visibleSubCategories.length > 0 ? (
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.sectionsContainer}
+                >
+                  {visibleSubCategories.map(renderSection)}
+                </ScrollView>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Ionicons
+                    name={searchQuery ? 'search-outline' : 'cube-outline'}
+                    size={48}
+                    color={Colors.textTertiary}
+                  />
+                  <Text style={styles.emptyText}>
+                    {searchQuery
+                      ? 'Không tìm thấy sản phẩm phù hợp'
+                      : 'Không có sản phẩm trong danh mục này'}
+                  </Text>
+                </View>
+              )
+            ) : brandProductsLoading ? (
               <View style={styles.productsCenter}>
                 <ActivityIndicator size="large" color={Colors.primary} />
               </View>
-            ) : visibleSubCategories.length > 0 ? (
+            ) : sortedBrandProducts.length > 0 ? (
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.sectionsContainer}
               >
-                {visibleSubCategories.map(renderSection)}
+                {activeBrand && (
+                  <View style={styles.brandHeader}>
+                    <Text style={styles.brandHeaderName}>{activeBrand.name}</Text>
+                    <Text style={styles.brandHeaderCount}>{sortedBrandProducts.length} sản phẩm</Text>
+                  </View>
+                )}
+                <View style={styles.brandProductsGrid}>
+                  {sortedBrandProducts.map(product => (
+                    <View key={product.id} style={styles.brandProductCard}>
+                      <ProductCard
+                        product={product}
+                        onPress={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
+                        onAddToCart={handleAddToCart}
+                      />
+                    </View>
+                  ))}
+                </View>
               </ScrollView>
             ) : (
               <View style={styles.emptyContainer}>
-                <Ionicons
-                  name={searchQuery ? 'search-outline' : 'cube-outline'}
-                  size={48}
-                  color={Colors.textTertiary}
-                />
-                <Text style={styles.emptyText}>
-                  {searchQuery
-                    ? 'Không tìm thấy sản phẩm phù hợp'
-                    : 'Không có sản phẩm trong danh mục này'}
-                </Text>
+                <Ionicons name="pricetag-outline" size={48} color={Colors.textTertiary} />
+                <Text style={styles.emptyText}>Không có sản phẩm cho thương hiệu này</Text>
               </View>
-            )
-          ) : brandProductsLoading ? (
-            <View style={styles.productsCenter}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-          ) : sortedBrandProducts.length > 0 ? (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.sectionsContainer}
-            >
-              {activeBrand && (
-                <View style={styles.brandHeader}>
-                  <Text style={styles.brandHeaderName}>{activeBrand.name}</Text>
-                  <Text style={styles.brandHeaderCount}>{sortedBrandProducts.length} sản phẩm</Text>
-                </View>
-              )}
-              <View style={styles.brandProductsGrid}>
-                {sortedBrandProducts.map(product => (
-                  <View key={product.id} style={styles.brandProductCard}>
-                    <ProductCard
-                      product={product}
-                      onPress={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
-                      onAddToCart={handleAddToCart}
-                    />
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="pricetag-outline" size={48} color={Colors.textTertiary} />
-              <Text style={styles.emptyText}>Không có sản phẩm cho thương hiệu này</Text>
-            </View>
-          )}
+            )}
+          </View>
         </View>
-      </View>
       )}
 
       {/* FAB - Open Categories */}

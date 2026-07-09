@@ -2,8 +2,9 @@ import React, { createContext, useState, useCallback, useRef, useEffect } from '
 import { findNodeHandle, UIManager, Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GuideDefinition, GuideStep, TargetLayout, CompletedGuide } from './types';
-import { registerGuide, getGuide } from './GuideRegistry';
+import { registerGuide, getGuide, loadGuidesFromApi } from './GuideRegistry';
 import { categoryGuide } from './guides/categoryGuide';
+import { guideApi } from '../api/guide';
 import { useAuth } from '../context/AuthContext';
 
 const GUIDE_PREFIX = 'guide.completed.';
@@ -14,7 +15,7 @@ export interface GuideContextType {
   currentStepIndex: number;
   activeGuide: GuideDefinition | null;
   targetLayout: TargetLayout | null;
-  targetRefs: React.MutableRefObject<Map<string, any>>;
+  targetRefs: React.MutableRefObject<Map<string, any[]>>;
 
   startGuide: (id: string) => Promise<void>;
   nextStep: (navigate?: (screen: string, params?: any) => void) => void;
@@ -23,7 +24,7 @@ export interface GuideContextType {
   finish: () => void;
   stopGuide: () => void;
   registerTarget: (id: string, ref: any) => void;
-  unregisterTarget: (id: string) => void;
+  unregisterTarget: (id: string, ref?: any) => void;
   measureTarget: (id: string) => Promise<TargetLayout | null>;
 }
 
@@ -35,13 +36,25 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [activeGuide, setActiveGuide] = useState<GuideDefinition | null>(null);
   const [targetLayout, setTargetLayout] = useState<TargetLayout | null>(null);
-  const targetRefs = useRef<Map<string, any>>(new Map());
+  const targetRefs = useRef<Map<string, any[]>>(new Map());
   const completedGuides = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     registerGuide(categoryGuide);
     loadCompletedGuides();
+    fetchActiveGuides();
   }, []);
+
+  const fetchActiveGuides = async () => {
+    try {
+      const activeGuides = await guideApi.getActive();
+      if (activeGuides && activeGuides.length > 0) {
+        loadGuidesFromApi(activeGuides);
+      }
+    } catch {
+      // Silently fail — guides will still work via registered hardcoded guides
+    }
+  };
 
   const loadCompletedGuides = async () => {
     try {
@@ -68,9 +81,8 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const measureTarget = useCallback(async (targetId: string): Promise<TargetLayout | null> => {
+  const measureSingleRef = useCallback((ref: any): Promise<TargetLayout | null> => {
     return new Promise(resolve => {
-      const ref = targetRefs.current.get(targetId);
       if (!ref) { resolve(null); return; }
 
       if (typeof ref.measureInWindow === 'function') {
@@ -94,6 +106,17 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
       }
     });
   }, []);
+
+  const measureTarget = useCallback(async (targetId: string): Promise<TargetLayout | null> => {
+    const refs = targetRefs.current.get(targetId);
+    if (!refs || refs.length === 0) return null;
+
+    for (const ref of refs) {
+      const layout = await measureSingleRef(ref);
+      if (layout) return layout;
+    }
+    return null;
+  }, [measureSingleRef]);
 
   const measureCurrentTarget = useCallback(async (retries = 3) => {
     if (!activeGuide) return;
@@ -194,11 +217,30 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   }, [finishGuide]);
 
   const registerTarget = useCallback((id: string, ref: any) => {
-    targetRefs.current.set(id, ref);
+    const existing = targetRefs.current.get(id);
+    if (existing) {
+      if (!existing.includes(ref)) {
+        existing.push(ref);
+      }
+    } else {
+      targetRefs.current.set(id, [ref]);
+    }
   }, []);
 
-  const unregisterTarget = useCallback((id: string) => {
-    targetRefs.current.delete(id);
+  const unregisterTarget = useCallback((id: string, ref?: any) => {
+    if (ref) {
+      const existing = targetRefs.current.get(id);
+      if (existing) {
+        const filtered = existing.filter(r => r !== ref);
+        if (filtered.length > 0) {
+          targetRefs.current.set(id, filtered);
+        } else {
+          targetRefs.current.delete(id);
+        }
+      }
+    } else {
+      targetRefs.current.delete(id);
+    }
   }, []);
 
   const currentStep = activeGuide ? activeGuide.steps[currentStepIndex] : null;

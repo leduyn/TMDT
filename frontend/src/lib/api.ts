@@ -13,3 +13,5 @@ export * from '../modules/salespolicy/salesPolicyApi';
 export * from '../modules/accumulation/accumulationApi';
 export * from '../modules/dashboard/dashboardApi';
 export * from '../modules/survey/surveyApi';
+export * from '../modules/guide/guideApi';
+export * from '../modules/guide/guideTargetApi';
