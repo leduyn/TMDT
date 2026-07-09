@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, StatusBar, Image, Alert, Modal
 } from 'react-native';
@@ -28,10 +29,12 @@ export function ProfileScreen({ navigation }: any) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
 
-  useEffect(() => {
-    loadProfile();
-    loadUpgradeStatus();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+      loadUpgradeStatus();
+    }, [])
+  );
 
   const loadProfile = async () => {
     if (!user) { setLoading(false); return; }
