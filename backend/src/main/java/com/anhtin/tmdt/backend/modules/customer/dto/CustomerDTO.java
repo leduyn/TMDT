@@ -13,6 +13,7 @@ public class CustomerDTO {
     private String receiverName;
     private String receiverPhone;
     private String note;
+    private String status;
     private boolean assigned;
     private String createdAt;
     private String updatedAt;
@@ -30,6 +31,7 @@ public class CustomerDTO {
         this.receiverName = customer.getReceiverName();
         this.receiverPhone = customer.getReceiverPhone();
         this.note = customer.getNote();
+        this.status = customer.getStatus() != null ? customer.getStatus().name() : "ACTIVE";
         this.assigned = false;
         this.createdAt = customer.getCreatedAt() != null ? customer.getCreatedAt().toString() : null;
         this.updatedAt = customer.getUpdatedAt() != null ? customer.getUpdatedAt().toString() : null;
@@ -60,6 +62,8 @@ public class CustomerDTO {
     public void setReceiverPhone(String receiverPhone) { this.receiverPhone = receiverPhone; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public boolean isAssigned() { return assigned; }
     public void setAssigned(boolean assigned) { this.assigned = assigned; }
     public String getCreatedAt() { return createdAt; }

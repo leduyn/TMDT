@@ -40,7 +40,8 @@ export default function CustomersPage() {
     (c.organizationName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.taxCode || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.receiverName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.receiverPhone || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (c.receiverPhone || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.status || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
@@ -78,7 +79,7 @@ export default function CustomersPage() {
     {
       header: 'Địa chỉ',
       key: 'shippingAddress',
-      width: '30%',
+      width: '25%',
       render: (c) => (
         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
@@ -89,10 +90,22 @@ export default function CustomersPage() {
       )
     },
     {
+      header: 'Trạng thái',
+      key: 'status',
+      align: 'center',
+      width: '15%',
+      render: (c) => {
+        const status = c.status || 'ACTIVE';
+        const labels: Record<string, string> = { ACTIVE: 'Hoạt động', INACTIVE: 'Ngừng', PENDING: 'Chờ duyệt', REJECTED: 'Từ chối' };
+        const types: Record<string, 'success' | 'warning' | 'error' | 'default'> = { ACTIVE: 'success', INACTIVE: 'error', PENDING: 'warning', REJECTED: 'error' };
+        return <Badge label={labels[status] || status} type={types[status] || 'default'} />;
+      }
+    },
+    {
       header: 'Thao tác',
       key: 'actions',
       align: 'right',
-      width: '25%',
+      width: '20%',
       render: (c) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Link href={`/customers/${c.id}`} className="btn-outline" style={{ padding: '8px', borderRadius: 8 }}>

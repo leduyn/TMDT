@@ -11,6 +11,7 @@ export interface CustomerDTO {
   receiverName?: string;
   receiverPhone?: string;
   note?: string;
+  status?: string;
   assigned?: boolean;
   createdAt?: string;
   updatedAt?: string;
