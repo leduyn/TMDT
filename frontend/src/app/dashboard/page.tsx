@@ -134,6 +134,7 @@ export default function DashboardPage() {
         ...(isAgency
           ? [
               { label: 'Sản phẩm', value: formatNumber(data.stats.totalProducts), icon: '\u{1F6CD}\uFE0F', color: '#f59e0b', desc: 'Sản phẩm của tôi' },
+              { label: 'Khách hàng', value: formatNumber(data.stats.totalCustomers), icon: '\u{1F465}', color: '#ec4899', desc: 'Khách hàng của tôi' },
               { label: 'Đánh giá', value: data.stats.averageRating > 0 ? data.stats.averageRating.toFixed(1) : '---', icon: '\u{2B50}', color: '#ec4899', desc: data.stats.averageRating > 0 ? '/ 5' : 'Chưa có' },
             ]
           : []),

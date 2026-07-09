@@ -7,11 +7,10 @@ import com.anhtin.tmdt.backend.modules.dashboard.dto.DashboardDTO.StatusCount;
 import com.anhtin.tmdt.backend.modules.order.entity.Order;
 import com.anhtin.tmdt.backend.modules.order.repository.OrderRepository;
 import com.anhtin.tmdt.backend.modules.product.repository.ProductRepository;
-import com.anhtin.tmdt.backend.modules.user.entity.Role;
-import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyRepository;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyProductRepository;
 import com.anhtin.tmdt.backend.modules.agency.repository.AgencyReviewRepository;
+import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
 import com.anhtin.tmdt.backend.modules.loyalty.repository.LoyaltyPointRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,9 +27,6 @@ public class DashboardService {
     private OrderRepository orderRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
@@ -41,6 +37,9 @@ public class DashboardService {
 
     @Autowired
     private AgencyReviewRepository agencyReviewRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @Autowired
     private LoyaltyPointRepository loyaltyPointRepository;
@@ -56,7 +55,7 @@ public class DashboardService {
         stats.setTotalRevenue(orderRepository.sumTotalAmountByStatusCompleted());
         stats.setTotalProducts(productRepository.count());
         stats.setTotalAgencies(agencyRepository.count());
-        stats.setTotalCustomers(userRepository.countByRole(Role.CUSTOMER));
+        stats.setTotalCustomers(customerRepository.count());
         dto.setStats(stats);
 
         List<Order> recentOrders = orderRepository.findTop5ByOrderByOrderDateDesc();
@@ -76,6 +75,7 @@ public class DashboardService {
         stats.setTotalOrders(orderRepository.countByAgencyId(agencyId));
         stats.setTotalRevenue(orderRepository.sumTotalAmountByAgencyIdAndStatusCompleted(agencyId));
         stats.setTotalProducts(agencyProductRepository.findByAgencyId(agencyId).size());
+        stats.setTotalCustomers(customerRepository.findByAgencyId(agencyId).size());
         stats.setAverageRating(agencyReviewRepository.getAverageRatingByAgencyId(agencyId));
         dto.setStats(stats);
 
