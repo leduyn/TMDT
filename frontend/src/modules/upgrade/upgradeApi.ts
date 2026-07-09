@@ -48,4 +48,12 @@ export const upgradeApi = {
     fetchJSON<{ message: string }>(`/api/admin/agencies/${agencyId}/direct-upgrade`, {
       method: 'POST',
     }),
+
+  getWholesaleAgencies: () =>
+    fetchJSON<RetailAgencyDTO[]>('/api/admin/agencies/wholesale'),
+
+  directDowngrade: (agencyId: number) =>
+    fetchJSON<{ message: string }>(`/api/admin/agencies/${agencyId}/direct-downgrade`, {
+      method: 'POST',
+    }),
 };

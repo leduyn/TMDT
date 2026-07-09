@@ -62,4 +62,23 @@ public class AdminAgencyUpgradeController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
+    @GetMapping("/wholesale")
+    @PreAuthorize("hasRole('COMPANY')")
+    public List<AgencyDTO> getWholesaleAgencies() {
+        return agencyService.getWholesaleAgencies();
+    }
+
+    @PostMapping("/{agencyId}/direct-downgrade")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<?> directDowngrade(@PathVariable Long agencyId) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+            agencyService.directDowngrade(agencyId, user.getId(), user.getUsername());
+            return ResponseEntity.ok(Map.of("message", "Đã chuyển về khách lẻ"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

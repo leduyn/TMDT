@@ -41,6 +41,13 @@ export default function CustomerUpgradePage() {
   const [selectedAgency, setSelectedAgency] = useState<RetailAgencyDTO | null>(null);
   const [directLoading, setDirectLoading] = useState(false);
 
+  // direct downgrade modal
+  const [showDowngradeModal, setShowDowngradeModal] = useState(false);
+  const [wholesaleAgencies, setWholesaleAgencies] = useState<RetailAgencyDTO[]>([]);
+  const [downgradeSearch, setDowngradeSearch] = useState('');
+  const [selectedWholesale, setSelectedWholesale] = useState<RetailAgencyDTO | null>(null);
+  const [downgradeLoading, setDowngradeLoading] = useState(false);
+
   const isAdmin = user?.roles?.some(r => ['ROLE_COMPANY', 'ROLE_ADMIN'].includes(r));
 
   useEffect(() => { loadRequests(); }, []);
@@ -60,6 +67,13 @@ export default function CustomerUpgradePage() {
     try {
       const data = await upgradeApi.getRetailAgencies();
       setRetailAgencies(data || []);
+    } catch {}
+  };
+
+  const loadWholesaleAgencies = async () => {
+    try {
+      const data = await upgradeApi.getWholesaleAgencies();
+      setWholesaleAgencies(data || []);
     } catch {}
   };
 
@@ -99,6 +113,27 @@ export default function CustomerUpgradePage() {
     }
   };
 
+  const openDowngradeModal = async () => {
+    setSelectedWholesale(null);
+    setDowngradeSearch('');
+    setShowDowngradeModal(true);
+    loadWholesaleAgencies();
+  };
+
+  const handleDirectDowngrade = async () => {
+    if (!selectedWholesale) return;
+    setDowngradeLoading(true);
+    try {
+      await upgradeApi.directDowngrade(selectedWholesale.id);
+      setShowDowngradeModal(false);
+      loadRequests();
+    } catch (e: any) {
+      alert(e?.message || 'Lỗi khi chuyển về bán lẻ');
+    } finally {
+      setDowngradeLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING': return <Badge label="Chờ duyệt" type="warning" />;
@@ -118,6 +153,12 @@ export default function CustomerUpgradePage() {
     a.name.toLowerCase().includes(agencySearch.toLowerCase()) ||
     a.code.toLowerCase().includes(agencySearch.toLowerCase()) ||
     a.phone?.toLowerCase().includes(agencySearch.toLowerCase())
+  );
+
+  const filteredWholesale = wholesaleAgencies.filter(a =>
+    a.name.toLowerCase().includes(downgradeSearch.toLowerCase()) ||
+    a.code.toLowerCase().includes(downgradeSearch.toLowerCase()) ||
+    a.phone?.toLowerCase().includes(downgradeSearch.toLowerCase())
   );
 
   const columns: Column<UpgradeRequest>[] = [
@@ -186,9 +227,14 @@ export default function CustomerUpgradePage() {
           onSearchChange={setSearchQuery}
           placeholder="Tìm kiếm theo tên hoặc mã đại lý..."
           actions={
-            <button className="btn-primary" onClick={openDirectModal}>
-              <Plus size={16} /> Yêu cầu nâng cấp
-            </button>
+            <div className="flex gap-2">
+              <button className="btn-outline" onClick={openDowngradeModal}>
+                <XCircle size={16} /> Chuyển về Bán lẻ
+              </button>
+              <button className="btn-primary" onClick={openDirectModal}>
+                <Plus size={16} /> Yêu cầu nâng cấp
+              </button>
+            </div>
           }
         />
 
@@ -272,6 +318,52 @@ export default function CustomerUpgradePage() {
               <button className="btn-outline" onClick={() => { setShowDirectModal(false); setSelectedAgency(null); }}>Hủy</button>
               <button className="btn-primary" disabled={!selectedAgency || directLoading} onClick={handleDirectUpgrade}>
                 {directLoading ? 'Đang xử lý...' : 'Xác nhận nâng cấp'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Direct downgrade modal */}
+      {showDowngradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => { setShowDowngradeModal(false); setSelectedWholesale(null); }}>
+          <div className="glass-card w-full max-w-lg p-6 rounded-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-2">Chuyển về Bán lẻ</h3>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">Chọn đại lý Bán buôn để chuyển về Bán lẻ</p>
+
+            <div className="relative mb-4">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+              <input
+                className="w-full border border-[var(--border)] rounded-lg py-2.5 pl-9 pr-3 bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm"
+                placeholder="Tìm đại lý..."
+                value={downgradeSearch}
+                onChange={(e) => { setDowngradeSearch(e.target.value); setSelectedWholesale(null); }}
+              />
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-1 mb-4">
+              {filteredWholesale.length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)] text-center py-4">Không tìm thấy đại lý</p>
+              ) : filteredWholesale.map(a => (
+                <button
+                  key={a.id}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    selectedWholesale?.id === a.id
+                      ? 'bg-[var(--accent)]/20 border border-[var(--accent)]/40 text-white'
+                      : 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-transparent'
+                  }`}
+                  onClick={() => setSelectedWholesale(a)}
+                >
+                  <div className="font-semibold">{a.name}</div>
+                  <div className="text-xs text-[var(--text-secondary)]">Mã: {a.code} | {a.phone}</div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button className="btn-outline" onClick={() => { setShowDowngradeModal(false); setSelectedWholesale(null); }}>Hủy</button>
+              <button className="btn-primary" disabled={!selectedWholesale || downgradeLoading} onClick={handleDirectDowngrade}>
+                {downgradeLoading ? 'Đang xử lý...' : 'Xác nhận chuyển về Bán lẻ'}
               </button>
             </div>
           </div>

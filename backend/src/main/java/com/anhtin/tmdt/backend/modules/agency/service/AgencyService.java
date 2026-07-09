@@ -538,4 +538,34 @@ public class AgencyService {
         agency.setType(AgencyType.WHOLESALE);
         agencyRepository.save(agency);
     }
+
+    public List<AgencyDTO> getWholesaleAgencies() {
+        return agencyRepository.findByType(AgencyType.WHOLESALE).stream()
+                .filter(agency -> agency.getStatus() == com.anhtin.tmdt.backend.modules.agency.entity.AgencyStatus.APPROVED)
+                .map(AgencyDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void directDowngrade(Long agencyId, Long adminId, String adminName) {
+        Agency agency = agencyRepository.findById(agencyId)
+                .orElseThrow(() -> new RuntimeException("Agency not found"));
+
+        if (agency.getType() != AgencyType.WHOLESALE) {
+            throw new RuntimeException("Agency is not WHOLESALE");
+        }
+
+        AgencyTypeChangeHistory history = new AgencyTypeChangeHistory();
+        history.setAgencyId(agencyId);
+        history.setOldType(agency.getType().name());
+        history.setNewType(AgencyType.RETAIL.name());
+        history.setChangedBy(adminId);
+        history.setChangedByName(adminName);
+        history.setReason("APPROVED");
+        history.setCreatedAt(java.time.LocalDateTime.now());
+        typeChangeHistoryRepository.save(history);
+
+        agency.setType(AgencyType.RETAIL);
+        agencyRepository.save(agency);
+    }
 }
