@@ -26,6 +26,7 @@ export interface CustomerRequest {
   receiverName?: string;
   receiverPhone?: string;
   note?: string;
+  status?: string;
 }
 
 export const customerApi = {

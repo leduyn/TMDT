@@ -6,6 +6,14 @@ import Main from '@/components/Main';
 import { customerApi, CustomerDTO, orderApi, OrderDTO } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Badge from '@/components/ui/Badge';
+
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: 'Hoạt động', INACTIVE: 'Ngừng', PENDING: 'Chờ duyệt', REJECTED: 'Từ chối',
+};
+const STATUS_TYPES: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
+  ACTIVE: 'success', INACTIVE: 'error', PENDING: 'warning', REJECTED: 'error',
+};
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
@@ -16,6 +24,9 @@ export default function CustomerDetailPage() {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'info' | 'orders'>('info');
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [newStatus, setNewStatus] = useState('');
+  const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -57,6 +68,21 @@ export default function CustomerDetailPage() {
     }
   };
 
+  const handleStatusChange = async () => {
+    if (!customer || !newStatus) return;
+    setStatusLoading(true);
+    try {
+      await customerApi.update(customer.id, { status: newStatus });
+      setShowStatusModal(false);
+      const updated = await customerApi.getById(customer.id);
+      setCustomer(updated);
+    } catch (e: any) {
+      alert(e?.message || 'Lỗi khi đổi trạng thái');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   if (loading) return <div className="loading-spinner" />;
   if (error || !customer) return (
     <div style={{ textAlign: 'center', padding: 80 }}>
@@ -80,11 +106,17 @@ export default function CustomerDetailPage() {
               {(customer.organizationName || 'C').charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{customer.organizationName || '#' + customer.id}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{customer.organizationName || '#' + customer.id}</h1>
+                <Badge label={STATUS_LABELS[customer.status || 'ACTIVE'] || 'ACTIVE'} type={STATUS_TYPES[customer.status || 'ACTIVE'] || 'success'} />
+              </div>
               <p style={{ color: 'var(--text-muted)', marginTop: 4 }}>ID: #{customer.id}{customer.taxCode ? ` • MST: ${customer.taxCode}` : ''}</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
+            <button className="btn-outline" style={{ textDecoration: 'none' }} onClick={() => { setNewStatus(''); setShowStatusModal(true); }}>
+              Đổi trạng thái
+            </button>
             <Link href={`/customers/${id}/edit`} className="btn-primary" style={{ textDecoration: 'none' }}>
               Chỉnh sửa thông tin
             </Link>
@@ -239,6 +271,36 @@ export default function CustomerDetailPage() {
           </div>
         )}
       </Main>
+
+      {showStatusModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowStatusModal(false)}>
+          <div className="glass-card w-full max-w-sm p-6 rounded-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-2">Đổi trạng thái</h3>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              Khách hàng: <strong className="text-white">{customer?.organizationName}</strong>
+              <br />
+              Hiện tại: <Badge label={STATUS_LABELS[customer?.status || 'ACTIVE']} type={STATUS_TYPES[customer?.status || 'ACTIVE']} />
+            </p>
+            <select
+              className="w-full border border-[var(--border)] rounded-lg p-3 bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm mb-4"
+              value={newStatus}
+              onChange={e => setNewStatus(e.target.value)}
+            >
+              <option value="">-- Chọn trạng thái --</option>
+              <option value="ACTIVE">Hoạt động</option>
+              <option value="INACTIVE">Ngừng</option>
+              <option value="PENDING">Chờ duyệt</option>
+              <option value="REJECTED">Từ chối</option>
+            </select>
+            <div className="flex justify-end gap-3">
+              <button className="btn-outline" onClick={() => setShowStatusModal(false)}>Hủy</button>
+              <button className="btn-primary" disabled={!newStatus || statusLoading} onClick={handleStatusChange}>
+                {statusLoading ? 'Đang xử lý...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

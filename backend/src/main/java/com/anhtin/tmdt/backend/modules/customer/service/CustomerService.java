@@ -4,6 +4,7 @@ import com.anhtin.tmdt.backend.modules.agency.repository.AgencyCustomerAssignmen
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerDTO;
 import com.anhtin.tmdt.backend.modules.customer.dto.CustomerRequest;
 import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
+import com.anhtin.tmdt.backend.modules.customer.entity.CustomerStatus;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
 import com.anhtin.tmdt.backend.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,5 +128,12 @@ public class CustomerService {
         if (request.getReceiverName() != null) customer.setReceiverName(request.getReceiverName());
         if (request.getReceiverPhone() != null) customer.setReceiverPhone(request.getReceiverPhone());
         if (request.getNote() != null) customer.setNote(request.getNote());
+        if (request.getStatus() != null) {
+            try {
+                customer.setStatus(CustomerStatus.valueOf(request.getStatus().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Trạng thái không hợp lệ: " + request.getStatus());
+            }
+        }
     }
 }

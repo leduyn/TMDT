@@ -9,6 +9,7 @@ public class CustomerRequest {
     private String receiverName;
     private String receiverPhone;
     private String note;
+    private String status;
 
     public Long getAgencyId() { return agencyId; }
     public void setAgencyId(Long agencyId) { this.agencyId = agencyId; }
@@ -26,4 +27,6 @@ public class CustomerRequest {
     public void setReceiverPhone(String receiverPhone) { this.receiverPhone = receiverPhone; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }
