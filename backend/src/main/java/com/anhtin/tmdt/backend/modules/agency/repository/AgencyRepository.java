@@ -19,4 +19,5 @@ public interface AgencyRepository extends JpaRepository<Agency, Long> {
     boolean existsByEmail(String email);
     Optional<Agency> findByEmail(String email);
     List<Agency> findByType(AgencyType type);
+    long countByType(AgencyType type);
 }

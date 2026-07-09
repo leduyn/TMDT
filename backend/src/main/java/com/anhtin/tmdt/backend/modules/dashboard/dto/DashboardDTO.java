@@ -23,6 +23,8 @@ public class DashboardDTO {
         private double totalRevenue;
         private long totalProducts;
         private long totalAgencies;
+        private long retailAgencies;
+        private long wholesaleAgencies;
         private long totalCustomers;
         private int loyaltyPoints;
         private double averageRating;
@@ -35,6 +37,10 @@ public class DashboardDTO {
         public void setTotalProducts(long totalProducts) { this.totalProducts = totalProducts; }
         public long getTotalAgencies() { return totalAgencies; }
         public void setTotalAgencies(long totalAgencies) { this.totalAgencies = totalAgencies; }
+        public long getRetailAgencies() { return retailAgencies; }
+        public void setRetailAgencies(long retailAgencies) { this.retailAgencies = retailAgencies; }
+        public long getWholesaleAgencies() { return wholesaleAgencies; }
+        public void setWholesaleAgencies(long wholesaleAgencies) { this.wholesaleAgencies = wholesaleAgencies; }
         public long getTotalCustomers() { return totalCustomers; }
         public void setTotalCustomers(long totalCustomers) { this.totalCustomers = totalCustomers; }
         public int getLoyaltyPoints() { return loyaltyPoints; }

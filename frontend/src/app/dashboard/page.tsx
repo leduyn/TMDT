@@ -217,14 +217,28 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`, gap: 16, marginBottom: 32 }}>
               {statsCards.map((s, i) => (
                 <div key={s.label} className="glass-card fade-in-up" style={{ padding: 20, animationDelay: `${i * 0.08}s` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: 6 }}>{s.label}</p>
-                      <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: s.color }}>{s.value}</p>
-                      {s.desc && <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.desc}</p>}
+                  {s.label === 'Đại lý' && data?.stats.totalAgencies > 0 ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: 8 }}>Đại lý</p>
+                        <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#3b82f6' }}>{formatNumber(data.stats.totalAgencies)}</p>
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: '0.8rem', color: '#6366f1' }}>Sỉ: {formatNumber(data.stats.wholesaleAgencies)}</span>
+                          <span style={{ fontSize: '0.8rem', color: '#8b5cf6' }}>Lẻ: {formatNumber(data.stats.retailAgencies)}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 28 }}>{s.icon}</span>
                     </div>
-                    <span style={{ fontSize: 28 }}>{s.icon}</span>
-                  </div>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: 6 }}>{s.label}</p>
+                        <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: s.color }}>{s.value}</p>
+                        {s.desc && <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.desc}</p>}
+                      </div>
+                      <span style={{ fontSize: 28 }}>{s.icon}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

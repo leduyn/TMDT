@@ -7,6 +7,8 @@ export interface DashboardDTO {
     totalRevenue: number;
     totalProducts: number;
     totalAgencies: number;
+    retailAgencies: number;
+    wholesaleAgencies: number;
     totalCustomers: number;
     loyaltyPoints: number;
     averageRating: number;

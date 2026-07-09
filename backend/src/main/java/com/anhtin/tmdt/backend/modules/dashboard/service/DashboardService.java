@@ -55,6 +55,8 @@ public class DashboardService {
         stats.setTotalRevenue(orderRepository.sumTotalAmountByStatusCompleted());
         stats.setTotalProducts(productRepository.count());
         stats.setTotalAgencies(agencyRepository.count());
+        stats.setWholesaleAgencies(agencyRepository.countByType(com.anhtin.tmdt.backend.modules.agency.entity.AgencyType.WHOLESALE));
+        stats.setRetailAgencies(agencyRepository.countByType(com.anhtin.tmdt.backend.modules.agency.entity.AgencyType.RETAIL));
         stats.setTotalCustomers(customerRepository.count());
         dto.setStats(stats);
 
