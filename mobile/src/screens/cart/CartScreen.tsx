@@ -1,26 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   Alert,
   ScrollView,
   TextInput,
-  Animated,
+  LayoutAnimation,
+  UIManager,
   Platform,
 } from 'react-native';
 import { useCart } from '../../context/CartContext';
 import { CartItemRow } from '../../components/CartItemRow';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
+import { CartCreditBar } from '../../components/CartCreditBar';
+import { CompactCreditBar } from '../../components/CompactCreditBar';
+import { creditApi } from '../../api/credit';
+import { useAuth } from '../../context/AuthContext';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental && typeof UIManager.setLayoutAnimationEnabledExperimental === 'function') {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const BOTTOM_BUFFER = 100;
 
 export function CartScreen({ navigation }: any) {
   const { items, updateQuantity, clearCart, totalAmount, totalItems } = useCart();
+  const { agencyId, storedAgencyId } = useAuth();
+  const effectiveAgencyId = agencyId || storedAgencyId;
   const [couponCode, setCouponCode] = useState('');
+  const [hmkd, setHmkd] = useState<number | null>(null);
+  const [showCompactBar, setShowCompactBar] = useState(true);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const scrollViewHeight = useRef(0);
+  const contentHeight = useRef(0);
+
+  useEffect(() => {
+    if (!effectiveAgencyId) return;
+    creditApi.getHmkd(effectiveAgencyId)
+      .then(res => setHmkd(res.hmkd))
+      .catch(() => { });
+  }, [effectiveAgencyId]);
 
   // Computed values
-  const discountRate = 0.05; // 5% agency discount
+  const discountRate = 0.05;
   const vatRate = 0.08;
   const discount = Math.round(totalAmount * discountRate);
   const shipping = totalAmount >= 10000000 ? 0 : 35000;
@@ -40,6 +64,34 @@ export function CartScreen({ navigation }: any) {
     if (couponCode.trim()) {
       Alert.alert('Mã ưu đãi', `Mã "${couponCode}" đang được kiểm tra...`);
     }
+  };
+
+  const handleScroll = (e: any) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const scrollH = scrollViewHeight.current;
+    const contentH = contentHeight.current;
+
+    if (contentH <= scrollH) return;
+
+    const nearBottom = y + scrollH >= contentH - BOTTOM_BUFFER;
+
+    if (nearBottom && !isAtBottom) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setIsAtBottom(true);
+      setShowCompactBar(false);
+    } else if (!nearBottom && isAtBottom) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setIsAtBottom(false);
+      setShowCompactBar(true);
+    }
+  };
+
+  const handleContentSizeChange = (w: number, h: number) => {
+    contentHeight.current = h;
+  };
+
+  const handleScrollLayout = (e: any) => {
+    scrollViewHeight.current = e.nativeEvent.layout.height;
   };
 
   // ───── Empty Cart State ─────
@@ -78,14 +130,25 @@ export function CartScreen({ navigation }: any) {
         <Text style={styles.cartHeaderTitle}>Giỏ hàng</Text>
         <Text style={styles.cartHeaderCount}>{totalItems} sản phẩm</Text>
       </View>
+      {/* CompactCreditBar — fixed above ScrollView, hidden when at bottom */}
+      {hmkd !== null && showCompactBar && (
+        <View style={styles.compactBarOuter}>
+          <CompactCreditBar cartValue={grandTotal} hmkd={hmkd} />
+        </View>
+      )}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
+        onContentSizeChange={handleContentSizeChange}
+        onLayout={handleScrollLayout}
       >
         {/* ─── Cart Items Card ─── */}
         <View style={styles.itemsCard}>
-          {items.map((item, index) => (
+          {items.map((item) => (
             <CartItemRow
               key={String(item.product.id)}
               item={item}
@@ -96,7 +159,6 @@ export function CartScreen({ navigation }: any) {
 
         {/* ─── Promo Bento Grid ─── */}
         <View style={styles.bentoGrid}>
-          {/* Warranty Promo */}
           <View style={styles.warrantyCard}>
             <View style={styles.warrantyContent}>
               <Text style={styles.warrantyTitle}>Gói bảo hành vàng</Text>
@@ -110,7 +172,6 @@ export function CartScreen({ navigation }: any) {
             <Text style={styles.warrantyBgIcon}>🛡</Text>
           </View>
 
-          {/* Free Shipping */}
           <View style={styles.shippingCard}>
             <View style={styles.shippingHeader}>
               <Text style={styles.shippingIcon}>🚚</Text>
@@ -155,7 +216,6 @@ export function CartScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Grand Total */}
           <View style={styles.grandTotalDivider} />
           <View style={styles.grandTotalRow}>
             <Text style={styles.grandTotalLabel}>Tổng thanh toán</Text>
@@ -183,15 +243,6 @@ export function CartScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          {/* Credit Limit Info */}
-          <View style={styles.creditInfo}>
-            <Text style={styles.creditIcon}>ℹ️</Text>
-            <Text style={styles.creditText}>
-              Số dư hạn mức công nợ còn lại:{' '}
-              <Text style={styles.creditAmount}>45.000.000đ</Text>
-            </Text>
-          </View>
-
           {/* Checkout Button */}
           <TouchableOpacity
             style={styles.checkoutBtn}
@@ -212,6 +263,11 @@ export function CartScreen({ navigation }: any) {
             <Text style={styles.continueBtnText}>Tiếp tục mua sắm</Text>
           </TouchableOpacity>
         </View>
+
+        {/* CartCreditBar (bottom) — collapsed by default, expands when at bottom */}
+        {hmkd !== null && (
+          <CartCreditBar cartValue={grandTotal} hmkd={hmkd} expanded={isAtBottom} />
+        )}
 
         {/* Clear Cart */}
         <TouchableOpacity
@@ -313,7 +369,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // ─── Section Header ───
+  // ─── CompactCreditBar Outer (fixed above ScrollView) ───
+  compactBarOuter: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    backgroundColor: Colors.background,
+  },
+
   // ─── Items Card ───
   itemsCard: {
     backgroundColor: Colors.white,
@@ -509,30 +571,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.white,
     letterSpacing: 0.3,
-  },
-
-  // Credit Info
-  creditInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECEEF0',
-    borderRadius: BorderRadius.md,
-    padding: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  creditIcon: {
-    fontSize: 16,
-  },
-  creditText: {
-    fontSize: 11,
-    color: '#43474E',
-    flex: 1,
-    lineHeight: 16,
-  },
-  creditAmount: {
-    fontWeight: '800',
-    color: Colors.primary,
   },
 
   // Checkout
