@@ -31,6 +31,8 @@ public class OrderDTO {
     private String invoiceName;
     private String invoiceTaxCode;
     private String invoiceAddress;
+    private String customerStatus;
+    private LocalDateTime desiredDeliveryDate;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -82,4 +84,8 @@ public class OrderDTO {
     public void setInvoiceTaxCode(String invoiceTaxCode) { this.invoiceTaxCode = invoiceTaxCode; }
     public String getInvoiceAddress() { return invoiceAddress; }
     public void setInvoiceAddress(String invoiceAddress) { this.invoiceAddress = invoiceAddress; }
+    public String getCustomerStatus() { return customerStatus; }
+    public void setCustomerStatus(String customerStatus) { this.customerStatus = customerStatus; }
+    public LocalDateTime getDesiredDeliveryDate() { return desiredDeliveryDate; }
+    public void setDesiredDeliveryDate(LocalDateTime desiredDeliveryDate) { this.desiredDeliveryDate = desiredDeliveryDate; }
 }

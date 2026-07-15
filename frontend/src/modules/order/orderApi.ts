@@ -13,6 +13,7 @@ export interface OrderDTO {
   id: number;
   customerId: number;
   customerName: string;
+  customerStatus?: string;
   agencyId?: number;
   agencyName?: string;
   totalAmount: number;

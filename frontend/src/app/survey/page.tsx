@@ -17,6 +17,9 @@ interface SurveyQuestion {
   active: boolean;
   sortOrder: number;
   createdAt?: string;
+  globalQuestion?: boolean;
+  categoryIds?: number[];
+  context?: string;
 }
 
 const emptyQuestion = (): SurveyQuestion => ({
@@ -25,6 +28,9 @@ const emptyQuestion = (): SurveyQuestion => ({
   options: '',
   active: true,
   sortOrder: 0,
+  globalQuestion: false,
+  categoryIds: [],
+  context: 'DANG_KY',
 });
 
 export default function SurveyPage() {
@@ -36,6 +42,7 @@ export default function SurveyPage() {
   const [editing, setEditing] = useState<SurveyQuestion | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<{id: number; name: string}[]>([]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -50,12 +57,22 @@ export default function SurveyPage() {
   const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/survey/questions`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [qRes, levelRes] = await Promise.all([
+        fetch(`${API_BASE}/api/survey/questions`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        fetch(`${API_BASE}/api/config/registration-category-level`),
+      ]);
+      if (qRes.ok) {
+        const data = await qRes.json();
         setQuestions(data);
+      }
+      if (levelRes.ok) {
+        const level = await levelRes.json();
+        const catRes = await fetch(`${API_BASE}/api/categories/level/${level}`);
+        if (catRes.ok) {
+          setCategories(await catRes.json());
+        }
       }
     } catch {
       // ignore
@@ -78,7 +95,7 @@ export default function SurveyPage() {
     setError(null);
 
     try {
-      const body = { ...editing };
+      const body = { ...editing, categoryIds: editing.categoryIds || [] };
       const isUpdate = !!body.id;
       const url = isUpdate
         ? `${API_BASE}/api/survey/questions/${body.id}`
@@ -301,6 +318,101 @@ export default function SurveyPage() {
               </div>
             )}
 
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Loại khảo sát
+              </label>
+              <input
+                value={editing.context || 'DANG_KY'}
+                onChange={e => setEditing({ ...editing, context: e.target.value })}
+                placeholder="Ví dụ: DANG_KY, PROFILE, ..."
+                style={{
+                  width: '100%', padding: '10px 14px', borderRadius: 8,
+                  border: '1.5px solid var(--border)', background: 'var(--surface)',
+                  color: 'var(--text)', fontSize: '0.95rem', outline: 'none',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={editing.globalQuestion || false}
+                  onChange={e => setEditing({ ...editing, globalQuestion: e.target.checked })}
+                  style={{ width: 18, height: 18, cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Câu hỏi chung (áp dụng cho tất cả danh mục)</span>
+              </label>
+            </div>
+
+            {!editing.globalQuestion && categories.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Áp dụng cho danh mục
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                  <label
+                    onClick={() => {
+                      const allSelected = editing.categoryIds?.length === categories.length;
+                      setEditing({
+                        ...editing,
+                        categoryIds: allSelected ? [] : categories.map(c => c.id),
+                      });
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                      padding: '6px 12px', borderRadius: 8,
+                      border: (editing.categoryIds?.length === categories.length) ? '2px solid #6366f1' : '1.5px solid var(--border)',
+                      background: (editing.categoryIds?.length === categories.length) ? 'rgba(99,102,241,0.08)' : 'var(--surface)',
+                      fontSize: '0.85rem', fontWeight: (editing.categoryIds?.length === categories.length) ? 600 : 400,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={editing.categoryIds?.length === categories.length}
+                      readOnly
+                      style={{ width: 16, height: 16, cursor: 'pointer' }}
+                    />
+                    Tất cả danh mục
+                  </label>
+                  {categories.map(cat => {
+                    const selected = (editing.categoryIds || []).includes(cat.id);
+                    return (
+                      <label
+                        key={cat.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                          border: selected ? '2px solid #6366f1' : '1.5px solid var(--border)',
+                          background: selected ? 'rgba(99,102,241,0.08)' : 'var(--surface)',
+                          fontSize: '0.85rem', fontWeight: selected ? 600 : 400,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => {
+                            const ids = editing.categoryIds || [];
+                            setEditing({
+                              ...editing,
+                              categoryIds: selected
+                                ? ids.filter(id => id !== cat.id)
+                                : [...ids, cat.id],
+                            });
+                          }}
+                          style={{ width: 16, height: 16, cursor: 'pointer' }}
+                        />
+                        {cat.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={handleSave}
@@ -357,8 +469,9 @@ export default function SurveyPage() {
                 <tbody>
                   {questions
                     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-                    .map((q, idx) => (
-                      <tr key={q.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
+                    .map((q, idx) => {
+                      return (
+                        <tr key={q.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                       >
@@ -422,7 +535,8 @@ export default function SurveyPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

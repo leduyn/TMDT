@@ -82,6 +82,9 @@ public class Order {
     @JoinColumn(name = "created_by_id")
     private User createdBy;
 
+    @Column(name = "desired_delivery_date")
+    private LocalDateTime desiredDeliveryDate;
+
     @Column(name = "updated_date")
     private LocalDateTime updatedDate = LocalDateTime.now();
 
@@ -131,6 +134,8 @@ public class Order {
     public void setInvoiceAddress(String invoiceAddress) { this.invoiceAddress = invoiceAddress; }
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    public LocalDateTime getDesiredDeliveryDate() { return desiredDeliveryDate; }
+    public void setDesiredDeliveryDate(LocalDateTime desiredDeliveryDate) { this.desiredDeliveryDate = desiredDeliveryDate; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }

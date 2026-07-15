@@ -2,6 +2,7 @@ package com.anhtin.tmdt.backend.modules.user.dto;
 
 import com.anhtin.tmdt.backend.modules.user.entity.Role;
 import com.anhtin.tmdt.backend.modules.user.entity.User;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class UserDTO {
@@ -21,6 +22,7 @@ public class UserDTO {
     private List<Long> agencyIds;
     private List<String> agencyNames;
     private String avatarUrl;
+    private LocalDateTime createdAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -54,6 +56,8 @@ public class UserDTO {
     public void setAgencyNames(List<String> agencyNames) { this.agencyNames = agencyNames; }
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public UserDTO() {}
 
@@ -69,6 +73,7 @@ public class UserDTO {
         this.avatarUrl = user.getAvatarUrl();
         this.shippingAddress = user.getShippingAddress();
         this.billingAddress = user.getBillingAddress();
+        this.createdAt = user.getCreatedAt();
         if (user.getCustomerGroup() != null) {
             this.customerGroupId = user.getCustomerGroup().getId();
             this.customerGroupName = user.getCustomerGroup().getName();

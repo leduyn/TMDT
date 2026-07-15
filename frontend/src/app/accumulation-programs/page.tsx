@@ -30,7 +30,8 @@ export default function AccumulationProgramsPage() {
     setIsLoading(true);
     try {
       const data = await accumulationApi.getAll();
-      setPrograms(data || []);
+      const sorted = (data || []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPrograms(sorted);
     } catch (err) {
       console.error('Failed to load programs', err);
     } finally {

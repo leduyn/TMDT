@@ -7,6 +7,7 @@ import com.anhtin.tmdt.backend.modules.order.dto.OrderItemDTO;
 import com.anhtin.tmdt.backend.modules.credit.service.CreditService;
 import com.anhtin.tmdt.backend.modules.credit.service.AgencyDebtService;
 import com.anhtin.tmdt.backend.modules.customer.entity.Customer;
+import com.anhtin.tmdt.backend.modules.customer.entity.CustomerStatus;
 import com.anhtin.tmdt.backend.modules.customer.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -159,6 +160,9 @@ public class OrderService {
         order.setInvoiceName(request.getInvoiceName());
         order.setInvoiceTaxCode(request.getInvoiceTaxCode());
         order.setInvoiceAddress(request.getInvoiceAddress());
+        if (request.getDesiredDeliveryDate() != null) {
+            order.setDesiredDeliveryDate(LocalDateTime.parse(request.getDesiredDeliveryDate().replace("Z", "")));
+        }
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -197,6 +201,9 @@ public class OrderService {
             orderItem.setProduct(product);
             orderItem.setQuantity(itemReq.getQuantity());
             orderItem.setPrice(price);
+            if (itemReq.getAdjustedPrice() != null) {
+                orderItem.setAdjustedPrice(itemReq.getAdjustedPrice());
+            }
             orderItem.setPriceListId(priceListId);
             order.getItems().add(orderItem);
 
@@ -332,6 +339,9 @@ public class OrderService {
         order.setInvoiceName(request.getInvoiceName());
         order.setInvoiceTaxCode(request.getInvoiceTaxCode());
         order.setInvoiceAddress(request.getInvoiceAddress());
+        if (request.getDesiredDeliveryDate() != null) {
+            order.setDesiredDeliveryDate(LocalDateTime.parse(request.getDesiredDeliveryDate().replace("Z", "")));
+        }
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -370,6 +380,9 @@ public class OrderService {
             orderItem.setProduct(product);
             orderItem.setQuantity(itemReq.getQuantity());
             orderItem.setPrice(price);
+            if (itemReq.getAdjustedPrice() != null) {
+                orderItem.setAdjustedPrice(itemReq.getAdjustedPrice());
+            }
             orderItem.setPriceListId(priceListId);
             order.getItems().add(orderItem);
 
@@ -508,6 +521,9 @@ public class OrderService {
         order.setInvoiceName(request.getInvoiceName());
         order.setInvoiceTaxCode(request.getInvoiceTaxCode());
         order.setInvoiceAddress(request.getInvoiceAddress());
+        if (request.getDesiredDeliveryDate() != null) {
+            order.setDesiredDeliveryDate(LocalDateTime.parse(request.getDesiredDeliveryDate().replace("Z", "")));
+        }
 
         OrderType orderType = request.getOrderType() != null
                 ? OrderType.valueOf(request.getOrderType())
@@ -546,6 +562,9 @@ public class OrderService {
             orderItem.setProduct(product);
             orderItem.setQuantity(itemReq.getQuantity());
             orderItem.setPrice(price);
+            if (itemReq.getAdjustedPrice() != null) {
+                orderItem.setAdjustedPrice(itemReq.getAdjustedPrice());
+            }
             orderItem.setPriceListId(priceListId);
             order.getItems().add(orderItem);
 
@@ -668,8 +687,20 @@ public class OrderService {
     public OrderDTO updateOrderStatus(Long id, String status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        
+
         String oldStatus = order.getStatus();
+
+        // Validate customer status when confirming order (PENDING -> PROCESSING)
+        if ("PROCESSING".equalsIgnoreCase(status)
+                && ("PENDING".equalsIgnoreCase(oldStatus) || "NEW".equalsIgnoreCase(oldStatus))
+                && order.getCustomer() != null) {
+            CustomerStatus custStatus = order.getCustomer().getStatus();
+            if (custStatus != CustomerStatus.ACTIVE) {
+                throw new RuntimeException(
+                    "Không thể xác nhận đơn hàng. Khách hàng đang ở trạng thái: " + getCustomerStatusLabel(custStatus)
+                );
+            }
+        }
         order.setStatus(status);
         order.setUpdatedDate(LocalDateTime.now());
         
@@ -777,6 +808,10 @@ public class OrderService {
         dto.setInvoiceName(order.getInvoiceName());
         dto.setInvoiceTaxCode(order.getInvoiceTaxCode());
         dto.setInvoiceAddress(order.getInvoiceAddress());
+        dto.setDesiredDeliveryDate(order.getDesiredDeliveryDate());
+
+        dto.setCustomerStatus(order.getCustomer() != null && order.getCustomer().getStatus() != null
+                ? order.getCustomer().getStatus().name() : null);
 
         dto.setItems(order.getItems().stream()
                 .map(this::convertToItemDTO)
@@ -793,6 +828,18 @@ public class OrderService {
         dto.setProductImageUrl(item.getProduct().getImageUrl());
         dto.setQuantity(item.getQuantity());
         dto.setPrice(item.getPrice());
+        dto.setAdjustedPrice(item.getAdjustedPrice());
         return dto;
+    }
+
+    private String getCustomerStatusLabel(CustomerStatus status) {
+        if (status == null) return "Không xác định";
+        switch (status) {
+            case ACTIVE: return "Hoạt động";
+            case INACTIVE: return "Ngừng hoạt động";
+            case PENDING: return "Chờ duyệt";
+            case REJECTED: return "Từ chối";
+            default: return status.name();
+        }
     }
 }

@@ -19,6 +19,9 @@ public class AgencyCategorySelection {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "source", length = 50)
+    private String source = "MANUAL";
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getAgencyId() { return agencyId; }
@@ -27,4 +30,6 @@ public class AgencyCategorySelection {
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
 }

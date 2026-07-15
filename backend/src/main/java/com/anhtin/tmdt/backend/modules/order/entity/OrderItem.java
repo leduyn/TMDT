@@ -24,6 +24,9 @@ public class OrderItem {
     @Column(name = "price_list_id")
     private Long priceListId;
 
+    @Column(name = "adjusted_price")
+    private Double adjustedPrice;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Order getOrder() { return order; }
@@ -36,4 +39,6 @@ public class OrderItem {
     public void setPrice(Double price) { this.price = price; }
     public Long getPriceListId() { return priceListId; }
     public void setPriceListId(Long priceListId) { this.priceListId = priceListId; }
+    public Double getAdjustedPrice() { return adjustedPrice; }
+    public void setAdjustedPrice(Double adjustedPrice) { this.adjustedPrice = adjustedPrice; }
 }

@@ -121,6 +121,12 @@ public class AgencyController {
         return agencyService.getCategoryStats();
     }
 
+    @GetMapping("/by-category/{categoryId}")
+    @PreAuthorize("hasRole('COMPANY')")
+    public List<Map<String, Object>> getAgenciesByCategory(@PathVariable Long categoryId) {
+        return agencyService.getAgenciesByCategory(categoryId);
+    }
+
     @GetMapping("/{id}/opened-categories")
     @PreAuthorize("hasRole('AGENCY')")
     public List<Long> getOpenedCategories(@PathVariable Long id) {
@@ -129,6 +135,7 @@ public class AgencyController {
 
     @PutMapping("/{id}/categories")
     public ResponseEntity<?> saveAgencyCategories(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String source = (String) body.getOrDefault("source", "MANUAL");
         categorySelectionRepository.deleteByAgencyId(id);
         @SuppressWarnings("unchecked")
         List<Integer> categoryIds = (List<Integer>) body.get("categoryIds");
@@ -136,6 +143,7 @@ public class AgencyController {
             AgencyCategorySelection sel = new AgencyCategorySelection();
             sel.setAgencyId(id);
             sel.setCategoryId(Long.valueOf(catId));
+            sel.setSource(source);
             categorySelectionRepository.save(sel);
         });
         return ResponseEntity.ok(new MessageResponse("Đã lưu danh mục"));

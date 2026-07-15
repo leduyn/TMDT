@@ -40,6 +40,8 @@ export const registerApi = {
     fetchJSON<CategoryDTO[]>('/api/categories/level/' + level),
   getActiveSurveyQuestions: () =>
     fetchJSON<SurveyQuestion[]>('/api/survey/questions/active'),
+  getSurveyQuestionsByCategory: (categoryId: number) =>
+    fetchJSON<SurveyQuestion[]>('/api/survey/questions/active?categoryId=' + categoryId),
   registerAgency: (data: AgencyRegisterRequest) =>
     fetchJSON<JwtResponse>('/api/auth/agency/signup', {
       method: 'POST',
@@ -47,8 +49,8 @@ export const registerApi = {
     }),
   saveAgencyCategories: (agencyId: number, categoryIds: number[]) =>
     fetchJSON<{ message: string }>('/api/agencies/' + agencyId + '/categories', {
-      method: 'POST',
-      body: JSON.stringify({ categoryIds }),
+      method: 'PUT',
+      body: JSON.stringify({ categoryIds, source: 'REGISTRATION' }),
     }),
   submitSurveyAnswers: (agencyId: number, answers: { questionId: number; answer: string }[]) =>
     fetchJSON<{ message: string }>('/api/survey/agency/' + agencyId + '/answers', {

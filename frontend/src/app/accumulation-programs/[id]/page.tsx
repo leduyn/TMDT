@@ -243,7 +243,7 @@ export default function AccumulationProgramDetailPage() {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Badge label={programStatusBadge[program.status]?.label || program.status}
-              type={programStatusBadge[program.status]?.type || 'default'} />
+              type={programStatusBadge[program.status]?.type || 'info'} />
           </div>
         }
       />

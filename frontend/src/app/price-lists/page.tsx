@@ -37,7 +37,7 @@ export default function PriceListsPage() {
   const fetchPriceLists = async () => {
     setIsLoading(true);
     try {
-      const data = await priceListApi.getPage(page, pageSize);
+      const data = await priceListApi.getPage(page, pageSize, 'createdAt,desc');
       setPriceLists(data.content);
       setTotalPages(data.totalPages);
     } catch (err) {

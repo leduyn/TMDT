@@ -79,8 +79,8 @@ export const priceListApi = {
     const qs = params.toString();
     return fetchJSON<PageResponse<PriceListItemDTO>>(`/api/price-lists/${id}/items${qs ? '?' + qs : ''}`);
   },
-  getPage: (page: number, size: number = 20) =>
-    fetchJSON<PageResponse<PriceListDTO>>(`/api/price-lists/page?page=${page}&size=${size}`),
+  getPage: (page: number, size: number = 20, sort?: string) =>
+    fetchJSON<PageResponse<PriceListDTO>>(`/api/price-lists/page?page=${page}&size=${size}${sort ? `&sort=${sort}` : ''}`),
   setDefault: (id: number) => fetchJSON<void>(`/api/price-lists/${id}/set-default`, { method: 'PUT' }),
 };
 

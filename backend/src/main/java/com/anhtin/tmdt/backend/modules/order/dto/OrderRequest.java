@@ -20,6 +20,7 @@ public class OrderRequest {
     private String invoiceName;
     private String invoiceTaxCode;
     private String invoiceAddress;
+    private String desiredDeliveryDate;
 
     public static class NewCustomerInfo {
         private String name;
@@ -81,4 +82,6 @@ public class OrderRequest {
     public void setInvoiceTaxCode(String invoiceTaxCode) { this.invoiceTaxCode = invoiceTaxCode; }
     public String getInvoiceAddress() { return invoiceAddress; }
     public void setInvoiceAddress(String invoiceAddress) { this.invoiceAddress = invoiceAddress; }
+    public String getDesiredDeliveryDate() { return desiredDeliveryDate; }
+    public void setDesiredDeliveryDate(String desiredDeliveryDate) { this.desiredDeliveryDate = desiredDeliveryDate; }
 }

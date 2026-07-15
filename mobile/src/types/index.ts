@@ -170,6 +170,7 @@ export interface OrderDTO {
   invoiceName?: string;
   invoiceTaxCode?: string;
   invoiceAddress?: string;
+  desiredDeliveryDate?: string;
 }
 
 export type OrderStatus = 'NEW' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'PENDING_PAYMENT';
@@ -181,13 +182,14 @@ export interface OrderItemDTO {
   productImageUrl?: string;
   quantity: number;
   price: number;
+  adjustedPrice?: number;
 }
 
 export interface OrderRequest {
   agencyId?: number;
   customerId?: number;
   shippingAddress?: string;
-  items: { productId: number; quantity: number }[];
+  items: { productId: number; quantity: number; adjustedPrice?: number }[];
   orderType?: 'DROPSHIP' | 'MARKETPLACE';
   promotionCode?: string;
   pointsToRedeem?: number;
@@ -197,6 +199,7 @@ export interface OrderRequest {
   invoiceName?: string;
   invoiceTaxCode?: string;
   invoiceAddress?: string;
+  desiredDeliveryDate?: string;
 }
 
 export interface PromotionDTO {
@@ -318,4 +321,22 @@ export interface SurveyQuestion {
   active: boolean;
   sortOrder: number;
   createdAt?: string;
+  globalQuestion?: boolean;
+  categoryIds?: number[];
+}
+
+export interface CustomerDTO {
+  id: number;
+  agencyId?: number;
+  userId?: number;
+  organizationName?: string;
+  taxCode?: string;
+  shippingAddress?: string;
+  billingAddress?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  note?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

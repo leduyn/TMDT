@@ -11,15 +11,29 @@ import {
   Image,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { orderApi } from '../../api/order';
 import { agencyApi } from '../../api/agency';
+import { customerApi } from '../../api/customer';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
-import type { OrderRequest, UserDTO } from '../../types';
-import { resolveImageUrl, formatPrice } from '../../utils';
+import type { OrderRequest, CustomerDTO } from '../../types';
+import { resolveImageUrl } from '../../utils';
+
+interface ShippingAddress {
+  id: string;
+  receiverName: string;
+  receiverPhone: string;
+  address: string;
+  isDefault: boolean;
+}
+
+let addressCounter = 1;
+const makeAddrId = () => `addr_${Date.now()}_${addressCounter++}`;
 
 export function CheckoutScreen({ navigation }: any) {
   const { items, clearCart, totalAmount, totalItems } = useCart();
@@ -27,45 +41,183 @@ export function CheckoutScreen({ navigation }: any) {
 
   // Shipping Info States
   const [shippingAddress, setShippingAddress] = useState(
-    user?.shippingAddress || '123 Đường B2B, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh'
+    user?.shippingAddress || ''
   );
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [tempAddress, setTempAddress] = useState(shippingAddress);
 
+  // Multi-address management
+  const [addresses, setAddresses] = useState<ShippingAddress[]>(() => {
+    const id = makeAddrId();
+    return [{
+      id,
+      receiverName: user?.displayName || user?.username || '',
+      receiverPhone: user?.phone || '',
+      address: user?.shippingAddress || '',
+      isDefault: true,
+    }];
+  });
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+    addresses.length > 0 ? addresses[0].id : ''
+  );
+  const [showAddAddress, setShowAddAddress] = useState(false);
+  const [newAddress, setNewAddress] = useState<ShippingAddress>({
+    id: '',
+    receiverName: '',
+    receiverPhone: '',
+    address: '',
+    isDefault: false,
+  });
+
   // Customer selection state
-  const [customers, setCustomers] = useState<UserDTO[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<UserDTO | null>(null);
+  const [customers, setCustomers] = useState<CustomerDTO[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDTO | null>(null);
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [searchTaxCode, setSearchTaxCode] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    organizationName: '',
+    taxCode: '',
+    receiverName: '',
+    receiverPhone: '',
+    shippingAddress: '',
+    billingAddress: '',
+  });
 
   useEffect(() => {
     if (agencyType === 'WHOLESALE' && agencyId) {
       setLoadingCustomers(true);
-      agencyApi.getCustomers(agencyId)
+      customerApi.getCustomers(agencyId)
         .then(setCustomers)
         .catch(() => {})
         .finally(() => setLoadingCustomers(false));
     }
   }, [agencyId, agencyType]);
 
-  const handleSelectCustomer = (customer: UserDTO) => {
+  useEffect(() => {
+    if (agencyId) {
+      agencyApi.getById(agencyId).then(agency => {
+        const name = agency.name || '';
+        const taxCode = agency.taxCode || '';
+        const addr = agency.billingAddress || agency.shippingAddress || '';
+        setInvoiceName(name);
+        setInvoiceTaxCode(taxCode);
+        setInvoiceAddress(addr);
+        setTempInvoiceName(name);
+        setTempInvoiceTaxCode(taxCode);
+        setTempInvoiceAddress(addr);
+      }).catch(() => {});
+    }
+  }, [agencyId, agencyType]);
+
+  const handleSelectCustomer = (customer: CustomerDTO) => {
     setSelectedCustomer(customer);
     if (customer.shippingAddress) setShippingAddress(customer.shippingAddress);
     setInvoiceFor('customer');
     const newName = customer.organizationName || '';
     const newTaxCode = customer.taxCode || '';
-    const newAddress = customer.billingAddress || customer.shippingAddress || '';
+    const newAddr = customer.billingAddress || customer.shippingAddress || '';
     setInvoiceName(newName);
     setInvoiceTaxCode(newTaxCode);
-    setInvoiceAddress(newAddress);
+    setInvoiceAddress(newAddr);
     setTempInvoiceName(newName);
     setTempInvoiceTaxCode(newTaxCode);
-    setTempInvoiceAddress(newAddress);
+    setTempInvoiceAddress(newAddr);
+
+    // Init shipping addresses from customer
+    const defaultId = makeAddrId();
+    const addrList: ShippingAddress[] = [{
+      id: defaultId,
+      receiverName: customer.receiverName || customer.organizationName || '',
+      receiverPhone: customer.receiverPhone || '',
+      address: customer.shippingAddress || '',
+      isDefault: true,
+    }];
+    setAddresses(addrList);
+    setSelectedAddressId(defaultId);
+    setShippingAddress(customer.shippingAddress || '');
+
     setShowCustomerPicker(false);
+    setSearchTaxCode('');
+  };
+
+  const handleSearchByTaxCode = async () => {
+    if (!searchTaxCode.trim()) return;
+    if (!agencyId) return;
+    setSearchLoading(true);
+    try {
+      const result = await customerApi.checkByTaxCode(searchTaxCode.trim(), agencyId);
+      if (result) {
+        handleSelectCustomer(result);
+      } else {
+        Alert.alert(
+          'Không tìm thấy khách hàng',
+          `Không tìm thấy khách hàng với MST "${searchTaxCode}".`,
+          [
+            { text: 'Quay lại', style: 'cancel' },
+            {
+              text: 'Tạo mới',
+              onPress: () => {
+                setCreateForm(prev => ({ ...prev, taxCode: searchTaxCode.trim() }));
+                setShowCreateForm(true);
+                setSearchTaxCode('');
+              },
+            },
+          ]
+        );
+      }
+    } catch {
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi tra cứu mã số thuế.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleCreateCustomer = async () => {
+    if (!createForm.organizationName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên tổ chức.');
+      return;
+    }
+    if (!createForm.taxCode.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mã số thuế.');
+      return;
+    }
+    if (!agencyId) return;
+    setCreateLoading(true);
+    try {
+      const newCust = await customerApi.create({
+        agencyId,
+        organizationName: createForm.organizationName.trim(),
+        taxCode: createForm.taxCode.trim(),
+        receiverName: createForm.receiverName.trim() || undefined,
+        receiverPhone: createForm.receiverPhone.trim() || undefined,
+        shippingAddress: createForm.shippingAddress.trim() || undefined,
+        billingAddress: createForm.billingAddress.trim() || undefined,
+      });
+      // Refresh customer list
+      setCustomers(prev => [newCust, ...prev]);
+      handleSelectCustomer(newCust);
+      setShowCreateForm(false);
+      setCreateForm({
+        organizationName: '',
+        taxCode: '',
+        receiverName: '',
+        receiverPhone: '',
+        shippingAddress: '',
+        billingAddress: '',
+      });
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Không thể tạo khách hàng mới.');
+    } finally {
+      setCreateLoading(false);
+    }
   };
 
   // Invoice State
-  const [invoiceFor, setInvoiceFor] = useState<'creator' | 'customer'>('customer');
+  const [invoiceFor, setInvoiceFor] = useState<'creator' | 'customer'>('creator');
   const [invoiceName, setInvoiceName] = useState(user?.organizationName || '');
   const [invoiceTaxCode, setInvoiceTaxCode] = useState(user?.taxCode || '');
   const [invoiceAddress, setInvoiceAddress] = useState(user?.billingAddress || user?.shippingAddress || '');
@@ -88,6 +240,47 @@ export function CheckoutScreen({ navigation }: any) {
   const grandTotal = totalAmount + shippingFee;
 
   const [loading, setLoading] = useState(false);
+  const [desiredDeliveryDate, setDesiredDeliveryDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerMonthOffset, setPickerMonthOffset] = useState(0);
+  const [adjustPrices, setAdjustPrices] = useState<Record<number, string>>({});
+  const [showPriceAdjust, setShowPriceAdjust] = useState(false);
+
+  const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const MONTH_NAMES = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+    'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+
+  const getMonthDays = (year: number, month: number) => {
+    const days: (number | null)[] = [];
+    const firstDayOfWeek = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monIndex = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    for (let i = 0; i < monIndex; i++) days.push(null);
+    for (let d = 1; d <= daysInMonth; d++) days.push(d);
+    return days;
+  };
+
+  const isDateDisabled = (day: number, month: number, year: number) => {
+    const d = new Date(year, month, day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d < today;
+  };
+
+  const pickerYear = desiredDeliveryDate.getFullYear();
+  const pickerMonth = desiredDeliveryDate.getMonth() + pickerMonthOffset;
+  const calYear = new Date(pickerYear, pickerMonth).getFullYear();
+  const calMonth = new Date(pickerYear, pickerMonth).getMonth();
+  const calDays = getMonthDays(calYear, calMonth);
+  const todayStr = new Date().toDateString();
+
+  const handleSelectDate = (day: number) => {
+    const selected = new Date(calYear, calMonth, day);
+    selected.setHours(12, 0, 0, 0);
+    setDesiredDeliveryDate(selected);
+    setPickerMonthOffset(0);
+    setShowDatePicker(false);
+  };
 
   const handleApplyCoupon = () => {
     if (!couponCode.trim()) return;
@@ -110,6 +303,10 @@ export function CheckoutScreen({ navigation }: any) {
       Alert.alert('Lỗi', 'Địa chỉ giao hàng không được để trống.');
       return;
     }
+    // Update the selected address
+    setAddresses(prev => prev.map(a =>
+      a.id === selectedAddressId ? { ...a, address: tempAddress } : a
+    ));
     setShippingAddress(tempAddress);
     setIsEditingAddress(false);
   };
@@ -135,41 +332,29 @@ export function CheckoutScreen({ navigation }: any) {
       const agency = await agencyApi.getById(agencyId!);
       const newName = agency.name || '';
       const newTaxCode = agency.taxCode || '';
-      const newAddress = agency.billingAddress || agency.shippingAddress || '';
+      const newAddr = agency.billingAddress || agency.shippingAddress || '';
       setInvoiceName(newName);
       setInvoiceTaxCode(newTaxCode);
-      setInvoiceAddress(newAddress);
+      setInvoiceAddress(newAddr);
       setTempInvoiceName(newName);
       setTempInvoiceTaxCode(newTaxCode);
-      setTempInvoiceAddress(newAddress);
+      setTempInvoiceAddress(newAddr);
     } catch {
       const newName = user?.organizationName || '';
       const newTaxCode = user?.taxCode || '';
-      const newAddress = user?.billingAddress || user?.shippingAddress || '';
+      const newAddr = user?.billingAddress || user?.shippingAddress || '';
       setInvoiceName(newName);
       setInvoiceTaxCode(newTaxCode);
-      setInvoiceAddress(newAddress);
+      setInvoiceAddress(newAddr);
       setTempInvoiceName(newName);
       setTempInvoiceTaxCode(newTaxCode);
-      setTempInvoiceAddress(newAddress);
+      setTempInvoiceAddress(newAddr);
     }
   };
 
   const handleInvoiceForCustomer = () => {
-    if (!selectedCustomer) {
-      Alert.alert('Chưa chọn người mua', 'Vui lòng chọn người mua trước khi xuất hóa đơn cho khách hàng.');
-      return;
-    }
-    setInvoiceFor('customer');
-    const newName = selectedCustomer.organizationName || '';
-    const newTaxCode = selectedCustomer.taxCode || '';
-    const newAddress = selectedCustomer.billingAddress || selectedCustomer.shippingAddress || '';
-    setInvoiceName(newName);
-    setInvoiceTaxCode(newTaxCode);
-    setInvoiceAddress(newAddress);
-    setTempInvoiceName(newName);
-    setTempInvoiceTaxCode(newTaxCode);
-    setTempInvoiceAddress(newAddress);
+    setShowCustomerPicker(true);
+    setSearchTaxCode('');
   };
 
   const handleConfirmOrder = async () => {
@@ -184,8 +369,7 @@ export function CheckoutScreen({ navigation }: any) {
     }
 
     setLoading(true);
-    
-    // We confirm with user using standard Alert
+
     Alert.alert(
       'Xác nhận đặt hàng',
       `Tổng thanh toán: ${grandTotal.toLocaleString('vi-VN')}đ. Bạn có muốn gửi đơn hàng này không?`,
@@ -202,7 +386,8 @@ export function CheckoutScreen({ navigation }: any) {
       const requestData: OrderRequest = {
         items: items.map(item => ({
           productId: item.product.id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          ...(adjustPrices[item.product.id] ? { adjustedPrice: parseFloat(adjustPrices[item.product.id]) } : {}),
         })),
         shippingAddress,
         customerId: selectedCustomer?.id,
@@ -214,9 +399,9 @@ export function CheckoutScreen({ navigation }: any) {
         invoiceName: invoiceName || undefined,
         invoiceTaxCode: invoiceTaxCode || undefined,
         invoiceAddress: invoiceAddress || undefined,
+        desiredDeliveryDate: desiredDeliveryDate.toISOString(),
       };
 
-      // Determine which API depending on user roles
       let result: { message: string; orderId?: number };
       if (user?.role === 'ROLE_AGENCY') {
         result = await orderApi.createByAgency(requestData);
@@ -254,6 +439,58 @@ export function CheckoutScreen({ navigation }: any) {
     }
   };
 
+  // Address management helpers
+  const handleSelectAddress = (id: string) => {
+    const addr = addresses.find(a => a.id === id);
+    if (addr) {
+      setSelectedAddressId(id);
+      setShippingAddress(addr.address);
+      setTempAddress(addr.address);
+    }
+  };
+
+  const handleAddAddress = () => {
+    if (!newAddress.receiverName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên người nhận.');
+      return;
+    }
+    if (!newAddress.receiverPhone.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại.');
+      return;
+    }
+    if (!newAddress.address.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập địa chỉ.');
+      return;
+    }
+    const id = makeAddrId();
+    const addr: ShippingAddress = { ...newAddress, id };
+    setAddresses(prev => [...prev, addr]);
+    setSelectedAddressId(id);
+    setShippingAddress(addr.address);
+    setTempAddress(addr.address);
+    setNewAddress({ id: '', receiverName: '', receiverPhone: '', address: '', isDefault: false });
+    setShowAddAddress(false);
+  };
+
+  const handleDeleteAddress = (id: string) => {
+    if (addresses.length <= 1) {
+      Alert.alert('Không thể xóa', 'Phải có ít nhất một địa chỉ nhận hàng.');
+      return;
+    }
+    setAddresses(prev => {
+      const filtered = prev.filter(a => a.id !== id);
+      if (selectedAddressId === id && filtered.length > 0) {
+        const next = filtered[0];
+        setSelectedAddressId(next.id);
+        setShippingAddress(next.address);
+        setTempAddress(next.address);
+      }
+      return filtered;
+    });
+  };
+
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -268,129 +505,7 @@ export function CheckoutScreen({ navigation }: any) {
           </Text>
         </View>
 
-        {/* ─── Thông tin nhận hàng (Shipping Info) ─── */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleWrapper}>
-              <Ionicons name="location-outline" size={20} color={Colors.primary} />
-              <Text style={styles.sectionTitle}>Thông tin nhận hàng</Text>
-            </View>
-            {!isEditingAddress ? (
-              <TouchableOpacity onPress={() => { setTempAddress(shippingAddress); setIsEditingAddress(true); }}>
-                <Text style={styles.actionBtnText}>Thay đổi</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.editActionRow}>
-                <TouchableOpacity onPress={handleSaveAddress}>
-                  <Text style={[styles.actionBtnText, { color: Colors.success }]}>Lưu</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setIsEditingAddress(false)}>
-                  <Text style={[styles.actionBtnText, { color: Colors.error }]}>Hủy</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          {/* Customer Selector for agency users */}
-          {agencyType === 'WHOLESALE' && (
-            <TouchableOpacity style={styles.customerSelector} onPress={() => setShowCustomerPicker(true)} activeOpacity={0.85}>
-              <View style={styles.customerSelectorLeft}>
-                <Ionicons name="people-outline" size={18} color={Colors.primary} />
-                <Text style={styles.customerSelectorLabel}>Người mua:</Text>
-              </View>
-              <View style={styles.customerSelectorRight}>
-                <Text style={selectedCustomer ? styles.customerSelectorValue : styles.customerSelectorPlaceholder}>
-                  {selectedCustomer
-                    ? (selectedCustomer.displayName || selectedCustomer.username)
-                    : 'Mặc định (tôi)'}
-                </Text>
-                <Ionicons name="chevron-down" size={16} color={Colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {isEditingAddress ? (
-            <View style={styles.editAddressContainer}>
-              <TextInput
-                style={styles.addressInput}
-                multiline
-                numberOfLines={3}
-                placeholder="Nhập địa chỉ nhận hàng chi tiết..."
-                placeholderTextColor={Colors.textTertiary}
-                value={tempAddress}
-                onChangeText={setTempAddress}
-              />
-            </View>
-          ) : (
-            <View style={styles.addressCardList}>
-              <View style={styles.addressCardActive}>
-                <View style={styles.checkIconWrapper}>
-                  <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
-                </View>
-                <Text style={styles.addressTag}>ĐỊA CHỈ MẶC ĐỊNH</Text>
-                <Text style={styles.addressName}>
-                  {selectedCustomer
-                    ? (selectedCustomer.displayName || selectedCustomer.username)
-                    : (user?.displayName || user?.username || 'Đại lý Minh Phát')}
-                </Text>
-                <Text style={styles.addressPhone}>
-                  {selectedCustomer ? selectedCustomer.phone || '' : (user?.phone || '090 123 4567')}
-                </Text>
-                <Text style={styles.addressDetail}>{shippingAddress}</Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Customer Picker Modal */}
-        <Modal visible={showCustomerPicker} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Chọn người mua</Text>
-                <TouchableOpacity onPress={() => setShowCustomerPicker(false)}>
-                  <Ionicons name="close" size={24} color={Colors.textPrimary} />
-                </TouchableOpacity>
-              </View>
-              {loadingCustomers ? (
-                <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
-              ) : customers.length === 0 ? (
-                <Text style={styles.modalEmptyText}>Không có khách hàng nào</Text>
-              ) : (
-                <FlatList
-                  data={customers}
-                  keyExtractor={(item) => String(item.id)}
-                  renderItem={({ item }) => {
-                    const isSelected = selectedCustomer?.id === item.id;
-                    return (
-                      <TouchableOpacity
-                        style={[styles.customerItem, isSelected && styles.customerItemActive]}
-                        onPress={() => handleSelectCustomer(item)}
-                      >
-                        <View style={styles.customerItemLeft}>
-                          <Text style={styles.customerItemName}>
-                            {item.displayName || item.username}
-                          </Text>
-                          {item.phone && <Text style={styles.customerItemPhone}>{item.phone}</Text>}
-                        </View>
-                        <View style={styles.customerItemRight}>
-                          {isSelected ? (
-                            <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
-                          ) : (
-                            <View style={styles.customerRadio} />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  }}
-                  contentContainerStyle={styles.customerListContent}
-                />
-              )}
-            </View>
-          </View>
-        </Modal>
-
-        {/* ─── Thông tin xuất hóa đơn (Invoice Info) ─── */}
+        {/* ═══ 1. Thông tin xuất hóa đơn (Invoice) ═══ */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrapper}>
@@ -433,20 +548,32 @@ export function CheckoutScreen({ navigation }: any) {
                 Xuất cho tôi
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.invoiceToggleOption, invoiceFor === 'customer' && styles.invoiceToggleActive]}
-              onPress={handleInvoiceForCustomer}
-            >
-              <Ionicons
-                name={invoiceFor === 'customer' ? 'checkmark-circle' : 'ellipse-outline'}
-                size={18}
-                color={invoiceFor === 'customer' ? Colors.primary : Colors.textTertiary}
-              />
-              <Text style={[styles.invoiceToggleText, invoiceFor === 'customer' && styles.invoiceToggleTextActive]}>
-                Xuất cho khách hàng
-              </Text>
-            </TouchableOpacity>
+            {agencyType !== 'RETAIL' && (
+              <TouchableOpacity
+                style={[styles.invoiceToggleOption, invoiceFor === 'customer' && styles.invoiceToggleActive]}
+                onPress={handleInvoiceForCustomer}
+              >
+                <Ionicons
+                  name={invoiceFor === 'customer' ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={18}
+                  color={invoiceFor === 'customer' ? Colors.primary : Colors.textTertiary}
+                />
+                <Text style={[styles.invoiceToggleText, invoiceFor === 'customer' && styles.invoiceToggleTextActive]}>
+                  Xuất cho khách hàng
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* Selected customer info when invoiceFor === 'customer' */}
+          {invoiceFor === 'customer' && selectedCustomer && !isEditingInvoice && (
+            <View style={styles.selectedCustInfo}>
+              <Ionicons name="person-outline" size={16} color={Colors.primary} />
+              <Text style={styles.selectedCustText}>
+                {selectedCustomer.organizationName || `KH-${selectedCustomer.id}`}
+              </Text>
+            </View>
+          )}
 
           {isEditingInvoice ? (
             <View style={styles.editAddressContainer}>
@@ -485,7 +612,7 @@ export function CheckoutScreen({ navigation }: any) {
                 <Text style={styles.addressTag}>
                   {invoiceFor === 'creator'
                     ? (user?.organizationName || user?.displayName || 'NGƯỜI TẠO ĐƠN').toUpperCase()
-                    : (selectedCustomer?.displayName || selectedCustomer?.username || user?.organizationName || user?.displayName || 'KHÁCH HÀNG').toUpperCase()}
+                    : (selectedCustomer?.organizationName || 'KHÁCH HÀNG').toUpperCase()}
                 </Text>
                 {invoiceName ? <Text style={styles.addressName}>{invoiceName}</Text> : null}
                 {invoiceTaxCode ? <Text style={styles.addressPhone}>MST: {invoiceTaxCode}</Text> : null}
@@ -498,7 +625,304 @@ export function CheckoutScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* ─── Phương thức thanh toán (Payment Method) ─── */}
+        {/* Customer Picker Modal */}
+        <Modal visible={showCustomerPicker} transparent animationType="slide">
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View style={styles.modalContainer}>
+              {showCreateForm ? (
+                <>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Tạo khách hàng mới</Text>
+                    <TouchableOpacity onPress={() => {
+                      setShowCreateForm(false);
+                      setCreateForm({
+                        organizationName: '',
+                        taxCode: '',
+                        receiverName: '',
+                        receiverPhone: '',
+                        shippingAddress: '',
+                        billingAddress: '',
+                      });
+                    }}>
+                      <Ionicons name="close" size={24} color={Colors.textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.createFormContainer}>
+                    <TextInput
+                      style={[styles.addressInput, styles.createFormInput]}
+                      placeholder="Mã số thuế *"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={createForm.taxCode}
+                      onChangeText={(t) => setCreateForm(p => ({ ...p, taxCode: t }))}
+                      autoCapitalize="characters"
+                      editable={!createLoading}
+                    />
+                    <View style={{ height: 8 }} />
+                    <TextInput
+                      style={[styles.addressInput, styles.createFormInput]}
+                      placeholder="Tên tổ chức *"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={createForm.organizationName}
+                      onChangeText={(t) => setCreateForm(p => ({ ...p, organizationName: t }))}
+                      editable={!createLoading}
+                    />
+                    <View style={{ height: 8 }} />
+                    <TextInput
+                      style={[styles.addressInput, styles.createFormInput]}
+                      placeholder="Người nhận"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={createForm.receiverName}
+                      onChangeText={(t) => setCreateForm(p => ({ ...p, receiverName: t }))}
+                      editable={!createLoading}
+                    />
+                    <View style={{ height: 8 }} />
+                    <TextInput
+                      style={[styles.addressInput, styles.createFormInput]}
+                      placeholder="SĐT người nhận"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={createForm.receiverPhone}
+                      onChangeText={(t) => setCreateForm(p => ({ ...p, receiverPhone: t }))}
+                      keyboardType="phone-pad"
+                      editable={!createLoading}
+                    />
+                    <View style={{ height: 8 }} />
+                    <TextInput
+                      style={[styles.addressInput, styles.createFormInput]}
+                      multiline
+                      numberOfLines={2}
+                      placeholder="Địa chỉ nhận hàng"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={createForm.shippingAddress}
+                      onChangeText={(t) => setCreateForm(p => ({ ...p, shippingAddress: t }))}
+                      editable={!createLoading}
+                    />
+                    <View style={{ height: 8 }} />
+                    <TextInput
+                      style={[styles.addressInput, styles.createFormInput]}
+                      multiline
+                      numberOfLines={2}
+                      placeholder="Địa chỉ xuất hóa đơn"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={createForm.billingAddress}
+                      onChangeText={(t) => setCreateForm(p => ({ ...p, billingAddress: t }))}
+                      editable={!createLoading}
+                    />
+
+                    <View style={styles.createFormActions}>
+                      <TouchableOpacity
+                        style={styles.createFormSaveBtn}
+                        onPress={handleCreateCustomer}
+                        disabled={createLoading}
+                        activeOpacity={0.85}
+                      >
+                        {createLoading ? (
+                          <ActivityIndicator size="small" color={Colors.white} />
+                        ) : (
+                          <Text style={styles.createFormSaveText}>Lưu</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.createFormBackBtn}
+                        onPress={() => {
+                          setShowCreateForm(false);
+                          setCreateForm({
+                            organizationName: '',
+                            taxCode: '',
+                            receiverName: '',
+                            receiverPhone: '',
+                            shippingAddress: '',
+                            billingAddress: '',
+                          });
+                        }}
+                        disabled={createLoading}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.createFormBackText}>Quay lại</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Chọn người mua</Text>
+                    <TouchableOpacity onPress={() => {
+                      setShowCustomerPicker(false);
+                      setSearchTaxCode('');
+                    }}>
+                      <Ionicons name="close" size={24} color={Colors.textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Tax code search */}
+                  <View style={styles.taxSearchRow}>
+                    <TextInput
+                      style={styles.taxSearchInput}
+                      placeholder="Nhập mã số thuế..."
+                      placeholderTextColor={Colors.textTertiary}
+                      value={searchTaxCode}
+                      onChangeText={setSearchTaxCode}
+                      autoCapitalize="characters"
+                    />
+                    <TouchableOpacity
+                      style={styles.taxSearchBtn}
+                      onPress={handleSearchByTaxCode}
+                      disabled={searchLoading}
+                      activeOpacity={0.85}
+                    >
+                      {searchLoading ? (
+                        <ActivityIndicator size="small" color={Colors.white} />
+                      ) : (
+                        <Text style={styles.taxSearchBtnText}>Xác nhận</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Divider */}
+                  <View style={styles.modalDivider}>
+                    <View style={styles.modalDividerLine} />
+                    <Text style={styles.modalDividerText}>hoặc chọn từ danh sách</Text>
+                    <View style={styles.modalDividerLine} />
+                  </View>
+
+                  {/* Customer list */}
+                  {loadingCustomers ? (
+                    <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />
+                  ) : customers.length === 0 ? (
+                    <Text style={styles.modalEmptyText}>Không có khách hàng nào</Text>
+                  ) : (
+                    <FlatList
+                      data={customers}
+                      keyExtractor={(item) => String(item.id)}
+                      renderItem={({ item }) => {
+                        const isSelected = selectedCustomer?.id === item.id;
+                        return (
+                          <TouchableOpacity
+                            style={[styles.customerItem, isSelected && styles.customerItemActive]}
+                            onPress={() => handleSelectCustomer(item)}
+                          >
+                            <View style={styles.customerItemLeft}>
+                              <Text style={styles.customerItemName}>
+                                {item.organizationName || `KH-${item.id}`}
+                              </Text>
+                              {item.taxCode && (
+                                <Text style={styles.customerItemPhone}>MST: {item.taxCode}</Text>
+                              )}
+                            </View>
+                            <View style={styles.customerItemRight}>
+                              {isSelected ? (
+                                <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
+                              ) : (
+                                <View style={styles.customerRadio} />
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      }}
+                      contentContainerStyle={styles.customerListContent}
+                    />
+                  )}
+                </>
+              )}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* ═══ 2. Thông tin nhận hàng (Shipping) ═══ */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Ionicons name="location-outline" size={20} color={Colors.primary} />
+              <Text style={styles.sectionTitle}>Thông tin nhận hàng</Text>
+            </View>
+          </View>
+
+          {/* Multi-address list */}
+          {addresses.map((addr) => {
+            const isActive = addr.id === selectedAddressId;
+            return (
+              <TouchableOpacity
+                key={addr.id}
+                style={[styles.addrCard, isActive && styles.addrCardActive]}
+                onPress={() => handleSelectAddress(addr.id)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.addrCardLeft}>
+                  <View style={[styles.addrRadio, isActive && styles.addrRadioActive]}>
+                    {isActive && <View style={styles.addrRadioInner} />}
+                  </View>
+                </View>
+                <View style={styles.addrCardContent}>
+                  <Text style={styles.addrName}>{addr.receiverName}</Text>
+                  <Text style={styles.addrPhone}>{addr.receiverPhone}</Text>
+                  <Text style={styles.addrDetail}>{addr.address}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.addrDeleteBtn}
+                  onPress={() => handleDeleteAddress(addr.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={16} color={Colors.textTertiary} />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Add new address */}
+          {!showAddAddress ? (
+            <TouchableOpacity
+              style={styles.addAddrBtn}
+              onPress={() => setShowAddAddress(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+              <Text style={styles.addAddrBtnText}>Thêm địa chỉ nhận hàng</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.addAddrForm}>
+              <TextInput
+                style={styles.addressInput}
+                placeholder="Tên người nhận"
+                placeholderTextColor={Colors.textTertiary}
+                value={newAddress.receiverName}
+                onChangeText={(t) => setNewAddress(p => ({ ...p, receiverName: t }))}
+              />
+              <View style={{ height: 8 }} />
+              <TextInput
+                style={styles.addressInput}
+                placeholder="Số điện thoại"
+                placeholderTextColor={Colors.textTertiary}
+                value={newAddress.receiverPhone}
+                onChangeText={(t) => setNewAddress(p => ({ ...p, receiverPhone: t }))}
+                keyboardType="phone-pad"
+              />
+              <View style={{ height: 8 }} />
+              <TextInput
+                style={styles.addressInput}
+                multiline
+                numberOfLines={2}
+                placeholder="Địa chỉ chi tiết"
+                placeholderTextColor={Colors.textTertiary}
+                value={newAddress.address}
+                onChangeText={(t) => setNewAddress(p => ({ ...p, address: t }))}
+              />
+              <View style={styles.addAddrActions}>
+                <TouchableOpacity style={styles.addAddrSaveBtn} onPress={handleAddAddress} activeOpacity={0.85}>
+                  <Text style={styles.addAddrSaveText}>Lưu</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.addAddrCancelBtn} onPress={() => setShowAddAddress(false)} activeOpacity={0.85}>
+                  <Text style={styles.addAddrCancelText}>Hủy</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ═══ 3. Phương thức thanh toán (Payment Method) ═══ */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrapper}>
@@ -508,7 +932,6 @@ export function CheckoutScreen({ navigation }: any) {
           </View>
 
           <View style={styles.paymentList}>
-            {/* COD */}
             <TouchableOpacity
               style={[
                 styles.paymentOption,
@@ -529,7 +952,6 @@ export function CheckoutScreen({ navigation }: any) {
               </View>
             </TouchableOpacity>
 
-            {/* Bank Transfer */}
             <TouchableOpacity
               style={[
                 styles.paymentOption,
@@ -550,7 +972,6 @@ export function CheckoutScreen({ navigation }: any) {
               </View>
             </TouchableOpacity>
 
-            {/* Credit Card */}
             <TouchableOpacity
               style={[
                 styles.paymentOption,
@@ -573,7 +994,7 @@ export function CheckoutScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* ─── Mã khuyến mãi (Promo Code) ─── */}
+        {/* ═══ 4. Mã khuyến mãi (Promo Code) ═══ */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrapper}>
@@ -608,12 +1029,116 @@ export function CheckoutScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* ─── Tóm tắt đơn hàng (Order Summary) ─── */}
+        {/* ═══ 5. Ngày muốn nhận hàng ═══ */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
+              <Text style={styles.sectionTitle}>Ngày muốn nhận hàng</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.datePickerBtn}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
+            <Text style={styles.datePickerText}>
+              {desiredDeliveryDate.toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Custom date picker modal */}
+          <Modal visible={showDatePicker} transparent animationType="slide">
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerContainer}>
+                {/* Header */}
+                <View style={styles.datePickerHeader}>
+                  <TouchableOpacity onPress={() => setPickerMonthOffset(p => p - 1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerMonthTitle}>
+                    {MONTH_NAMES[calMonth]} {calYear}
+                  </Text>
+                  <TouchableOpacity onPress={() => setPickerMonthOffset(p => p + 1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="chevron-forward" size={22} color={Colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Day of week labels */}
+                <View style={styles.datePickerWeekRow}>
+                  {DAY_LABELS.map(label => (
+                    <View key={label} style={styles.datePickerWeekCell}>
+                      <Text style={styles.datePickerWeekLabel}>{label}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Calendar grid */}
+                <View style={styles.datePickerGrid}>
+                  {calDays.map((day, i) => (
+                    <View key={i} style={styles.datePickerDayCell}>
+                      {day !== null ? (
+                        <TouchableOpacity
+                          style={[
+                            styles.datePickerDayBtn,
+                            calYear === desiredDeliveryDate.getFullYear() &&
+                              calMonth === desiredDeliveryDate.getMonth() &&
+                              day === desiredDeliveryDate.getDate() &&
+                              styles.datePickerDayBtnSelected,
+                            isDateDisabled(day, calMonth, calYear) && styles.datePickerDayBtnDisabled,
+                          ]}
+                          onPress={() => !isDateDisabled(day, calMonth, calYear) && handleSelectDate(day)}
+                          disabled={isDateDisabled(day, calMonth, calYear)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[
+                            styles.datePickerDayText,
+                            calYear === desiredDeliveryDate.getFullYear() &&
+                              calMonth === desiredDeliveryDate.getMonth() &&
+                              day === desiredDeliveryDate.getDate() &&
+                              styles.datePickerDayTextSelected,
+                            isDateDisabled(day, calMonth, calYear) && styles.datePickerDayTextDisabled,
+                            new Date(calYear, calMonth, day).toDateString() === todayStr &&
+                              !(calYear === desiredDeliveryDate.getFullYear() &&
+                                calMonth === desiredDeliveryDate.getMonth() &&
+                                day === desiredDeliveryDate.getDate()) &&
+                              styles.datePickerDayTextToday,
+                          ]}>{day}</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+
+                {/* Actions */}
+                <View style={styles.datePickerActions}>
+                  <TouchableOpacity
+                    style={styles.datePickerCancelBtn}
+                    onPress={() => {
+                      setShowDatePicker(false);
+                      setPickerMonthOffset(0);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.datePickerCancelText}>Hủy</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        </View>
+
+        {/* ═══ 6. Tóm tắt đơn hàng (Order Summary) ═══ */}
         <View style={styles.sectionCard}>
           <Text style={styles.summaryTitle}>Tóm tắt đơn hàng</Text>
           <View style={styles.divider} />
 
-          {/* Cart items preview list */}
           <View style={styles.summaryItemsList}>
             {items.map((item) => (
               <View key={String(item.product.id)} style={styles.summaryItemRow}>
@@ -641,7 +1166,6 @@ export function CheckoutScreen({ navigation }: any) {
 
           <View style={styles.divider} />
 
-          {/* Pricing calculations */}
           <View style={styles.pricingLines}>
             <View style={styles.pricingLine}>
               <Text style={styles.pricingLabel}>Tạm tính ({totalItems} sản phẩm)</Text>
@@ -670,7 +1194,19 @@ export function CheckoutScreen({ navigation }: any) {
           <Text style={styles.taxNote}>(Đã bao gồm thuế GTGT)</Text>
         </View>
 
-        {/* ─── Submit CTA Button ─── */}
+        {/* Price adjustment button — WHOLESALE only */}
+        {agencyType === 'WHOLESALE' && (
+          <TouchableOpacity
+            style={styles.priceAdjustBtn}
+            onPress={() => setShowPriceAdjust(true)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="pricetags-outline" size={18} color={Colors.primary} />
+            <Text style={styles.priceAdjustBtnText}>Điều chỉnh giá bán</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Submit CTA Button */}
         <TouchableOpacity
           style={styles.confirmOrderBtn}
           onPress={handleConfirmOrder}
@@ -695,6 +1231,81 @@ export function CheckoutScreen({ navigation }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Price adjustment modal */}
+      <Modal visible={showPriceAdjust} transparent animationType="slide">
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={[styles.modalContainer, { maxHeight: '70%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Điều chỉnh giá bán</Text>
+              <TouchableOpacity onPress={() => setShowPriceAdjust(false)}>
+                <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={items}
+              keyExtractor={(item) => String(item.product.id)}
+              contentContainerStyle={styles.priceAdjustList}
+              renderItem={({ item }) => {
+                const currentPrice = item.product.appliedPrice && item.product.appliedPrice !== -1
+                  ? item.product.appliedPrice
+                  : item.product.basePrice && item.product.basePrice !== -1
+                    ? item.product.basePrice : 0;
+                return (
+                  <View style={styles.priceAdjustItem}>
+                    <View style={styles.priceAdjustItemLeft}>
+                      <Text style={styles.priceAdjustItemName} numberOfLines={1}>
+                        {item.product.name}
+                      </Text>
+                      <Text style={styles.priceAdjustItemCurrent}>
+                        Giá hiện tại: {currentPrice.toLocaleString('vi-VN')}đ
+                      </Text>
+                    </View>
+                    <View style={styles.priceAdjustItemRight}>
+                      <TextInput
+                        style={styles.priceAdjustInput}
+                        placeholder={currentPrice.toLocaleString('vi-VN')}
+                        placeholderTextColor={Colors.textTertiary}
+                        keyboardType="numeric"
+                        value={adjustPrices[item.product.id] ?? ''}
+                        onChangeText={(text) => setAdjustPrices(prev => ({
+                          ...prev,
+                          [item.product.id]: text,
+                        }))}
+                      />
+                      <Text style={styles.priceAdjustUnit}>đ</Text>
+                    </View>
+                  </View>
+                );
+              }}
+            />
+
+            <View style={styles.priceAdjustActions}>
+              <TouchableOpacity
+                style={styles.priceAdjustCancelBtn}
+                onPress={() => {
+                  setAdjustPrices({});
+                  setShowPriceAdjust(false);
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.priceAdjustCancelText}>Hủy bỏ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.priceAdjustApplyBtn}
+                onPress={() => setShowPriceAdjust(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.priceAdjustApplyText}>Áp dụng</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -757,7 +1368,52 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // Shipping Section styles
+  // Invoice
+  invoiceToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  invoiceToggleOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: 10,
+    backgroundColor: Colors.surface,
+  },
+  invoiceToggleActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#F0F4FA',
+  },
+  invoiceToggleText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textTertiary,
+  },
+  invoiceToggleTextActive: {
+    color: Colors.primary,
+  },
+  selectedCustInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: BorderRadius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  selectedCustText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.primary,
+  },
+
+  // Address cards (shared between invoice + shipping)
   editAddressContainer: {
     marginTop: 4,
   },
@@ -778,7 +1434,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primary,
     borderRadius: BorderRadius.md,
-    backgroundColor: '#F0F4FA', // Colors.primarySoft
+    backgroundColor: '#F0F4FA',
     padding: 14,
     position: 'relative',
   },
@@ -810,46 +1466,51 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 16,
   },
-  addAddressText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: Colors.textSecondary,
-  },
 
-  // Customer Selector styles
-  customerSelector: {
+  // Tax code search in modal
+  taxSearchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  taxSearchInput: {
+    flex: 1,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
-    padding: 12,
-    marginBottom: 12,
-  },
-  customerSelectorLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  customerSelectorLabel: {
+    backgroundColor: Colors.background,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: Colors.textSecondary,
-  },
-  customerSelectorRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  customerSelectorValue: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
     color: Colors.textPrimary,
   },
-  customerSelectorPlaceholder: {
-    fontSize: FontSize.sm,
+  taxSearchBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taxSearchBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  modalDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  modalDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  modalDividerText: {
+    marginHorizontal: 10,
+    fontSize: FontSize.xs,
     color: Colors.textTertiary,
   },
 
@@ -863,7 +1524,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
-    maxHeight: '60%',
+    maxHeight: '70%',
     paddingBottom: 30,
   },
   modalHeader: {
@@ -924,33 +1585,115 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  invoiceToggleRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  invoiceToggleOption: {
-    flex: 1,
+
+  // Multi-address styles
+  addrCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
-    padding: 10,
+    padding: 12,
+    marginBottom: 8,
     backgroundColor: Colors.surface,
   },
-  invoiceToggleActive: {
+  addrCardActive: {
     borderColor: Colors.primary,
     backgroundColor: '#F0F4FA',
   },
-  invoiceToggleText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: Colors.textTertiary,
+  addrCardLeft: {
+    marginRight: 10,
   },
-  invoiceToggleTextActive: {
+  addrRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addrRadioActive: {
+    borderColor: Colors.primary,
+  },
+  addrRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
+  },
+  addrCardContent: {
+    flex: 1,
+  },
+  addrName: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  addrPhone: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  addrDetail: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  addrDeleteBtn: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  addAddrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    borderStyle: 'dashed',
+    padding: 12,
+    marginTop: 4,
+  },
+  addAddrBtnText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
     color: Colors.primary,
+  },
+  addAddrForm: {
+    marginTop: 8,
+  },
+  addAddrActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  addAddrSaveBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  addAddrSaveText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  addAddrCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  addAddrCancelText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
   },
 
   // Payment Section styles
@@ -968,7 +1711,7 @@ const styles = StyleSheet.create({
   },
   paymentOptionActive: {
     borderColor: Colors.primary,
-    backgroundColor: '#F0F4FA', // Colors.primarySoft
+    backgroundColor: '#F0F4FA',
   },
   radioCircle: {
     width: 18,
@@ -1195,5 +1938,256 @@ const styles = StyleSheet.create({
   securityText: {
     fontSize: FontSize.xs - 1,
     color: Colors.textTertiary,
+  },
+
+  // Create Customer Form
+  createFormContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  createFormInput: {
+    fontSize: FontSize.sm,
+  },
+  createFormActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  createFormSaveBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  createFormSaveText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  createFormBackBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  createFormBackText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+  },
+
+  // Date picker
+  datePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: 14,
+    backgroundColor: Colors.background,
+  },
+  datePickerText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+
+  // Custom date picker modal
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    width: '85%',
+    padding: 20,
+    ...Shadow.md,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  datePickerMonthTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  datePickerWeekRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  datePickerWeekCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  datePickerWeekLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: Colors.textTertiary,
+  },
+  datePickerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  datePickerDayCell: {
+    width: '14.28%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  datePickerDayBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  datePickerDayBtnSelected: {
+    backgroundColor: Colors.primary,
+  },
+  datePickerDayBtnDisabled: {
+    opacity: 0.3,
+  },
+  datePickerDayText: {
+    fontSize: FontSize.sm,
+    color: Colors.textPrimary,
+    fontWeight: FontWeight.medium,
+  },
+  datePickerDayTextSelected: {
+    color: Colors.white,
+    fontWeight: FontWeight.bold,
+  },
+  datePickerDayTextDisabled: {
+    color: Colors.textTertiary,
+  },
+  datePickerDayTextToday: {
+    color: Colors.primary,
+    fontWeight: FontWeight.bold,
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+  },
+  datePickerCancelBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  datePickerCancelText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+  },
+
+  // Price adjustment
+  priceAdjustBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+    padding: 14,
+    marginBottom: 16,
+  },
+  priceAdjustBtnText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.primary,
+  },
+  priceAdjustList: {
+    paddingHorizontal: 16,
+  },
+  priceAdjustItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  priceAdjustItemLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  priceAdjustItemName: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  priceAdjustItemCurrent: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+  priceAdjustItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  priceAdjustInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: FontSize.sm,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.background,
+    minWidth: 100,
+    textAlign: 'right',
+  },
+  priceAdjustUnit: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.textSecondary,
+  },
+  priceAdjustActions: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  priceAdjustCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  priceAdjustCancelText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+  },
+  priceAdjustApplyBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  priceAdjustApplyText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
   },
 });

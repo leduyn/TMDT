@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView,
+  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView, FlatList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerApi } from '../../api/auth';
+import { Colors, FontSize, FontWeight, BorderRadius, Spacing } from '../../theme';
+import { CategoryItem } from '../../components/CategoryItem';
+import { SurveyModal } from '../../components/SurveyModal';
 import type { CategoryDTO, SurveyQuestion } from '../../types';
 
-type Step = 'form' | 'categories' | 'survey' | 'submitting';
+type Step = 'form' | 'categories' | 'submitting';
 
 export function RegisterScreen({ navigation }: any) {
   const [form, setForm] = useState({
@@ -17,36 +21,36 @@ export function RegisterScreen({ navigation }: any) {
   });
   const [loading, setLoading] = useState(false);
 
-  // Multi-step state
   const [step, setStep] = useState<Step>('form');
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-  const [surveyQuestions, setSurveyQuestions] = useState<SurveyQuestion[]>([]);
-  const [surveyAnswers, setSurveyAnswers] = useState<Record<number, string>>({});
-  const [checkboxAnswers, setCheckboxAnswers] = useState<Record<number, string[]>>({});
+
   const [initLoading, setInitLoading] = useState(false);
 
-  // Fetch categories and survey questions when entering form step
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalCategory, setModalCategory] = useState<CategoryDTO | null>(null);
+  const [modalQuestions, setModalQuestions] = useState<SurveyQuestion[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  const [categoryAnswersCache, setCategoryAnswersCache] =
+    useState<Record<number, { answers: Record<number, string>; checkbox: Record<number, string[]> }>>({});
+
   useEffect(() => {
     if (step === 'form' && categories.length === 0) {
-      fetchRegistrationData();
+      fetchCategories();
     }
   }, [step]);
 
-  const fetchRegistrationData = async () => {
+  const fetchCategories = async () => {
     setInitLoading(true);
     try {
-      const [level, questions] = await Promise.all([
-        registerApi.getCategoryLevel(),
-        registerApi.getActiveSurveyQuestions(),
-      ]);
-      setSurveyQuestions(questions || []);
+      const level = await registerApi.getCategoryLevel();
       if (level != null) {
         const cats = await registerApi.getCategoriesByLevel(level);
         setCategories(cats || []);
       }
-    } catch (err: any) {
-      // Silently fail - backend might not have all data yet
+    } catch {
+      // Silently fail
     } finally {
       setInitLoading(false);
     }
@@ -75,33 +79,51 @@ export function RegisterScreen({ navigation }: any) {
     setStep('categories');
   };
 
-  const handleNextToSurvey = () => {
-    if (selectedCategoryIds.length === 0) {
-      Alert.alert('Lỗi', 'Vui lòng chọn ít nhất một danh mục');
+  const handleCategoryPress = async (category: CategoryDTO) => {
+    const alreadySelected = selectedCategoryIds.includes(category.id);
+
+    if (alreadySelected) {
+      setSelectedCategoryIds(prev => prev.filter(c => c !== category.id));
+      setCategoryAnswersCache(prev => {
+        const next = { ...prev };
+        delete next[category.id];
+        return next;
+      });
       return;
     }
-    setStep('survey');
+
+    setModalCategory(category);
+    setModalVisible(true);
+    setModalLoading(true);
+    try {
+      const questions = await registerApi.getSurveyQuestionsByCategory(category.id);
+      setModalQuestions(questions || []);
+    } catch {
+      setModalQuestions([]);
+    } finally {
+      setModalLoading(false);
+    }
   };
 
-  const toggleCategory = (id: number) => {
-    setSelectedCategoryIds(prev =>
-      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
-    );
+  const handleModalSave = (answers: Record<number, string>, checkbox: Record<number, string[]>) => {
+    if (modalCategory) {
+      setCategoryAnswersCache(prev => ({
+        ...prev,
+        [modalCategory.id]: { answers, checkbox },
+      }));
+      setSelectedCategoryIds(prev =>
+        prev.includes(modalCategory.id) ? prev : [...prev, modalCategory.id]
+      );
+    }
+    setModalVisible(false);
+    setModalCategory(null);
+    setModalQuestions([]);
   };
 
   const handleSubmit = async () => {
-    if (surveyQuestions.length > 0) {
-      const unanswered = surveyQuestions.filter(q => {
-        if (q.type === 'checkbox') {
-          const checked = checkboxAnswers[q.id] || [];
-          return checked.length === 0;
-        }
-        return !surveyAnswers[q.id] || surveyAnswers[q.id].trim() === '';
-      });
-      if (unanswered.length > 0) {
-        Alert.alert('Lỗi', 'Vui lòng trả lời tất cả câu hỏi khảo sát');
-        return;
-      }
+    if (selectedCategoryIds.length === 0) {
+      Alert.alert('Lỗi', 'Vui lòng chọn ít nhất một danh mục');
+      return;
     }
 
     setStep('submitting');
@@ -128,17 +150,19 @@ export function RegisterScreen({ navigation }: any) {
         if (selectedCategoryIds.length > 0) {
           promises.push(registerApi.saveAgencyCategories(res.agencyId, selectedCategoryIds));
         }
-        if (surveyQuestions.length > 0) {
-          const answers = surveyQuestions.map(q => {
-            let answer: string;
-            if (q.type === 'checkbox') {
-              answer = (checkboxAnswers[q.id] || []).join(', ');
-            } else {
-              answer = surveyAnswers[q.id] || '';
-            }
-            return { questionId: q.id, answer };
-          });
-          promises.push(registerApi.submitSurveyAnswers(res.agencyId, answers));
+        const allAnswers: { questionId: number; answer: string; categoryId: number }[] = [];
+        for (const catId of selectedCategoryIds) {
+          const cached = categoryAnswersCache[catId];
+          if (!cached) continue;
+          for (const [qId, answer] of Object.entries(cached.answers)) {
+            allAnswers.push({ questionId: Number(qId), answer, categoryId: catId });
+          }
+          for (const [qId, checkedItems] of Object.entries(cached.checkbox)) {
+            allAnswers.push({ questionId: Number(qId), answer: checkedItems.join(', '), categoryId: catId });
+          }
+        }
+        if (allAnswers.length > 0) {
+          promises.push(registerApi.submitSurveyAnswers(res.agencyId, allAnswers));
         }
         await Promise.all(promises);
         await AsyncStorage.multiRemove(['token', 'agencyId']);
@@ -148,7 +172,7 @@ export function RegisterScreen({ navigation }: any) {
       ]);
     } catch (err: any) {
       Alert.alert('Đăng ký thất bại', err.message);
-      setStep('survey');
+      setStep('categories');
     } finally {
       setLoading(false);
     }
@@ -201,156 +225,86 @@ export function RegisterScreen({ navigation }: any) {
     </>
   );
 
-  const renderCategories = () => (
-    <>
-      <Text style={styles.title}>Chọn danh mục quan tâm</Text>
-      <Text style={styles.subtitle}>Vui lòng chọn các danh mục bạn muốn kinh doanh</Text>
+  const renderCategories = () => {
+    const cached = modalCategory ? categoryAnswersCache[modalCategory.id] : undefined;
 
-      {categories.length === 0 ? (
-        <Text style={{ textAlign: 'center', color: '#9ca3af', marginVertical: 32 }}>
-          Không có danh mục nào
+    return (
+      <>
+        <Text style={styles.title}>Chọn danh mục quan tâm</Text>
+        <Text style={styles.subtitle}>
+          Chạm vào danh mục để trả lời khảo sát ({selectedCategoryIds.length}/{categories.length})
         </Text>
-      ) : (
-        <View style={{ marginVertical: 16 }}>
-          {categories.map(cat => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.checkboxRow,
-                selectedCategoryIds.includes(cat.id) && styles.checkboxRowSelected,
-              ]}
-              onPress={() => toggleCategory(cat.id)}
-            >
-              <View style={[
-                styles.checkbox,
-                selectedCategoryIds.includes(cat.id) && styles.checkboxChecked,
-              ]}>
-                {selectedCategoryIds.includes(cat.id) && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
-      <TouchableOpacity style={styles.btn} onPress={handleNextToSurvey}>
-        <Text style={styles.btnText}>Tiếp theo ({selectedCategoryIds.length} danh mục)</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setStep('form')}>
-        <Text style={styles.link}>Quay lại</Text>
-      </TouchableOpacity>
-    </>
-  );
-
-  const renderSurvey = () => (
-    <>
-      <Text style={styles.title}>Khảo sát</Text>
-      <Text style={styles.subtitle}>Vui lòng trả lời các câu hỏi sau</Text>
-
-      {surveyQuestions.length === 0 ? (
-        <Text style={{ textAlign: 'center', color: '#9ca3af', marginVertical: 32 }}>
-          Không có câu hỏi khảo sát
-        </Text>
-      ) : (
-        <View style={{ marginVertical: 16 }}>
-          {surveyQuestions.map((q, idx) => (
-            <View key={q.id} style={styles.surveyCard}>
-              <Text style={styles.surveyQuestion}>
-                {idx + 1}. {q.question}
-              </Text>
-              {q.type === 'text' && (
-                <TextInput
-                  style={[styles.input, { minHeight: 60, textAlignVertical: 'top' }]}
-                  value={surveyAnswers[q.id] || ''}
-                  onChangeText={v => setSurveyAnswers(prev => ({ ...prev, [q.id]: v }))}
-                  placeholder="Nhập câu trả lời..."
-                  multiline
-                />
-              )}
-              {q.type === 'radio' && (
-                <View style={{ marginTop: 8 }}>
-                  {(q.options || '').split('\n').filter(Boolean).map((opt, oi) => (
-                    <TouchableOpacity
-                      key={oi}
-                      style={[
-                        styles.radioRow,
-                        surveyAnswers[q.id] === opt && styles.radioRowSelected,
-                      ]}
-                      onPress={() => setSurveyAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                    >
-                      <View style={[
-                        styles.radio,
-                        surveyAnswers[q.id] === opt && styles.radioChecked,
-                      ]}>
-                        {surveyAnswers[q.id] === opt && (
-                          <View style={styles.radioDot} />
-                        )}
-                      </View>
-                      <Text style={styles.radioLabel}>{opt}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-              {q.type === 'checkbox' && (
-                <View style={{ marginTop: 8 }}>
-                  {(q.options || '').split('\n').filter(Boolean).map((opt, oi) => {
-                    const checked = (checkboxAnswers[q.id] || []).includes(opt);
-                    return (
-                      <TouchableOpacity
-                        key={oi}
-                        style={[
-                          styles.checkboxRow,
-                          checked && styles.checkboxRowSelected,
-                        ]}
-                        onPress={() => {
-                          setCheckboxAnswers(prev => {
-                            const current = prev[q.id] || [];
-                            return {
-                              ...prev,
-                              [q.id]: current.includes(opt)
-                                ? current.filter(c => c !== opt)
-                                : [...current, opt],
-                            };
-                          });
-                        }}
-                      >
-                        <View style={[
-                          styles.checkbox,
-                          checked && styles.checkboxChecked,
-                        ]}>
-                          {checked && <Text style={styles.checkmark}>✓</Text>}
-                        </View>
-                        <Text style={styles.checkboxLabel}>{opt}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={[styles.btn, loading && styles.disabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
+        {categories.length === 0 ? (
+          <View style={styles.center}>
+            <Ionicons name="layers-outline" size={48} color={Colors.textTertiary} />
+            <Text style={styles.emptyText}>Không có danh mục nào</Text>
+          </View>
         ) : (
-          <Text style={styles.btnText}>Hoàn tất đăng ký</Text>
+          <FlatList
+            data={categories}
+            renderItem={({ item }) => {
+              const isSelected = selectedCategoryIds.includes(item.id);
+              return (
+                <View style={styles.gridItem}>
+                  <View style={[styles.itemWrapper, isSelected && styles.itemWrapperOpened]}>
+                    <CategoryItem
+                      name={item.name}
+                      imageUrl={item.imageUrl}
+                      isActive={isSelected}
+                      onPress={() => handleCategoryPress(item)}
+                    />
+                    {isSelected && (
+                      <View style={styles.checkmarkBadge}>
+                        <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            }}
+            keyExtractor={item => String(item.id)}
+            numColumns={4}
+            contentContainerStyle={styles.grid}
+            columnWrapperStyle={styles.gridRow}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={false}
+          />
         )}
-      </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => setStep('categories')}>
-        <Text style={styles.link}>Quay lại</Text>
-      </TouchableOpacity>
-    </>
-  );
+        <TouchableOpacity style={styles.btn} onPress={handleSubmit}>
+          <Text style={styles.btnText}>Hoàn tất đăng ký ({selectedCategoryIds.length} danh mục)</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setStep('form')}>
+          <Text style={styles.link}>Quay lại</Text>
+        </TouchableOpacity>
+
+        <SurveyModal
+          visible={modalVisible}
+          categoryName={modalCategory?.name || ''}
+          questions={modalQuestions}
+          initialAnswers={cached?.answers || {}}
+          initialCheckboxAnswers={cached?.checkbox || {}}
+          onSave={handleModalSave}
+          onClose={() => {
+            setModalVisible(false);
+            setModalCategory(null);
+            setModalQuestions([]);
+          }}
+        />
+
+        {modalLoading && (
+          <View style={styles.modalLoading}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={{ marginTop: 12, color: '#6b7280', fontSize: 15 }}>
+              Đang tải câu hỏi khảo sát...
+            </Text>
+          </View>
+        )}
+      </>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -360,7 +314,6 @@ export function RegisterScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.scroll}>
         {step === 'form' && renderForm()}
         {step === 'categories' && renderCategories()}
-        {step === 'survey' && renderSurvey()}
         {step === 'submitting' && (
           <View style={{ alignItems: 'center', paddingVertical: 60 }}>
             <ActivityIndicator size="large" color="#2563eb" />
@@ -389,38 +342,50 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   link: { textAlign: 'center', marginTop: 16, color: '#2563eb', fontSize: 14 },
 
-  // Checkbox
-  checkboxRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16,
-    borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb',
+  // Categories grid
+  center: {
+    alignItems: 'center',
+    paddingVertical: 40,
   },
-  checkboxRowSelected: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
-  checkbox: {
-    width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#d1d5db',
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  emptyText: {
+    fontSize: FontSize.md,
+    color: Colors.textTertiary,
+    fontWeight: FontWeight.semibold,
+    marginTop: Spacing.md,
   },
-  checkboxChecked: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  checkboxLabel: { fontSize: 16, color: '#374151', flex: 1 },
-
-  // Radio
-  radioRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12,
-    borderRadius: 8, marginBottom: 4,
+  grid: {
+    paddingVertical: Spacing.sm,
   },
-  radioRowSelected: { backgroundColor: '#eff6ff' },
-  radio: {
-    width: 22, height: 22, borderRadius: 12, borderWidth: 2, borderColor: '#d1d5db',
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  gridRow: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  radioChecked: { borderColor: '#2563eb' },
-  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#2563eb' },
-  radioLabel: { fontSize: 15, color: '#374151', flex: 1 },
-
-  // Survey card
-  surveyCard: {
-    backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: '#e5e7eb',
+  gridItem: {
+    flex: 1,
+    maxWidth: '25%',
   },
-  surveyQuestion: { fontSize: 15, fontWeight: '600', color: '#1f2937', marginBottom: 8 },
+  itemWrapper: {
+    position: 'relative',
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    backgroundColor: Colors.white,
+  },
+  itemWrapperOpened: {
+    borderColor: Colors.success,
+    backgroundColor: Colors.successLight,
+  },
+  checkmarkBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+  },
+  modalLoading: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

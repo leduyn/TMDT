@@ -8,6 +8,7 @@ public class SurveyAnswerDTO {
     private String question;
     private String questionType;
     private String answer;
+    private Long categoryId;
     private String createdAt;
 
     public SurveyAnswerDTO() {}
@@ -18,6 +19,7 @@ public class SurveyAnswerDTO {
         this.question = questionText;
         this.questionType = questionType;
         this.answer = entity.getAnswer();
+        this.categoryId = entity.getCategoryId();
         this.createdAt = entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null;
     }
 
@@ -31,6 +33,8 @@ public class SurveyAnswerDTO {
     public void setQuestionType(String questionType) { this.questionType = questionType; }
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

@@ -28,8 +28,10 @@ export default function CustomerGroupsPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      if (Array.isArray(data)) setGroups(data);
-      else setGroups([]);
+      if (Array.isArray(data)) {
+        const sorted = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setGroups(sorted);
+      } else setGroups([]);
     } catch (err) {
       console.error('Failed to fetch groups', err);
       setGroups([]);

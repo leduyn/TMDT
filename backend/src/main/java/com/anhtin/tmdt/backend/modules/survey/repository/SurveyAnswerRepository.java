@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Long> {
     List<SurveyAnswer> findByAgencyId(Long agencyId);
+    List<SurveyAnswer> findByAgencyIdAndCategoryId(Long agencyId, Long categoryId);
 }

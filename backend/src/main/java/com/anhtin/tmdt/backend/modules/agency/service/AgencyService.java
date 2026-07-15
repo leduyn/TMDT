@@ -375,6 +375,24 @@ public class AgencyService {
                 .collect(Collectors.toList());
     }
 
+    public List<Map<String, Object>> getAgenciesByCategory(Long categoryId) {
+        return categorySelectionRepository.findByCategoryId(categoryId).stream()
+                .map(sel -> agencyRepository.findById(sel.getAgencyId()).orElse(null))
+                .filter(a -> a != null)
+                .map(a -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", a.getId());
+                    item.put("name", a.getName());
+                    item.put("code", a.getCode());
+                    item.put("phone", a.getPhone());
+                    item.put("active", a.isActive());
+                    item.put("status", a.getStatus());
+                    item.put("type", a.getType());
+                    return item;
+                })
+                .collect(Collectors.toList());
+    }
+
     public List<Long> getOpenedCategoryIds(Long agencyId) {
         List<AgencyOpenedCategory> opened = openedCategoryRepository.findByAgencyId(agencyId);
         if (!opened.isEmpty()) {

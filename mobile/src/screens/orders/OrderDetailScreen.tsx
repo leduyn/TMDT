@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { orderApi } from '../../api/order';
 import { Colors, FontSize, FontWeight, BorderRadius, Spacing, Shadow } from '../../theme';
 import type { OrderDTO, OrderStatus } from '../../types';
-import { formatPrice } from '../../utils';
+import { formatPrice, resolveImageUrl } from '../../utils';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
   NEW: { label: 'Mới', color: '#3B82F6', icon: 'document-outline' },
@@ -149,7 +149,7 @@ export function OrderDetailScreen({ route, navigation }: any) {
           <View key={item.id} style={styles.itemRow}>
             <View style={styles.itemImageWrapper}>
               {item.productImageUrl ? (
-                <Image source={{ uri: item.productImageUrl }} style={styles.itemImage} />
+                <Image source={{ uri: resolveImageUrl(item.productImageUrl) }} style={styles.itemImage} />
               ) : (
                 <Ionicons name="image-outline" size={20} color={Colors.textTertiary} />
               )}

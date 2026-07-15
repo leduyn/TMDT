@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { orderApi, OrderDTO } from '@/lib/api';
+import { orderApi, OrderDTO, customerApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge, { BadgeType } from '@/components/ui/Badge';
@@ -17,7 +17,8 @@ import {
   User, 
   Phone,
   FileText,
-  CreditCard
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function OrderDetailPage() {
@@ -27,10 +28,24 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [activatingCustomer, setActivatingCustomer] = useState(false);
 
   useEffect(() => {
     if (id) fetchOrder();
   }, [id]);
+
+  const handleActivateCustomer = async () => {
+    if (!order || !confirm('Kích hoạt khách hàng này?')) return;
+    setActivatingCustomer(true);
+    try {
+      await customerApi.update(order.customerId, { status: 'ACTIVE' });
+      fetchOrder();
+    } catch (error) {
+      alert('Kích hoạt thất bại: ' + error);
+    } finally {
+      setActivatingCustomer(false);
+    }
+  };
 
   const fetchOrder = async () => {
     setLoading(true);
@@ -90,6 +105,17 @@ export default function OrderDetailPage() {
   if (!order) return <div className="container">Không tìm thấy đơn hàng.</div>;
 
   const canUpdateStatus = user?.roles.some(r => ['ROLE_ADMIN', 'ROLE_COMPANY'].includes(r));
+  const customerNotActive = !!(order.customerStatus && order.customerStatus !== 'ACTIVE');
+
+  const customerStatusLabel = (s: string) => {
+    switch (s) {
+      case 'ACTIVE': return 'Hoạt động';
+      case 'INACTIVE': return 'Ngừng hoạt động';
+      case 'PENDING': return 'Chờ duyệt';
+      case 'REJECTED': return 'Từ chối';
+      default: return s;
+    }
+  };
 
   return (
     <div className="container">
@@ -106,6 +132,31 @@ export default function OrderDetailPage() {
           Quay lại danh sách
         </button>
       </div>
+
+      {customerNotActive && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)',
+          borderRadius: 8, padding: '12px 16px', marginBottom: 20,
+        }}>
+          <AlertTriangle size={20} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: 'var(--warning)', marginBottom: 2 }}>Khách hàng chưa được kích hoạt</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Khách hàng đang ở trạng thái: <strong>{customerStatusLabel(order.customerStatus!)}</strong>.
+              Cần kích hoạt khách hàng trước khi xác nhận đơn hàng.
+            </div>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleActivateCustomer}
+            disabled={activatingCustomer}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            {activatingCustomer ? 'Đang kích hoạt...' : 'Kích hoạt ngay'}
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 20 }}>
         <div>
@@ -124,7 +175,8 @@ export default function OrderDetailPage() {
               <button 
                 className="btn btn-primary" 
                 onClick={() => handleUpdateStatus('PROCESSING')}
-                disabled={updating}
+                disabled={updating || customerNotActive}
+                title={customerNotActive ? 'Khách hàng chưa được kích hoạt' : ''}
               >
                 Xác nhận đơn hàng
               </button>
@@ -290,6 +342,19 @@ export default function OrderDetailPage() {
                 <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <User size={16} />
                   {order.customerName}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 4 }}>Trạng thái khách hàng</div>
+                <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                    background: order.customerStatus === 'ACTIVE' ? 'var(--success)'
+                      : order.customerStatus === 'PENDING' ? 'var(--warning)'
+                      : order.customerStatus === 'REJECTED' ? 'var(--error)'
+                      : 'var(--text-muted)',
+                  }} />
+                  {customerStatusLabel(order.customerStatus || 'UNKNOWN')}
                 </div>
               </div>
               {order.agencyName && (

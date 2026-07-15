@@ -25,9 +25,9 @@ export const agencyApi = {
   getOpenedCategories: (id: number) =>
     fetchJSON<number[]>(`/api/agencies/${id}/opened-categories`),
   saveOpenedCategories: (id: number, categoryIds: number[]) =>
-    fetchJSON<{ message: string }>(`/api/agencies/${id}/opened-categories`, {
+    fetchJSON<{ message: string }>(`/api/agencies/${id}/categories`, {
       method: 'PUT',
-      body: JSON.stringify({ categoryIds }),
+      body: JSON.stringify({ categoryIds, source: 'MANUAL' }),
     }),
   update: async (id: number, data: Partial<{ name: string; phone: string; avatarUrl: string }>) => {
     const token = await AsyncStorage.getItem('token');

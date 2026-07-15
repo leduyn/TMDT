@@ -228,16 +228,14 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ display: 'flex', gap: 16 }}>
                         <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: '0.78rem', color: '#6366f1' }}>Sỉ</span>
-                          <div style={{ fontWeight: 600, fontSize: '1.05rem', color: '#6366f1' }}>
-                            {formatNumber(data.stats.wholesaleAgencies)}
-                          </div>
+                          <span style={{ fontSize: '0.82rem', color: '#6366f1', fontWeight: 500 }}>
+                            Sỉ: <strong>{formatNumber(data.stats.wholesaleAgencies)}</strong>
+                          </span>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: '0.78rem', color: '#8b5cf6' }}>Lẻ</span>
-                          <div style={{ fontWeight: 600, fontSize: '1.05rem', color: '#8b5cf6' }}>
-                            {formatNumber(data.stats.retailAgencies)}
-                          </div>
+                          <span style={{ fontSize: '0.82rem', color: '#8b5cf6', fontWeight: 500 }}>
+                            Lẻ: <strong>{formatNumber(data.stats.retailAgencies)}</strong>
+                          </span>
                         </div>
                       </div>
                     </div>

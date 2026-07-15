@@ -8,6 +8,7 @@ public class OrderItemDTO {
     private String productImageUrl;
     private Integer quantity;
     private Double price;
+    private Double adjustedPrice;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -21,4 +22,6 @@ public class OrderItemDTO {
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
     public Double getPrice() { return price; }
     public void setPrice(Double price) { this.price = price; }
+    public Double getAdjustedPrice() { return adjustedPrice; }
+    public void setAdjustedPrice(Double adjustedPrice) { this.adjustedPrice = adjustedPrice; }
 }

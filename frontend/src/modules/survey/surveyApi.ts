@@ -7,6 +7,7 @@ export interface SurveyAnswerDTO {
   questionType: string;
   answer: string;
   createdAt: string;
+  categoryId?: number;
 }
 
 export interface SurveyAnswerStats {
@@ -18,11 +19,13 @@ export interface SurveyAnswerStats {
   totalAnswers: number;
   optionCounts?: Record<string, number>;
   rawAnswers?: string[];
+  globalQuestion?: boolean;
+  categoryId?: number | null;
 }
 
 export const surveyApi = {
-  getAgencyAnswers: (agencyId: number) =>
-    fetchJSON<SurveyAnswerDTO[]>(`/api/survey/agency/${agencyId}/answers`),
+  getAgencyAnswers: (agencyId: number, categoryId?: number) =>
+    fetchJSON<SurveyAnswerDTO[]>(`/api/survey/agency/${agencyId}/answers${categoryId !== undefined ? `?categoryId=${categoryId}` : ''}`),
 
   getAnswerStats: () =>
     fetchJSON<SurveyAnswerStats[]>('/api/survey/answers/stats'),

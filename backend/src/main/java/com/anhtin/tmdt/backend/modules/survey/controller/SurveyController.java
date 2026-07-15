@@ -20,7 +20,7 @@ import java.util.Map;
 public class SurveyController {
 
     @Autowired
-    private SurveyService surveyService;
+    private SurveyService surveyService; // Trigger JDT LS recompile
 
     @GetMapping("/questions")
     @PreAuthorize("hasRole('COMPANY')")
@@ -29,7 +29,16 @@ public class SurveyController {
     }
 
     @GetMapping("/questions/active")
-    public List<SurveyQuestion> getActiveQuestions() {
+    public List<SurveyQuestion> getActiveQuestions(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String context) {
+        if (categoryId != null && context != null) {
+            return surveyService.getActiveQuestionsByCategoryAndContext(categoryId, context);
+        } else if (categoryId != null) {
+            return surveyService.getActiveQuestionsByCategory(categoryId);
+        } else if (context != null) {
+            return surveyService.getActiveQuestionsByContext(context);
+        }
         return surveyService.getActiveQuestions();
     }
 
@@ -60,6 +69,9 @@ public class SurveyController {
             SurveyAnswer sa = new SurveyAnswer();
             sa.setQuestionId(Long.valueOf(a.get("questionId").toString()));
             sa.setAnswer((String) a.get("answer"));
+            if (a.containsKey("categoryId") && a.get("categoryId") != null) {
+                sa.setCategoryId(Long.valueOf(a.get("categoryId").toString()));
+            }
             return sa;
         }).toList();
         surveyService.submitAnswers(agencyId, entities);
@@ -68,7 +80,12 @@ public class SurveyController {
 
     @GetMapping("/agency/{agencyId}/answers")
     @PreAuthorize("hasAnyRole('COMPANY', 'ADMIN')")
-    public List<SurveyAnswerDTO> getAgencyAnswers(@PathVariable Long agencyId) {
+    public List<SurveyAnswerDTO> getAgencyAnswers(
+            @PathVariable Long agencyId,
+            @RequestParam(required = false) Long categoryId) {
+        if (categoryId != null) {
+            return surveyService.getAgencyAnswersByCategory(agencyId, categoryId);
+        }
         return surveyService.getAgencyAnswers(agencyId);
     }
 

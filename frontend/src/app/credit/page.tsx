@@ -306,7 +306,7 @@ function CreditManagementContent() {
                       APPROVED:         { label: 'Đã duyệt',     color: '#22c55e' },
                       REJECTED:         { label: 'Từ chối',      color: '#ef4444' },
                     };
-                    const st = statusMap[agency.status] ?? { label: agency.status, color: '#94a3b8' };
+                    const st = statusMap[agency.status ?? ''] ?? { label: agency.status ?? 'N/A', color: '#94a3b8' };
                     return <>
                       <div style={{
                         padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,

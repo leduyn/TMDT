@@ -167,11 +167,13 @@ export default function ProfilePage() {
 
   if (loading || authLoading) return <div className="loading-spinner" />;
 
-  const applyBadge = (value: boolean | string | undefined, map: Record<string, { label: string; type: any }>, fallback = '---') => {
+  const applyBadge = (value: boolean | string | undefined, map: Record<string, any>, fallback = '---') => {
     if (value === undefined || value === null) return <span style={{ color: 'var(--text-muted)' }}>{fallback}</span>;
     const key = String(value);
     const entry = map[key];
-    return entry ? <Badge label={entry.label} type={entry.type as any} /> : <span>{key}</span>;
+    if (!entry) return <span>{key}</span>;
+    if (typeof entry === 'string') return <span>{entry}</span>;
+    return <Badge label={entry.label} type={entry.type as any} />;
   };
 
   return (

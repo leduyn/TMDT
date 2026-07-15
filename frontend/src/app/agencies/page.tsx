@@ -31,6 +31,7 @@ interface Agency {
   active: boolean;
   status?: string;
   type?: string;
+  createdAt?: string;
 }
 
 export default function AgenciesPage() {
@@ -76,7 +77,10 @@ export default function AgenciesPage() {
     setIsLoading(true);
     try {
       const agenciesData = await agencyApi.getAll();
-      setAgencies(Array.isArray(agenciesData) ? agenciesData : []);
+      const sorted = (Array.isArray(agenciesData) ? agenciesData : []).sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setAgencies(sorted);
     } catch (err) {
       console.error(err);
     } finally {

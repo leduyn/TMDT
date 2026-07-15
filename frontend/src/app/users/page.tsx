@@ -34,7 +34,8 @@ export default function UserManagementPage() {
     setLoading(true);
     try {
       const data = await userApi.getAll();
-      setUsers(data);
+      const sorted = [...data].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setUsers(sorted);
     } catch (e: any) {
       setModal({ isOpen: true, title: 'Lỗi', message: e.message || 'Không thể tải danh sách người dùng', type: 'error' });
     } finally {

@@ -41,7 +41,7 @@ export function ProfileScreen({ navigation }: any) {
     try {
       const data = await userApi.getMe();
       setProfile(data);
-    } catch {} finally {
+    } catch { } finally {
       setLoading(false);
     }
   };
@@ -51,7 +51,7 @@ export function ProfileScreen({ navigation }: any) {
       const data = await upgradeApi.getUpgradeStatus();
       setAgencyType(data.type);
       setUpgradeStatus(data.upgradeStatus);
-    } catch {}
+    } catch { }
   };
 
   const handleRequestUpgrade = async () => {
@@ -126,7 +126,7 @@ export function ProfileScreen({ navigation }: any) {
     { label: 'Tên đăng nhập', value: profile?.username || user?.username },
     { label: 'Email', value: profile?.email || user?.email },
     { label: 'Số điện thoại', value: profile?.phone },
-    { label: 'Vai trò', value: userRole === 'ADMIN' ? 'Quản trị viên' : userRole === 'AGENCY' ? 'Đại lý' : 'Khách hàng' },
+    { label: 'Vai trò', value: userRole === 'COMPANY' ? 'Quản trị viên' : userRole === 'AGENCY' ? 'Đại lý' : 'Khách hàng' },
     { label: 'Tên hiển thị', value: profile?.displayName },
     { label: 'Tên tổ chức', value: profile?.organizationName },
     { label: 'Mã số thuế', value: profile?.taxCode },

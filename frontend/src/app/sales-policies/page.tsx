@@ -37,7 +37,8 @@ export default function SalesPoliciesPage() {
     setIsLoading(true);
     try {
       const policiesData = await salesPolicyApi.getAll();
-      setPolicies(policiesData || []);
+      const sorted = (policiesData || []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPolicies(sorted);
     } catch (err) {
       console.error('Failed to load Sales Policies data', err);
     } finally {

@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface AgencyCategorySelectionRepository extends JpaRepository<AgencyCategorySelection, Long> {
     List<AgencyCategorySelection> findByAgencyId(Long agencyId);
+    List<AgencyCategorySelection> findByCategoryId(Long categoryId);
     void deleteByAgencyId(Long agencyId);
 }

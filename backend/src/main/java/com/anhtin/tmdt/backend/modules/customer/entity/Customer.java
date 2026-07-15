@@ -36,8 +36,8 @@ public class Customer {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(20) default 'ACTIVE'")
-    private CustomerStatus status = CustomerStatus.ACTIVE;
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'PENDING'")
+    private CustomerStatus status = CustomerStatus.PENDING;
 
     @PreUpdate
     protected void onUpdate() {

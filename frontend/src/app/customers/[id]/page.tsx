@@ -6,12 +6,12 @@ import Main from '@/components/Main';
 import { customerApi, CustomerDTO, orderApi, OrderDTO } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Badge from '@/components/ui/Badge';
+import Badge, { BadgeType } from '@/components/ui/Badge';
 
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: 'Hoạt động', INACTIVE: 'Ngừng', PENDING: 'Chờ duyệt', REJECTED: 'Từ chối',
 };
-const STATUS_TYPES: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
+const STATUS_TYPES: Record<string, BadgeType> = {
   ACTIVE: 'success', INACTIVE: 'error', PENDING: 'warning', REJECTED: 'error',
 };
 

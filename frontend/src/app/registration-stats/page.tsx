@@ -6,8 +6,8 @@ import Navbar from '@/components/Navbar';
 import Main from '@/components/Main';
 import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
-import { surveyApi, SurveyAnswerStats } from '@/lib/api';
-import { BarChart, PieChart, HelpCircle, Layers } from 'lucide-react';
+import { surveyApi, SurveyAnswerDTO, agencyApi } from '@/lib/api';
+import { BarChart, HelpCircle, Layers, X } from 'lucide-react';
 
 interface CategoryStat {
   categoryId: number;
@@ -21,9 +21,13 @@ export default function RegistrationStatsPage() {
   const { user, isLoading, token } = useAuth();
   const router = useRouter();
 
-  const [surveyStats, setSurveyStats] = useState<SurveyAnswerStats[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStat[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Detail modal
+  const [detailCategory, setDetailCategory] = useState<CategoryStat | null>(null);
+  const [agencyDetails, setAgencyDetails] = useState<{ agency: any; answers: SurveyAnswerDTO[] }[]>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -43,18 +47,38 @@ export default function RegistrationStatsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [surveyData, categoryData] = await Promise.all([
-        surveyApi.getAnswerStats(),
-        fetch(`${API_BASE}/api/agencies/categories/stats`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }).then(r => r.json()),
-      ]);
-      setSurveyStats(surveyData);
+      const categoryData = await fetch(`${API_BASE}/api/agencies/categories/stats`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }).then(r => r.json());
       setCategoryStats(categoryData);
     } catch (err) {
       console.error('Error fetching stats:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCategoryClick = async (stat: CategoryStat) => {
+    setDetailCategory(stat);
+    setIsLoadingDetail(true);
+    try {
+      const agencies = await agencyApi.getAgenciesByCategory(stat.categoryId);
+      const withAnswers = await Promise.all(
+        agencies.map(async (a: any) => {
+          try {
+            const answers = await surveyApi.getAgencyAnswers(a.id, stat.categoryId);
+            return { agency: a, answers };
+          } catch {
+            return { agency: a, answers: [] as SurveyAnswerDTO[] };
+          }
+        })
+      );
+      setAgencyDetails(withAnswers);
+    } catch (err) {
+      console.error('Error fetching agencies by category:', err);
+      setAgencyDetails([]);
+    } finally {
+      setIsLoadingDetail(false);
     }
   };
 
@@ -112,7 +136,13 @@ export default function RegistrationStatsPage() {
                     const maxCount = Math.max(...categoryStats.map(s => s.count));
                     const pct = (stat.count / maxCount) * 100;
                     return (
-                      <div key={stat.categoryId}>
+                      <div
+                        key={stat.categoryId}
+                        onClick={() => handleCategoryClick(stat)}
+                        style={{ cursor: 'pointer', padding: '6px 8px', borderRadius: 8, transition: 'background 0.2s' }}
+                        onMouseOver={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                      >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: '0.9rem' }}>
                           <span style={{ fontWeight: 500 }}>{stat.categoryName}</span>
                           <span style={{ color: 'var(--text-muted)' }}>{stat.count} đại lý</span>
@@ -126,89 +156,117 @@ export default function RegistrationStatsPage() {
                 </div>
               )}
             </GlassCard>
+          </div>
+        )}
 
-            {/* Survey Stats */}
-            <GlassCard style={{ padding: 28 }}>
-              <h3 style={{ margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 10, color: '#f59e0b' }}>
-                <HelpCircle size={20} /> Kết quả khảo sát đăng ký
-              </h3>
-              {surveyStats.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>Chưa có câu trả lời khảo sát nào</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                  {surveyStats.map((stat) => (
-                    <div key={stat.questionId} style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: 16, padding: 20
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1rem' }}>
-                            {stat.question}
-                          </h4>
-                          <span style={{
-                            display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 8,
-                            fontSize: '0.75rem', fontWeight: 500,
-                            background: stat.questionType === 'text' ? 'rgba(99,102,241,0.12)' :
-                              stat.questionType === 'radio' ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)',
-                            color: stat.questionType === 'text' ? '#818cf8' :
-                              stat.questionType === 'radio' ? '#f59e0b' : '#10b981',
+        {/* Detail Modal */}
+        {detailCategory && (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setDetailCategory(null)}
+          >
+            <div
+              className="glass-card fade-in-up"
+              style={{ width: 900, maxWidth: '95vw', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', borderRadius: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 18, fontWeight: 700,
+                }}>
+                  <Layers size={20} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>{detailCategory.categoryName}</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{detailCategory.count} đại lý đã chọn danh mục này</p>
+                </div>
+                <button
+                  onClick={() => setDetailCategory(null)}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', borderRadius: 8, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                {isLoadingDetail ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+                    <div className="spinner" style={{ width: 32, height: 32 }} />
+                  </div>
+                ) : agencyDetails.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>Không có dữ liệu</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {agencyDetails.map(({ agency: a, answers }) => (
+                      <div key={a.id} style={{
+                        background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-light)',
+                        borderRadius: 16, overflow: 'hidden',
+                      }}>
+                        {/* Agency header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'rgba(255,255,255,0.03)', borderBottom: answers.length > 0 ? '1px solid var(--border-light)' : 'none' }}>
+                          <div style={{
+                            width: 38, height: 38, borderRadius: 10,
+                            background: a.active ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: a.active ? '#10b981' : '#ef4444',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700,
                           }}>
-                            {stat.questionType === 'text' ? 'Text' : stat.questionType === 'radio' ? 'Radio' : 'Checkbox'}
+                            {a.name?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{a.name}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                              Mã: {a.code}{a.phone ? ` • ${a.phone}` : ''}
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: '0.7rem', padding: '3px 10px', borderRadius: 8, fontWeight: 600,
+                            background: a.type === 'WHOLESALE' ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)',
+                            color: a.type === 'WHOLESALE' ? '#818cf8' : '#10b981',
+                          }}>
+                            {a.type === 'WHOLESALE' ? 'Bán sỉ' : a.type === 'RETAIL' ? 'Bán lẻ' : '---'}
                           </span>
-                        </div>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                          {stat.totalAnswers} câu trả lời
-                        </span>
-                      </div>
-
-                      {stat.questionType === 'text' ? (
-                        <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                          {stat.rawAnswers && stat.rawAnswers.length > 0 ? (
-                            stat.rawAnswers.map((answer, idx) => (
-                              <div key={idx} style={{
-                                padding: '8px 12px', marginBottom: 4,
-                                background: 'rgba(255,255,255,0.03)', borderRadius: 8,
-                                fontSize: '0.9rem'
-                              }}>
-                                {answer}
-                              </div>
-                            ))
-                          ) : (
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Chưa có câu trả lời</p>
+                          {answers.length > 0 && (
+                            <span style={{ fontSize: '0.7rem', padding: '3px 10px', borderRadius: 8, background: 'rgba(99,102,241,0.12)', color: '#818cf8', fontWeight: 600 }}>
+                              {answers.length} câu trả lời
+                            </span>
                           )}
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {stat.optionCounts && Object.entries(stat.optionCounts).map(([option, count]) => {
-                            const total = Object.values(stat.optionCounts!).reduce((a, b) => a + b, 0);
-                            const pct = total > 0 ? (count / total) * 100 : 0;
-                            return (
-                              <div key={option}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: 2 }}>
-                                  <span>{option}</span>
-                                  <span style={{ color: 'var(--text-muted)' }}>{count} ({pct.toFixed(1)}%)</span>
+
+                        {/* Q&A section */}
+                        {answers.length > 0 ? (
+                          <div style={{ padding: '12px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {answers.map(ans => (
+                              <div key={ans.id}>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <HelpCircle size={12} />
+                                  {ans.question}
+                                  <span style={{
+                                    padding: '1px 6px', borderRadius: 6, fontSize: '0.65rem', fontWeight: 500,
+                                    background: ans.questionType === 'text' ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)',
+                                    color: ans.questionType === 'text' ? '#818cf8' : '#f59e0b',
+                                  }}>
+                                    {ans.questionType}
+                                  </span>
                                 </div>
-                                <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
-                                  <div style={{
-                                    height: '100%', width: `${pct}%`,
-                                    background: stat.questionType === 'radio'
-                                      ? 'linear-gradient(90deg, #f59e0b, #ef4444)'
-                                      : 'linear-gradient(90deg, #10b981, #06b6d4)',
-                                    borderRadius: 3, transition: 'width 0.6s ease'
-                                  }} />
-                                </div>
+                                <div style={{ fontWeight: 500, color: 'var(--text-primary)', paddingLeft: 18, fontSize: '0.9rem' }}>{ans.answer}</div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </GlassCard>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '14px 18px', margin: 0 }}>
+                            Chưa có câu trả lời
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </Main>

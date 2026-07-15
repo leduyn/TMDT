@@ -139,7 +139,7 @@ export default function CustomerUpgradePage() {
       case 'PENDING': return <Badge label="Chờ duyệt" type="warning" />;
       case 'APPROVED': return <Badge label="Đã duyệt" type="success" />;
       case 'REJECTED': return <Badge label="Từ chối" type="error" />;
-      default: return <Badge label={status} type="default" />;
+      default: return <Badge label={status} type="info" />;
     }
   };
 
@@ -179,7 +179,7 @@ export default function CustomerUpgradePage() {
       header: 'Loại cũ → Mới', key: 'newType', align: 'center', width: '15%',
       render: (r) => (
         <div className="flex items-center gap-1 justify-center text-sm">
-          <Badge label={r.oldType} type="default" />
+          <Badge label={r.oldType} type="info" />
           <span className="text-[var(--text-muted)]">→</span>
           <Badge label={r.newType} type="success" />
         </div>
@@ -254,7 +254,7 @@ export default function CustomerUpgradePage() {
             <p className="text-sm text-[var(--text-secondary)] mb-4">
               Đại lý: <strong className="text-white">{modalItem.agencyName || `#${modalItem.agencyId}`}</strong>
               <br />
-              Yêu cầu: <Badge label={modalItem.oldType} type="default" /> → <Badge label={modalItem.newType} type="success" />
+              Yêu cầu: <Badge label={modalItem.oldType} type="info" /> → <Badge label={modalItem.newType} type="success" />
               <br />
               Người yêu cầu: {modalItem.changedByName || '—'}
             </p>

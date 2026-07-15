@@ -9,7 +9,7 @@ import Link from 'next/link';
 import PageHeader from '@/components/ui/PageHeader';
 import SearchActionHeader from '@/components/ui/SearchActionHeader';
 import DataTable, { Column } from '@/components/ui/DataTable';
-import Badge from '@/components/ui/Badge';
+import Badge, { BadgeType } from '@/components/ui/Badge';
 import { UserPlus, Eye, Edit, Building, Phone, MapPin } from 'lucide-react';
 
 export default function CustomersPage() {
@@ -97,8 +97,8 @@ export default function CustomersPage() {
       render: (c) => {
         const status = c.status || 'ACTIVE';
         const labels: Record<string, string> = { ACTIVE: 'Hoạt động', INACTIVE: 'Ngừng', PENDING: 'Chờ duyệt', REJECTED: 'Từ chối' };
-        const types: Record<string, 'success' | 'warning' | 'error' | 'default'> = { ACTIVE: 'success', INACTIVE: 'error', PENDING: 'warning', REJECTED: 'error' };
-        return <Badge label={labels[status] || status} type={types[status] || 'default'} />;
+        const types: Record<string, BadgeType> = { ACTIVE: 'success', INACTIVE: 'error', PENDING: 'warning', REJECTED: 'error' };
+        return <Badge label={labels[status] || status} type={types[status] || 'info'} />;
       }
     },
     {

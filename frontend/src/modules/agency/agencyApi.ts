@@ -94,4 +94,6 @@ export const agencyApi = {
     }),
   getCategoriesDetail: (id: number) =>
     fetchJSON<{ id: number; name: string }[]>(`/api/agencies/${id}/categories`),
+  getAgenciesByCategory: (categoryId: number) =>
+    fetchJSON<{ id: number; name: string; code: string; phone?: string; active: boolean; status?: string; type?: string }[]>(`/api/agencies/by-category/${categoryId}`),
 };

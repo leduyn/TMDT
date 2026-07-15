@@ -844,7 +844,7 @@ export default function AgencyDetailPage() {
               </div>
             </GlassCard>
 
-            {/* Selected Categories */}
+            {/* Selected Categories with Survey Answers */}
             <GlassCard style={{ padding: 24 }}>
               <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 10, color: 'var(--accent-light)' }}>
                 <Layers size={20} /> Danh mục đã chọn
@@ -852,53 +852,135 @@ export default function AgencyDetailPage() {
               {isLoadingRegistration ? (
                 <div className="spinner" style={{ width: 24, height: 24, margin: '20px auto' }} />
               ) : registrationCategories.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {registrationCategories.map(cat => (
-                    <span key={cat.id} style={{
-                      padding: '6px 14px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 500,
-                      background: 'rgba(99,102,241,0.12)', color: '#818cf8',
-                      border: '1px solid rgba(99,102,241,0.2)',
-                    }}>
-                      {cat.name}
-                    </span>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {(() => {
+                    const answerMap = new Map<number, SurveyAnswerDTO[]>();
+                    surveyAnswers.forEach(ans => {
+                      if (ans.categoryId) {
+                        const existing = answerMap.get(ans.categoryId) || [];
+                        existing.push(ans);
+                        answerMap.set(ans.categoryId, existing);
+                      }
+                    });
+                    const hasGlobal = surveyAnswers.some(a => !a.categoryId);
+                    return (
+                      <>
+                        {registrationCategories.map(cat => {
+                          const catAnswers = answerMap.get(cat.id) || [];
+                          return (
+                            <div key={cat.id} style={{
+                              background: 'rgba(255,255,255,0.02)',
+                              border: '1px solid var(--border-light)',
+                              borderRadius: 16, padding: 20, overflow: 'hidden',
+                            }}>
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: 10, marginBottom: catAnswers.length > 0 ? 16 : 0,
+                                paddingBottom: catAnswers.length > 0 ? 12 : 0, borderBottom: catAnswers.length > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                              }}>
+                                <div style={{
+                                  width: 36, height: 36, borderRadius: 10,
+                                  background: 'rgba(99,102,241,0.15)', color: '#818cf8',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700,
+                                }}>
+                                  {cat.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{cat.name}</div>
+                                  {cat.parentName && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cat.parentName}</div>}
+                                </div>
+                                {catAnswers.length > 0 && (
+                                  <span style={{
+                                    marginLeft: 'auto', fontSize: '0.75rem', padding: '2px 10px', borderRadius: 12,
+                                    background: 'rgba(99,102,241,0.12)', color: '#818cf8',
+                                  }}>
+                                    {catAnswers.length} câu trả lời
+                                  </span>
+                                )}
+                              </div>
+                              {catAnswers.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                  {catAnswers.map(ans => (
+                                    <div key={ans.id}>
+                                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <HelpCircle size={13} />
+                                        {ans.question}
+                                        <span style={{
+                                          padding: '1px 6px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 500,
+                                          background: ans.questionType === 'text' ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)',
+                                          color: ans.questionType === 'text' ? '#818cf8' : '#f59e0b',
+                                        }}>
+                                          {ans.questionType}
+                                        </span>
+                                      </div>
+                                      <div style={{ fontWeight: 500, color: 'var(--text-primary)', paddingLeft: 21, fontSize: '0.9rem' }}>{ans.answer}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
+                                  Chưa có câu trả lời cho danh mục này
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {hasGlobal && (() => {
+                          const globalAnswers = surveyAnswers.filter(a => !a.categoryId);
+                          return (
+                            <div key="global" style={{
+                              background: 'rgba(255,255,255,0.02)',
+                              border: '1px solid var(--border-light)',
+                              borderRadius: 16, padding: 20,
+                            }}>
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+                                paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)',
+                              }}>
+                                <div style={{
+                                  width: 36, height: 36, borderRadius: 10,
+                                  background: 'rgba(245,158,11,0.15)', color: '#f59e0b',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                                }}>
+                                  <HelpCircle size={18} />
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>Câu hỏi chung</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Không thuộc danh mục cụ thể</div>
+                                </div>
+                                <span style={{
+                                  marginLeft: 'auto', fontSize: '0.75rem', padding: '2px 10px', borderRadius: 12,
+                                  background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
+                                }}>
+                                  {globalAnswers.length} câu trả lời
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {globalAnswers.map(ans => (
+                                  <div key={ans.id}>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <HelpCircle size={13} />
+                                      {ans.question}
+                                      <span style={{
+                                        padding: '1px 6px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 500,
+                                        background: ans.questionType === 'text' ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)',
+                                        color: ans.questionType === 'text' ? '#818cf8' : '#f59e0b',
+                                      }}>
+                                        {ans.questionType}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontWeight: 500, color: 'var(--text-primary)', paddingLeft: 21, fontSize: '0.9rem' }}>{ans.answer}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    );
+                  })()}
                 </div>
               ) : (
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Chưa chọn danh mục nào</p>
-              )}
-            </GlassCard>
-
-            {/* Survey Answers */}
-            <GlassCard style={{ padding: 24 }}>
-              <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 10, color: '#f59e0b' }}>
-                <HelpCircle size={20} /> Câu trả lời khảo sát
-              </h3>
-              {isLoadingRegistration ? (
-                <div className="spinner" style={{ width: 24, height: 24, margin: '20px auto' }} />
-              ) : surveyAnswers.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {surveyAnswers.map(ans => (
-                    <div key={ans.id} style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: 12, padding: 16
-                    }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {ans.question}
-                        <span style={{
-                          padding: '1px 6px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 500,
-                          background: ans.questionType === 'text' ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)',
-                          color: ans.questionType === 'text' ? '#818cf8' : '#f59e0b',
-                        }}>
-                          {ans.questionType}
-                        </span>
-                      </div>
-                      <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{ans.answer}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Chưa có câu trả lời khảo sát</p>
               )}
             </GlassCard>
           </div>

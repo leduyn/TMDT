@@ -48,6 +48,8 @@ export interface UserDTO {
   billingAddress?: string;
   taxCode?: string;
   phone?: string;
+  avatarUrl?: string;
+  createdAt?: string;
 }
 
 export const authApi = {
