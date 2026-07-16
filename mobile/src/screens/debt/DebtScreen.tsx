@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
-  ActivityIndicator, Alert, Animated, Platform, Dimensions, StatusBar, Image,
+  ActivityIndicator, Alert, Animated, Dimensions, Image,
 } from 'react-native';
+import { SafeScreen } from '../../components/SafeScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { debtApi } from '../../api/debt';
@@ -173,8 +174,7 @@ export function DebtScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+    <SafeScreen style={styles.container} statusBar={{ barStyle: 'light-content', backgroundColor: Colors.primary }}>
 
       {/* ═══ Header ═══ */}
       <View style={styles.header}>
@@ -495,7 +495,7 @@ export function DebtScreen({ navigation }: any) {
         {/* Bottom spacing */}
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }
 
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     backgroundColor: Colors.primary,
   },

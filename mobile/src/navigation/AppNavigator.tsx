@@ -2,11 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../theme';
 import { GuideOverlay } from '../guide/GuideOverlay';
+import { CustomTabBar } from '../components/CustomTabBar';
 
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
@@ -30,30 +30,10 @@ const Tab = createBottomTabNavigator();
 function HomeTabs() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          switch (route.name) {
-            case 'Home': iconName = focused ? 'home' : 'home-outline'; break;
-            case 'Categories': iconName = focused ? 'grid' : 'grid-outline'; break;
-            case 'Cart': iconName = focused ? 'cart' : 'cart-outline'; break;
-            case 'Debt': iconName = focused ? 'wallet' : 'wallet-outline'; break;
-            case 'Profile': iconName = focused ? 'person' : 'person-outline'; break;
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: '#9ca3af',
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
-          paddingBottom: 4,
-          height: 56,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-      })}
+      }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Trang chủ' }} />
       <Tab.Screen name="Categories" component={CategoryListScreen} options={{ tabBarLabel: 'Danh mục' }} />

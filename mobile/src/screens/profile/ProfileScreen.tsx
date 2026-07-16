@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, StatusBar, Image, Alert, Modal
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert, Modal
 } from 'react-native';
+import { SafeScreen } from '../../components/SafeScreen';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
@@ -140,8 +141,7 @@ export function ProfileScreen({ navigation }: any) {
   }
 
   return (
-    <View style={styles.screen}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+    <SafeScreen style={styles.screen} statusBar={{ barStyle: 'light-content', backgroundColor: Colors.primary }}>
       <View style={styles.headerBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack()}>
           <Ionicons name="arrow-back-outline" size={24} color={Colors.white} />
@@ -273,7 +273,7 @@ export function ProfileScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeScreen>
   );
 }
 
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
   },
   backBtn: {

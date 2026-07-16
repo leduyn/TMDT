@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert,
-  Image, TextInput, Dimensions, StatusBar, Platform
+  Image, TextInput, Dimensions, Platform
 } from 'react-native';
+import { SafeScreen } from '../../components/SafeScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -66,8 +67,7 @@ export function HomeScreen({ navigation }: any) {
   ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+    <SafeScreen style={styles.container} statusBar={{ barStyle: 'light-content', backgroundColor: Colors.primary }}>
       
       {/* Header Bar */}
       <View style={styles.header}>
@@ -345,7 +345,7 @@ export function HomeScreen({ navigation }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }
 
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     backgroundColor: Colors.primary,
     borderBottomWidth: 0,

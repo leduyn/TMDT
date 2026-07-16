@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, TextInput, Platform
 } from 'react-native';
+import { SafeScreen } from '../../components/SafeScreen';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { categoryApi, productApi, brandApi } from '../../api/product';
@@ -247,7 +248,7 @@ export function CategoryListScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeScreen style={styles.container} statusBar={{ barStyle: 'light-content', backgroundColor: Colors.primary }}>
       <View style={styles.searchHeader}>
         <View ref={searchBarRef} style={styles.searchWrapper} collapsable={false}>
           <Ionicons name="search-outline" size={18} color={Colors.textTertiary} style={styles.searchIcon} />
@@ -435,7 +436,7 @@ export function CategoryListScreen({ navigation }: any) {
           <Ionicons name="layers-outline" size={18} color={Colors.white} style={{ marginLeft: -6 }} />
         </TouchableOpacity>
       )}
-    </View>
+    </SafeScreen>
   );
 }
 
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     gap: Spacing.md,
   },

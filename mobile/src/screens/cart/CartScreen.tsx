@@ -11,6 +11,7 @@ import {
   UIManager,
   Platform,
 } from 'react-native';
+import { SafeScreen } from '../../components/SafeScreen';
 import { useCart } from '../../context/CartContext';
 import { CartItemRow } from '../../components/CartItemRow';
 import { Colors, BorderRadius, Shadow, Spacing, FontSize, FontWeight } from '../../theme';
@@ -97,7 +98,7 @@ export function CartScreen({ navigation }: any) {
   // ───── Empty Cart State ─────
   if (items.length === 0) {
     return (
-      <View style={styles.screen}>
+      <SafeScreen style={styles.container} statusBar={{ barStyle: 'light-content', backgroundColor: Colors.primary }}>
         <View style={styles.cartHeader}>
           <Text style={styles.cartHeaderTitle}>Giỏ hàng</Text>
           <Text style={styles.cartHeaderCount}>0 sản phẩm</Text>
@@ -118,13 +119,13 @@ export function CartScreen({ navigation }: any) {
             <Text style={styles.emptyShopBtnText}>🛍  Mua sắm ngay</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeScreen>
     );
   }
 
   // ───── Cart with Items ─────
   return (
-    <View style={styles.screen}>
+    <SafeScreen style={styles.screen} statusBar={{ barStyle: 'light-content', backgroundColor: Colors.primary }}>
       {/* Header */}
       <View style={styles.cartHeader}>
         <Text style={styles.cartHeaderTitle}>Giỏ hàng</Text>
@@ -284,11 +285,15 @@ export function CartScreen({ navigation }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
   screen: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -309,7 +314,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
   },
   cartHeaderTitle: {
