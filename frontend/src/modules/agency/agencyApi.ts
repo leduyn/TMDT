@@ -96,4 +96,9 @@ export const agencyApi = {
     fetchJSON<{ id: number; name: string }[]>(`/api/agencies/${id}/categories`),
   getAgenciesByCategory: (categoryId: number) =>
     fetchJSON<{ id: number; name: string; code: string; phone?: string; active: boolean; status?: string; type?: string }[]>(`/api/agencies/by-category/${categoryId}`),
+  saveCategories: (id: number, categoryIds: number[], source: string = 'REGISTRATION') =>
+    fetchJSON<void>(`/api/agencies/${id}/categories`, {
+      method: 'PUT',
+      body: JSON.stringify({ categoryIds, source }),
+    }),
 };

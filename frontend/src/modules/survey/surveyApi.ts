@@ -29,4 +29,30 @@ export const surveyApi = {
 
   getAnswerStats: () =>
     fetchJSON<SurveyAnswerStats[]>('/api/survey/answers/stats'),
+
+  getActiveQuestions: (context?: string, categoryId?: number) => {
+    const params = new URLSearchParams();
+    if (context) params.set('context', context);
+    if (categoryId) params.set('categoryId', String(categoryId));
+    const qs = params.toString();
+    return fetchJSON<SurveyQuestionDTO[]>(`/api/survey/questions/active${qs ? `?${qs}` : ''}`);
+  },
+
+  submitAnswers: (agencyId: number, answers: { questionId: number; answer: string; categoryId?: number }[]) =>
+    fetchJSON<void>(`/api/survey/agency/${agencyId}/answers`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    }),
 };
+
+export interface SurveyQuestionDTO {
+  id: number;
+  question: string;
+  type: string;
+  options?: string;
+  active: boolean;
+  sortOrder: number;
+  globalQuestion?: boolean;
+  categoryIds?: number[];
+  context?: string;
+}
