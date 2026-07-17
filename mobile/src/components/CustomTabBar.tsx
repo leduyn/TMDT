@@ -62,31 +62,40 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
           return (
             <TouchableOpacity
               key={route.key}
-              activeOpacity={0.7}
+              activeOpacity={0.85}
               onPress={onPress}
               style={[styles.tab, { flex: isFocused ? ACTIVE_FLEX : 1 }]}
             >
-              {isFocused && (
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.04)', 'rgba(255,255,255,0.5)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
+              {isFocused ? (
+                <View style={styles.neoShadow}>
+                  <View style={styles.neoOuterBorder}>
+                    <LinearGradient colors={['#F5F5F5', '#FFFFFF']} style={styles.neoGradient}>
+                      <View style={styles.neoInnerBorder}>
+                        <View style={styles.tabContent}>
+                          <Ionicons name={iconName || 'help-circle-outline'} size={22} color={iconColor} />
+                          <Text style={styles.tabLabel} numberOfLines={1}>{label as string}</Text>
+                        </View>
+                      </View>
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.06)', 'transparent']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                        pointerEvents="none"
+                      />
+                    </LinearGradient>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.tabContent}>
+                  <Ionicons
+                    name={iconName || 'help-circle-outline'}
+                    size={22}
+                    color={iconColor}
+                    style={styles.iconInactive}
+                  />
+                </View>
               )}
-              <View style={styles.tabContent}>
-                <Ionicons
-                  name={iconName || 'help-circle-outline'}
-                  size={22}
-                  color={iconColor}
-                  style={isFocused ? styles.iconActive : styles.iconInactive}
-                />
-                {isFocused && (
-                  <Text style={styles.tabLabel} numberOfLines={1}>
-                    {label as string}
-                  </Text>
-                )}
-              </View>
             </TouchableOpacity>
           );
         })}
@@ -104,7 +113,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     paddingTop: 5,
     paddingHorizontal: 12,
-    minHeight: 60,
+    minHeight: 70,
   },
   tabsRow: {
     flexDirection: 'row',
@@ -115,13 +124,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 36,
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 999,
   },
   tabContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    minWidth: 60,
   },
   iconActive: {
     opacity: 1,
@@ -130,9 +140,36 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.primary,
-    marginLeft: 4,
+  },
+  neoShadow: {
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  neoOuterBorder: {
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: 'rgba(200,200,200,0.3)',
+    overflow: 'hidden',
+  },
+  neoGradient: {
+    borderRadius: 999,
+    paddingHorizontal: 1,
+    paddingVertical: 1,
+  },
+  neoInnerBorder: {
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    borderRadius: 999,
+    minHeight: 35,
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    minWidth: 100,
   },
 });

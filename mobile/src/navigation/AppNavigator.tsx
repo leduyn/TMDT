@@ -6,7 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import { Colors } from '../theme';
 import { GuideOverlay } from '../guide/GuideOverlay';
-import { CustomTabBar } from '../components/CustomTabBar';
+import { CustomTabBar2 } from '../components/CustomTabBar2';
 
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
@@ -30,7 +30,7 @@ const Tab = createBottomTabNavigator();
 function HomeTabs() {
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => <CustomTabBar2 {...props} />}
       screenOptions={{
         headerShown: false,
       }}

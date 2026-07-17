@@ -4,6 +4,7 @@ import {
   Image, TextInput, Dimensions, Platform
 } from 'react-native';
 import { SafeScreen } from '../../components/SafeScreen';
+import { NeumorphicButton } from '../../components/NeumorphicButton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -338,10 +339,14 @@ export function HomeScreen({ navigation }: any) {
         </View>
 
         {/* Logout Option Button */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={Colors.error} />
-          <Text style={styles.logoutText}>Đăng xuất tài khoản</Text>
-        </TouchableOpacity>
+        <NeumorphicButton
+          onPress={handleLogout}
+          iconName="log-out-outline"
+          iconColor={Colors.error}
+          label="Đăng xuất tài khoản"
+          textColor={Colors.error}
+          style={{ marginTop: Spacing.md }}
+        />
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -745,23 +750,6 @@ const styles = StyleSheet.create({
   statBoxValue: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  logoutText: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color: Colors.error,
   },
 });
 
